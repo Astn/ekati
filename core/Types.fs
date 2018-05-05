@@ -63,9 +63,11 @@ type AddressBlock =
     | NodeID of NodeID
     | GlobalNodeID of GlobalNodeID
 
+// TODO: Add timestamp for versioning
 type Data =
   | AddressBlock of AddressBlock
   | BinaryBlock of BinaryBlock
+
   
 type KeyValue = { Key: Data; Value : seq<Data> }
 type Node = { NodeIDs: seq<AddressBlock>; Attributes: seq<KeyValue> }
