@@ -43,11 +43,14 @@ module Utils =
         bb.Metabytes.Type <- typ
         bb.Metabytes.Bytes <- Google.Protobuf.ByteString.CopyFrom(bytes)
         bb
-    let nullMemoryPointer = 
-        let mp = new MemoryPointer()
-        mp.Partitionkey <- ""
-        mp.Filename <- ""
-        mp
+    
+    let NullMemoryPointer = 
+        let p = new Grpc.MemoryPointer()
+        p.Filename <- ""
+        p.Partitionkey <- ""
+        p.Offset <- 0L
+        p.Length <- 0L
+        p
     
     let Id graph nodeId pointer = 
         let ab = new AddressBlock()
@@ -58,7 +61,7 @@ module Utils =
         ab       
         
     let ABTestId id = 
-        Id "People" id nullMemoryPointer
+        Id "People" id NullMemoryPointer
      
     let BBString (text:string) =  MetaBytes metaPlainTextUtf8 (Text.UTF8Encoding.UTF8.GetBytes(text))
     let BBInt (value:int) =       MetaBytes metaXmlInt (BitConverter.GetBytes value)

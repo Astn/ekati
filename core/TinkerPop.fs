@@ -31,7 +31,7 @@ module TinkerPop =
         let EdgeAttrs = attrs "edge" 
         
         let Id id = 
-            Id "TheCrew" id nullMemoryPointer
+            Id "TheCrew" id NullMemoryPointer
         
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
             nodes
