@@ -122,5 +122,6 @@ type GrpcFileStore(config:Config) =
         member x.Items (addressBlock:seq<AddressBlock>) = raise (new NotImplementedException())
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  for (bc,t) in PartitionWriters do
-                                bc.CompleteAdding()                
+                                bc.CompleteAdding()
+                                t.Join()                
  
