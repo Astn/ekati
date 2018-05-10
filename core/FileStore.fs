@@ -24,14 +24,6 @@ type GrpcFileStore(config:Config) =
                     | AddressBlock.AddressOneofCase.None -> 0  
                     | _ -> 0
         Math.Abs(hash) % config.ParitionCount                    
-
-    let NullPointer = 
-        let p = new Grpc.MemoryPointer()
-        p.Filename <- ""
-        p.Partitionkey <- ""
-        p.Offset <- 0L
-        p.Length <- 0L
-        p
     
     // TODO: Switch to PebblesDB when index gets to big
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.NodeID,Grpc.MemoryPointer>()
