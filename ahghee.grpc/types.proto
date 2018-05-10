@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package ahghee.grpc;
+
 message MemoryPointer {
     string partitionkey = 1;
     string filename = 2;
@@ -7,8 +9,8 @@ message MemoryPointer {
     int64 length = 4;
 }
 
-message MetaBytes{
-    string meta = 1;
+message TypeBytes{
+    string type = 1;
     bytes bytes = 2;
 }
 
@@ -26,7 +28,7 @@ message GlobalNodeID {
 
 message BinaryBlock {
     oneof binary {
-        MetaBytes metabytes = 1;
+        TypeBytes metabytes = 1;
         MemoryPointer memorypointer = 2;
     }
 }
@@ -45,9 +47,15 @@ message DataBlock {
     }
 }
 
+message TMD {
+    int64 Timestamp = 1;
+    DataBlock MetaData = 2;
+    DataBlock Data = 3;
+}
+
 message KeyValue {
-    DataBlock key = 1;
-    repeated DataBlock value = 2;
+    TMD key = 1;
+    repeated TMD value = 2;
 }
 
 message Node {
