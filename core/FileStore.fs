@@ -12,6 +12,7 @@ open Ahghee.Grpc
 type Config = {
     ParitionCount:int
     log: string -> unit
+    DataDirectoryPostfix:string
     }
 
 type GrpcFileStore(config:Config) = 
@@ -23,11 +24,6 @@ type GrpcFileStore(config:Config) =
                     | AddressBlock.AddressOneofCase.None -> 0  
                     | _ -> 0
         Math.Abs(hash) % config.ParitionCount                    
-
-    let ChooseNodePartition (n:Node) =
-        n.Ids
-            |> Seq.map (fun x -> ChoosePartition x) 
-            |> Seq.head
 
     let NullPointer = 
         let p = new Grpc.MemoryPointer()
@@ -60,7 +56,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: If we cannot access this file, we need to mark this parition as offline, so it can be written to remotely
                 // TODO: log file access failures
                 
-                let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
+                let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data-"+config.DataDirectoryPostfix))
                 
                 let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
                 let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024,IO.FileOptions.Asynchronous ||| IO.FileOptions.RandomAccess)
@@ -103,7 +99,13 @@ type GrpcFileStore(config:Config) =
             (bc, thread)
             )            
         |> Array.ofSeq                 
-        
+    
+    
+    member this.ChooseNodePartition (n:Node) =
+        n.Ids
+            |> Seq.map (fun x -> ChoosePartition x) 
+            |> Seq.head
+            
     interface IStorage with
         member x.Nodes = raise (new NotImplementedException())
         member x.Flush () = 
@@ -113,7 +115,7 @@ type GrpcFileStore(config:Config) =
             Task.Factory.StartNew(fun () -> 
                 for (n) in nodes do
                     let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                    let (bc,t) = PartitionWriters.[ChooseNodePartition n]
+                    let (bc,t) = PartitionWriters.[this.ChooseNodePartition n]
                     bc.Add ((tcs,n))
                 )
                         
@@ -121,5 +123,6 @@ type GrpcFileStore(config:Config) =
         member x.Items (addressBlock:seq<AddressBlock>) = raise (new NotImplementedException())
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  for (bc,t) in PartitionWriters do
-                                bc.CompleteAdding()                
+                                bc.CompleteAdding()
+                                t.Join()                
  

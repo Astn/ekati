@@ -111,8 +111,8 @@ type MyTests(output:ITestOutputHelper) =
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
                                                                     Config.ParitionCount=12; 
-                                                                    log = (
-                                                                            fun msg -> output.WriteLine msg) 
+                                                                    log = (fun msg -> output.WriteLine msg)
+                                                                    DataDirectoryPostfix="c" 
                                                                     }))
             
         let nodes = buildNodesTheCrew
@@ -124,6 +124,36 @@ type MyTests(output:ITestOutputHelper) =
         Assert.Equal( TaskStatus.RanToCompletion, task.Status)
         Assert.Equal( task.IsCompletedSuccessfully, true)
         ()
+
+    [<Fact>]
+    member __.``ChooseNodePartition is consistent`` () =
+        let store = new GrpcFileStore({
+                                        Config.ParitionCount=12;
+                                        log = (fun msg -> output.WriteLine msg)
+                                        DataDirectoryPostfix="a" 
+                                        })
+                                      
+        let nodes = buildNodesTheCrew
+        let expected = nodes    
+                        |> Seq.map (fun n -> store.ChooseNodePartition n)
+        let actual1 = nodes    
+                        |> Seq.map (fun n -> store.ChooseNodePartition n)
+        
+        (store :> IStorage).Stop |> ignore               
+        let store2 = new GrpcFileStore({
+                                        Config.ParitionCount=12
+                                        log = (fun msg -> output.WriteLine msg)
+                                        DataDirectoryPostfix="b" 
+                                        })                          
+        
+        let actual2 = nodes    
+                        |> Seq.map (fun n -> store2.ChooseNodePartition n)
+        (store2 :> IStorage).Stop |> ignore                        
+        
+        Assert.Equal<int>(expected,actual1)
+        Assert.Equal<int>(expected,actual2)                                               
+                        
+                                                
 
     [<Fact>]
     member __.``Can Remove nodes from graph`` () =
