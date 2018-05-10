@@ -21,6 +21,7 @@ type GrpcFileStore(config:Config) =
                     | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid.Graph.GetHashCode() * 31 + ab.Nodeid.Nodeid.GetHashCode()
                     | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid.Graph.GetHashCode() * 31 + ab.Globalnodeid.Nodeid.Nodeid.GetHashCode()
                     | AddressBlock.AddressOneofCase.None -> 0  
+                    | _ -> 0
         Math.Abs(hash) % config.ParitionCount                    
 
     let ChooseNodePartition (n:Node) =

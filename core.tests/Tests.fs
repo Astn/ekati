@@ -115,7 +115,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                             fun msg -> output.WriteLine msg) 
                                                                     }))
             
-        let nodes = __.buildNodes
+        let nodes = buildNodesTheCrew
         let task = g.Add nodes
         output.WriteLine <| sprintf "task is: %A" task.Status
         let result = task.Wait(10000)
