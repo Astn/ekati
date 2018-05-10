@@ -4,6 +4,7 @@ open System
 open Xunit
 open Xunit.Abstractions
 open Ahghee
+open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
 open System
@@ -22,43 +23,35 @@ type StorageType =
 type MyTests(output:ITestOutputHelper) =
     [<Fact>]
     member __.``Can create an InternalIRI type`` () =
-        let id = Data.AddressBlock ( ABTestId "1" ) 
-        let success = match id with 
-                        | Data.AddressBlock(AddressBlock.NodeID nodeid) -> true
-                        //| Data.AddressBlock(AddressBlock.MemoryPointer pointer) -> true
-                        | Data.BinaryBlock(BinaryBlock.MetaBytes data) -> false
-                        | Data.BinaryBlock(BinaryBlock.MemoryPointer pointer) -> false   
+        let id = DBA ( ABTestId "1" ) 
+        let success = match id.DataCase with 
+                        | DataBlock.DataOneofCase.Address-> true
+                        | _ -> false 
         Assert.True(success)  
         
     [<Fact>]
     member __.``Can create a Binary type`` () =
-        let d : Data = BinaryBlock ( MetaBytes { MetaBytes.Meta= metaPlainTextUtf8; MetaBytes.Bytes = Array.Empty<byte>() } )
-        let success = match d with 
-                        | Data.AddressBlock(AddressBlock.NodeID nodeId) -> false
-                        //| Data.AddressBlock(AddressBlock.MemoryPointer pointer) -> false
-                        | Data.BinaryBlock(BinaryBlock.MetaBytes data) -> true
-                        | Data.BinaryBlock(BinaryBlock.MemoryPointer pointer) -> true
-        Assert.True success   
+        let d = DBB ( MetaBytes metaPlainTextUtf8 (Array.Empty<byte>()))
+        let success = match d.DataCase with 
+                        | DataBlock.DataOneofCase.Binary -> true
+                        | _ -> false
+        Assert.True(success)   
     
    
         
     [<Fact>]
     member __.``Can create a Pair`` () =
         let pair = PropString "firstName" [|"Richard"; "Dick"|]
-    
-        let success = match pair.Key with 
-                        | BinaryBlock (MetaBytes b) when b.Meta.IsSome && b.Meta.Value = metaPlainTextUtf8.Value -> true 
+        let md = pair.Key.Data
+        let success = match md.DataCase with
+                        | DataBlock.DataOneofCase.Binary when md.Binary.Metabytes.Type = metaPlainTextUtf8 -> true 
                         | _ -> false
         Assert.True success     
         
     [<Fact>]
     member __.``Can create a Node`` () =
-        let node = { 
-                    Node.NodeIDs = [| ABTestId "1" |] 
-                    Node.Attributes = [|
-                                        PropString "firstName" [|"Richard"; "Dick"|] 
-                                      |]
-                   }
+        let node = Node [| ABTestId "1" |] 
+                        [| PropString "firstName" [|"Richard"; "Dick"|] |]
     
         let empty = node.Attributes |> Seq.isEmpty
         Assert.True (not empty)
@@ -66,29 +59,24 @@ type MyTests(output:ITestOutputHelper) =
     
     
     member __.buildNodes : seq<Node> = 
-        let node1 = { 
-                    Node.NodeIDs = [| ABTestId "1" |] 
-                    Node.Attributes = [|
-                                        PropString "firstName" [|"Richard"; "Dick"|] 
-                                        PropData "follows" [| DABTestId "2" |] 
-                                      |]
-                   }
+        let node1 = Node [| ABTestId "1" |] 
+                         [|
+                            PropString "firstName" [|"Richard"; "Dick"|] 
+                            PropData "follows" [| DABTestId "2" |] 
+                         |]
                    
-        let node2 = { 
-                    Node.NodeIDs = [| ABTestId "2" |] 
-                    Node.Attributes = [|
-                                        PropString "firstName" [|"Sam"; "Sammy"|] 
-                                        PropData "follows" [| DABTestId "1" |]
-                                      |]
-                   }
+        let node2 = Node [| ABTestId "2" |] 
+                         [|
+                            PropString "firstName" [|"Sam"; "Sammy"|] 
+                            PropData "follows" [| DABTestId "1" |]
+                         |]
                    
-        let node3 = { 
-                    Node.NodeIDs = [| ABTestId "3" |] 
-                    Node.Attributes = [|
-                                        PropString "firstName" [|"Jim"|]
-                                        PropData "follows" [| DABTestId "1"; DABTestId "2" |] 
-                                      |]
-                   }      
+        let node3 = Node [| ABTestId "3" |] 
+                         [|
+                            PropString "firstName" [|"Jim"|]
+                            PropData "follows" [| DABTestId "1"; DABTestId "2" |] 
+                         |]
+                                      
         [| node1; node2; node3 |]      
         |> Array.toSeq             
     
@@ -146,7 +134,7 @@ type MyTests(output:ITestOutputHelper) =
         
         let toRemove = n1 
                         |> Seq.head 
-                        |> (fun n -> n.NodeIDs)
+                        |> (fun n -> n.Ids)
         let task = g.Remove(toRemove)
         task.Wait()
         let n2 = g.Nodes
@@ -159,22 +147,21 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can traverse local graph index`` () =
-        
         let g = __.buildGraph
         let nodesWithIncomingEdges = g.Nodes 
                                          |> Seq.collect (fun n -> n.Attributes) 
                                          |> Seq.collect (fun y -> y.Value 
-                                                               |> Seq.map (fun x -> match x with  
-                                                                                       | Data.AddressBlock(id) -> Some(id) 
-                                                                                       | _ -> None))   
+                                                                  |> Seq.map (fun x -> match x.Data.DataCase with  
+                                                                                        | DataBlock.DataOneofCase.Address -> 
+                                                                                            Some(x.Data.Address) 
+                                                                                        | _ -> None))   
                                          |> Seq.filter (fun x -> match x with 
                                                                  | Some id -> true 
                                                                  | _ -> false)
                                          |> Seq.map    (fun x -> x.Value )
                                          |> Seq.distinct
                                          |> g.Items 
-                                                                               
-    
+
         Assert.NotEmpty nodesWithIncomingEdges.Result
     
     [<Fact>] 
@@ -184,10 +171,10 @@ type MyTests(output:ITestOutputHelper) =
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          
          let actual = g.Nodes
-                         |> Seq.collect (fun n -> n.NodeIDs)
-                         |> Seq.map (fun id -> match id with    
-                                               | NodeID(nid) -> Some(nid.NodeId)
-                                               //| MemoryPointer(mp) -> None
+                         |> Seq.collect (fun n -> n.Ids)
+                         |> Seq.map (fun id -> match id.AddressCase with    
+                                               | AddressBlock.AddressOneofCase.Nodeid -> Some(id.Nodeid.Nodeid)
+                                               | _ -> None
                                                )  
                          |> Seq.filter (fun x -> x.IsSome)
                          |> Seq.map (fun x -> x.Value)        
@@ -204,24 +191,22 @@ type MyTests(output:ITestOutputHelper) =
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
-                                      |> Seq.filter (fun attr -> match attr.Key with 
-                                                                 | BinaryBlock(MetaBytes mb) when mb.Meta = metaPlainTextUtf8 -> 
-                                                                   ( key , Encoding.UTF8.GetString mb.Bytes) |> String.Equals 
+                                      |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with 
+                                                                 | DataBlock.DataOneofCase.Binary when 
+                                                                    attr.Key.Data.Binary.BinaryCase = BinaryBlock.BinaryOneofCase.Metabytes -> 
+                                                                        ( key , Encoding.UTF8.GetString (attr.Key.Data.Binary.Metabytes.Bytes.ToByteArray())) 
+                                                                        |> String.Equals 
                                                                  | _ -> false
                                                     )
-                                      |> Seq.map    (fun attr -> n, attr) 
-                                      |> Seq.map (fun (n,attr) -> 
-                                                    let _id = n.NodeIDs |> Seq.head |> (fun id -> match id with    
-                                                                                  | NodeID(nid) -> nid.NodeId
-                                                                                  //| MemoryPointer(mp) -> ""
-                                                                                  )  
-                                                                                  
-                                                    let labelV = match attr.Key with 
-                                                                 | BinaryBlock(MetaBytes mb) when mb.Meta = metaPlainTextUtf8 ->
-                                                                        Encoding.UTF8.GetString mb.Bytes
-                                                                 | _ -> ""
+                                      |> Seq.map (fun attr -> 
+                                                    let _id = n.Ids 
+                                                                |> Seq.head 
+                                                                |> (fun id -> match id.AddressCase with    
+                                                                              | AddressBlock.AddressOneofCase.Nodeid -> id.Nodeid.Nodeid
+                                                                              | _ -> String.Empty
+                                                                              )  
                                                                                                           
-                                                    _id,labelV,attr.Value |> List.ofSeq
+                                                    _id,key,attr.Value |> List.ofSeq
                                                  )                                                           
                              )
              |> List.ofSeq
@@ -236,17 +221,17 @@ type MyTests(output:ITestOutputHelper) =
          let actual = __.CollectValues attrName g
                                        
          let expected = [ 
-                                "1",attrName, [DBBString "person"]
-                                "2",attrName, [DBBString "person"]
-                                "3",attrName, [DBBString "software"]
-                                "4",attrName, [DBBString "person"]
-                                "5",attrName, [DBBString "software"]
-                                "6",attrName, [DBBString "person"] 
+                                "1",attrName ,[TMDAuto <| DBBString "person"]
+                                "2",attrName ,[TMDAuto <| DBBString "person"]
+                                "3",attrName ,[TMDAuto <| DBBString "software"]
+                                "4",attrName ,[TMDAuto <| DBBString "person"]
+                                "5",attrName ,[TMDAuto <| DBBString "software"]
+                                "6",attrName ,[TMDAuto <| DBBString "person"] 
                            ]
                            
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)                           
-         Assert.Equal<string * string * list<Data>>(expected,actual) 
+         Assert.Equal<string * string * list<TMD>>(expected,actual) 
          
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` () =
@@ -257,14 +242,14 @@ type MyTests(output:ITestOutputHelper) =
          let actual = __.CollectValues attrName g                                         
 
          let expected = [ 
-                        "1",attrName, [DBBInt 29]
-                        "2",attrName, [DBBInt 27]
-                        "4",attrName, [DBBInt 32]
-                        "6",attrName, [DBBInt 35]
+                        "1",attrName, [TMDAuto <| DBBInt 29]
+                        "2",attrName, [TMDAuto <| DBBInt 27]
+                        "4",attrName, [TMDAuto <| DBBInt 32]
+                        "6",attrName, [TMDAuto <| DBBInt 35]
                         ]
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)
-         Assert.Equal<string * string * list<Data>>(expected,actual)         
+         Assert.Equal<string * string * list<TMD>>(expected,actual)         
 
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'out.knows' Edges`` () =
@@ -274,12 +259,12 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                    "1",attrName, [DABTestId "7"]
-                    "1",attrName, [DABTestId "8"]
+                    "1",attrName, [TMDAuto <| DABTestId "7"]
+                    "1",attrName, [TMDAuto <| DABTestId "8"]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<Data>>(expected,actual)
+        Assert.Equal<string * string * list<TMD>>(expected,actual)
         
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'out.created' Edges`` () =        
@@ -288,14 +273,14 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                     "1",attrName, [DABTestId "9"]
-                     "4",attrName, [DABTestId "10"]
-                     "4",attrName, [DABTestId "11"]
-                     "6",attrName, [DABTestId "12"]
+                     "1",attrName, [TMDAuto <| DABTestId "9"]
+                     "4",attrName, [TMDAuto <| DABTestId "10"]
+                     "4",attrName, [TMDAuto <| DABTestId "11"]
+                     "6",attrName, [TMDAuto <| DABTestId "12"]
                      ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<Data>>(expected,actual)
+        Assert.Equal<string * string * list<TMD>>(expected,actual)
     
 
     [<Fact>] 
@@ -306,37 +291,41 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                    "2",attrName, [DABTestId "7"]
-                    "4",attrName, [DABTestId "8"]
+                    "2",attrName, [TMDAuto <| DABTestId "7"]
+                    "4",attrName, [TMDAuto <| DABTestId "8"]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<Data>>(expected,actual)
+        Assert.Equal<string * string * list<TMD>>(expected,actual)
         
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'in.created' Edges`` () =        
-        let sortedByNodeIdEdgeId (data: list<string * string * list<Data>>) = 
+        let sortedByNodeIdEdgeId (data: list<string * string * list<TMD>>) = 
             data 
-            |> List.sortBy (fun (a,b,c) -> a , match (c |> List.head) with 
-                                                                      | Data.AddressBlock(AddressBlock.NodeID ab) -> ab.NodeId
-                                                                      | _ ->  ""
-                                                  )
+            |> List.sortBy (fun (a,b,c) -> 
+                                let h1 = c |> List.head
+                                a , match h1.Data.DataCase with 
+                                    | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Nodeid ->
+                                        h1.Data.Address.Nodeid.Nodeid
+                                    | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Globalnodeid ->
+                                                                            h1.Data.Address.Globalnodeid.Nodeid.Nodeid                                        
+                                    | _ ->  "")
         let g:Graph = __.toyGraph
         let attrName = "in.created"
         let actual = __.CollectValues attrName g
                     |> sortedByNodeIdEdgeId                                         
         
         let expected = [ 
-                         "3",attrName, [DABTestId "9"]
-                         "5",attrName, [DABTestId "10"]
-                         "3",attrName, [DABTestId "11"]
-                         "3",attrName, [DABTestId "12"]
+                         "3",attrName, [TMDAuto <| DABTestId "9"]
+                         "5",attrName, [TMDAuto <| DABTestId "10"]
+                         "3",attrName, [TMDAuto <| DABTestId "11"]
+                         "3",attrName, [TMDAuto <| DABTestId "12"]
                        ] 
                        |> sortedByNodeIdEdgeId
                      
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<Data>>(expected,actual)
+        Assert.Equal<string * string * list<TMD>>(expected,actual)
          
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml has Edge-nodes`` () =        
@@ -345,17 +334,17 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                       
         
         let expected = [ 
-                         "7",attrName, [DBBString "knows"]
-                         "8",attrName, [DBBString "knows"]
-                         "9",attrName, [DBBString "created"]
-                         "10",attrName, [DBBString "created"]
-                         "11",attrName, [DBBString "created"]
-                         "12",attrName, [DBBString "created"]
+                         "7",attrName, [TMDAuto <| DBBString "knows"]
+                         "8",attrName, [TMDAuto <| DBBString "knows"]
+                         "9",attrName, [TMDAuto <| DBBString "created"]
+                         "10",attrName, [TMDAuto <| DBBString "created"]
+                         "11",attrName, [TMDAuto <| DBBString "created"]
+                         "12",attrName, [TMDAuto <| DBBString "created"]
                        ] 
                      
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<Data>>(expected,actual)         
+        Assert.Equal<string * string * list<TMD>>(expected,actual)         
          
     [<Fact>] 
     member __.``After load tinkerpop-crew.xml has node data`` () =        

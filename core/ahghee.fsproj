@@ -7,6 +7,7 @@
     <Compile Include="Startup.fs" />
     <Compile Include="MemoryStore.fs" />
     <Compile Include="FileStore.fs" />
+    <Compile Include="TinkerPop.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

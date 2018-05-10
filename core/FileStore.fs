@@ -6,7 +6,7 @@ open Microsoft.AspNetCore.Mvc
 open System
 open System.Threading
 open System.Threading.Tasks
-
+open Ahghee.Grpc
 
 type Config = {
     ParitionCount:int
@@ -16,13 +16,14 @@ type Config = {
 type GrpcFileStore(config:Config) = 
 
     let rec ChoosePartition (ab:AddressBlock) =
-        let hash = match ab with
-                    | NodeID nid -> nid.Graph.GetHashCode() * 31 + nid.NodeId.GetHashCode()
-                    | GlobalNodeID gnid -> ChoosePartition (NodeID gnid.NodeId)
+        let hash = match ab.AddressCase with
+                    | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid.Graph.GetHashCode() * 31 + ab.Nodeid.Nodeid.GetHashCode()
+                    | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid.Graph.GetHashCode() * 31 + ab.Globalnodeid.Nodeid.Nodeid.GetHashCode()
+                    | AddressBlock.AddressOneofCase.None -> 0  
         Math.Abs(hash) % config.ParitionCount                    
 
     let ChooseNodePartition (n:Node) =
-        n.NodeIDs 
+        n.Ids
             |> Seq.map (fun x -> ChoosePartition x) 
             |> Seq.head
 
@@ -33,72 +34,6 @@ type GrpcFileStore(config:Config) =
         p.Offset <- 0L
         p.Length <- 0L
         p
-        
-    let ToGrpcNodeId nodeid =
-        let gid = new Grpc.NodeID()
-        gid.Graph <- nodeid.Graph
-        gid.Nodeid <- nodeid.NodeId
-        gid.Pointer <- NullPointer
-        gid
-    
-    let ToGrpcGlobalNodeId nodeid =
-        let gnodeid = new Grpc.GlobalNodeID()
-        gnodeid.Domain <- nodeid.Domain
-        gnodeid.Database <- nodeid.Database
-        gnodeid.Nodeid <- ToGrpcNodeId nodeid.NodeId
-        gnodeid       
-    
-    let ToGrpcAddressBlock ab =
-        let abbb = new Grpc.AddressBlock()
-        match ab with 
-          | NodeID(a) -> 
-                abbb.Nodeid <- ToGrpcNodeId a
-                abbb
-          | GlobalNodeID(b) -> 
-                abbb.Globalnodeid <- ToGrpcGlobalNodeId b
-                abbb
-    
-    let ToGrpcMetaBytes (mb:MetaBytes) =
-        let metaBytes = new Grpc.MetaBytes()
-        metaBytes.Meta <- (mb.Meta |> Option.defaultValue "")
-        metaBytes.Bytes <- ByteString.CopyFrom(mb.Bytes)
-        metaBytes
-    
-    let ToGrpcMemoryPointer (mp:MemoryPointer) =
-        let memoryPointer = new Grpc.MemoryPointer()
-        memoryPointer.Partitionkey <- mp.PartitionKey
-        memoryPointer.Filename <- mp.FileName
-        memoryPointer.Offset <- mp.offset
-        memoryPointer.Length <- mp.length
-        memoryPointer
-    
-    let ToGrpcDataBlock (data:Data) =
-        let db = new Grpc.DataBlock()
-        match data with 
-        | AddressBlock (NodeID n) -> 
-            db.Address <- new Grpc.AddressBlock()
-            db.Address.Nodeid <- ToGrpcNodeId n
-            db
-        | AddressBlock (GlobalNodeID n) -> 
-            db.Address <- new Grpc.AddressBlock()
-            db.Address.Globalnodeid <- ToGrpcGlobalNodeId n
-            db              
-        | BinaryBlock (MetaBytes mb) ->
-            db.Binary <- new Grpc.BinaryBlock()
-            db.Binary.Metabytes <- ToGrpcMetaBytes mb
-            db
-        | BinaryBlock (MemoryPointer mp) ->
-            db.Binary <- new Grpc.BinaryBlock()
-            db.Binary.Memorypointer <- ToGrpcMemoryPointer mp
-            db   
-    
-    let ToGrpcKeyValue (kv:KeyValue ) =
-        let gkv = new Grpc.KeyValue()
-        gkv.Key <- ToGrpcDataBlock kv.Key
-        gkv.Value.AddRange ( kv.Value
-                                |> Seq.map (fun x -> ToGrpcDataBlock x)
-                                )
-        gkv                                
     
     // TODO: Switch to PebblesDB when index gets to big
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.NodeID,Grpc.MemoryPointer>()
@@ -134,16 +69,8 @@ type GrpcFileStore(config:Config) =
                             mp.Partitionkey <- i.ToString() 
                             mp.Filename <- fileName
                             mp.Offset <- offset
-                            let sn = new Grpc.Node()
-                            sn.Ids.AddRange (item.NodeIDs
-                                                |> Seq.map (fun ab -> ToGrpcAddressBlock ab)
-                                                ) 
-                                
-                            sn.Attributes.AddRange (item.Attributes
-                                                        |> Seq.map (fun kv -> ToGrpcKeyValue kv)  
-                                                        )
-                            mp.Length <- (sn.CalculateSize() |> int64)
-                            sn.WriteTo out
+                            mp.Length <- (item.CalculateSize() |> int64)
+                            item.WriteTo out
                             //config.log <| sprintf "Finished[%A]: %A" i item
                             config.log <| sprintf "TaskStatus-1: %A" tcs.Task.Status
                             tcs.SetResult(())

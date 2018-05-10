@@ -24,34 +24,37 @@ namespace Ahghee.Grpc {
           string.Concat(
             "Cgt0eXBlcy5wcm90bxILYWhnaGVlLmdycGMiVwoNTWVtb3J5UG9pbnRlchIU",
             "CgxwYXJ0aXRpb25rZXkYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDgoGb2Zm",
-            "c2V0GAMgASgDEg4KBmxlbmd0aBgEIAEoAyIoCglNZXRhQnl0ZXMSDAoEbWV0",
-            "YRgBIAEoCRINCgVieXRlcxgCIAEoDCJUCgZOb2RlSUQSDQoFZ3JhcGgYASAB",
+            "c2V0GAMgASgDEg4KBmxlbmd0aBgEIAEoAyIoCglUeXBlQnl0ZXMSDAoEdHlw",
+            "ZRgBIAEoCRINCgVieXRlcxgCIAEoDCJUCgZOb2RlSUQSDQoFZ3JhcGgYASAB",
             "KAkSDgoGbm9kZWlkGAIgASgJEisKB3BvaW50ZXIYAyABKAsyGi5haGdoZWUu",
             "Z3JwYy5NZW1vcnlQb2ludGVyIlUKDEdsb2JhbE5vZGVJRBIOCgZkb21haW4Y",
             "ASABKAkSEAoIZGF0YWJhc2UYAiABKAkSIwoGbm9kZWlkGAMgASgLMhMuYWhn",
             "aGVlLmdycGMuTm9kZUlEInkKC0JpbmFyeUJsb2NrEisKCW1ldGFieXRlcxgB",
-            "IAEoCzIWLmFoZ2hlZS5ncnBjLk1ldGFCeXRlc0gAEjMKDW1lbW9yeXBvaW50",
+            "IAEoCzIWLmFoZ2hlZS5ncnBjLlR5cGVCeXRlc0gAEjMKDW1lbW9yeXBvaW50",
             "ZXIYAiABKAsyGi5haGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVySABCCAoGYmlu",
             "YXJ5InMKDEFkZHJlc3NCbG9jaxIlCgZub2RlaWQYASABKAsyEy5haGdoZWUu",
             "Z3JwYy5Ob2RlSURIABIxCgxnbG9iYWxub2RlaWQYAiABKAsyGS5haGdoZWUu",
             "Z3JwYy5HbG9iYWxOb2RlSURIAEIJCgdhZGRyZXNzIm0KCURhdGFCbG9jaxIs",
             "CgdhZGRyZXNzGAEgASgLMhkuYWhnaGVlLmdycGMuQWRkcmVzc0Jsb2NrSAAS",
             "KgoGYmluYXJ5GAIgASgLMhguYWhnaGVlLmdycGMuQmluYXJ5QmxvY2tIAEIG",
-            "CgRkYXRhIlYKCEtleVZhbHVlEiMKA2tleRgBIAEoCzIWLmFoZ2hlZS5ncnBj",
-            "LkRhdGFCbG9jaxIlCgV2YWx1ZRgCIAMoCzIWLmFoZ2hlZS5ncnBjLkRhdGFC",
-            "bG9jayJZCgROb2RlEiYKA2lkcxgBIAMoCzIZLmFoZ2hlZS5ncnBjLkFkZHJl",
-            "c3NCbG9jaxIpCgphdHRyaWJ1dGVzGAIgAygLMhUuYWhnaGVlLmdycGMuS2V5",
-            "VmFsdWViBnByb3RvMw=="));
+            "CgRkYXRhImgKA1RNRBIRCglUaW1lc3RhbXAYASABKAMSKAoITWV0YURhdGEY",
+            "AiABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSJAoERGF0YRgDIAEoCzIW",
+            "LmFoZ2hlZS5ncnBjLkRhdGFCbG9jayJKCghLZXlWYWx1ZRIdCgNrZXkYASAB",
+            "KAsyEC5haGdoZWUuZ3JwYy5UTUQSHwoFdmFsdWUYAiADKAsyEC5haGdoZWUu",
+            "Z3JwYy5UTUQiWQoETm9kZRImCgNpZHMYASADKAsyGS5haGdoZWUuZ3JwYy5B",
+            "ZGRyZXNzQmxvY2sSKQoKYXR0cmlidXRlcxgCIAMoCzIVLmFoZ2hlZS5ncnBj",
+            "LktleVZhbHVlYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.MemoryPointer), global::Ahghee.Grpc.MemoryPointer.Parser, new[]{ "Partitionkey", "Filename", "Offset", "Length" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.MetaBytes), global::Ahghee.Grpc.MetaBytes.Parser, new[]{ "Meta", "Bytes" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TypeBytes), global::Ahghee.Grpc.TypeBytes.Parser, new[]{ "Type", "Bytes" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.NodeID), global::Ahghee.Grpc.NodeID.Parser, new[]{ "Graph", "Nodeid", "Pointer" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.GlobalNodeID), global::Ahghee.Grpc.GlobalNodeID.Parser, new[]{ "Domain", "Database", "Nodeid" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.BinaryBlock), global::Ahghee.Grpc.BinaryBlock.Parser, new[]{ "Metabytes", "Memorypointer" }, new[]{ "Binary" }, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.AddressBlock), global::Ahghee.Grpc.AddressBlock.Parser, new[]{ "Nodeid", "Globalnodeid" }, new[]{ "Address" }, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.DataBlock), global::Ahghee.Grpc.DataBlock.Parser, new[]{ "Address", "Binary" }, new[]{ "Data" }, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TMD), global::Ahghee.Grpc.TMD.Parser, new[]{ "Timestamp", "MetaData", "Data" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.KeyValue), global::Ahghee.Grpc.KeyValue.Parser, new[]{ "Key", "Value" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Ids", "Attributes" }, null, null, null)
           }));
@@ -261,10 +264,10 @@ namespace Ahghee.Grpc {
 
   }
 
-  public sealed partial class MetaBytes : pb::IMessage<MetaBytes> {
-    private static readonly pb::MessageParser<MetaBytes> _parser = new pb::MessageParser<MetaBytes>(() => new MetaBytes());
+  public sealed partial class TypeBytes : pb::IMessage<TypeBytes> {
+    private static readonly pb::MessageParser<TypeBytes> _parser = new pb::MessageParser<TypeBytes>(() => new TypeBytes());
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public static pb::MessageParser<MetaBytes> Parser { get { return _parser; } }
+    public static pb::MessageParser<TypeBytes> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
@@ -277,31 +280,31 @@ namespace Ahghee.Grpc {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public MetaBytes() {
+    public TypeBytes() {
       OnConstruction();
     }
 
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public MetaBytes(MetaBytes other) : this() {
-      meta_ = other.meta_;
+    public TypeBytes(TypeBytes other) : this() {
+      type_ = other.type_;
       bytes_ = other.bytes_;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public MetaBytes Clone() {
-      return new MetaBytes(this);
+    public TypeBytes Clone() {
+      return new TypeBytes(this);
     }
 
-    /// <summary>Field number for the "meta" field.</summary>
-    public const int MetaFieldNumber = 1;
-    private string meta_ = "";
+    /// <summary>Field number for the "type" field.</summary>
+    public const int TypeFieldNumber = 1;
+    private string type_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Meta {
-      get { return meta_; }
+    public string Type {
+      get { return type_; }
       set {
-        meta_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        type_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -318,18 +321,18 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
-      return Equals(other as MetaBytes);
+      return Equals(other as TypeBytes);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(MetaBytes other) {
+    public bool Equals(TypeBytes other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Meta != other.Meta) return false;
+      if (Type != other.Type) return false;
       if (Bytes != other.Bytes) return false;
       return true;
     }
@@ -337,7 +340,7 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Meta.Length != 0) hash ^= Meta.GetHashCode();
+      if (Type.Length != 0) hash ^= Type.GetHashCode();
       if (Bytes.Length != 0) hash ^= Bytes.GetHashCode();
       return hash;
     }
@@ -349,9 +352,9 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Meta.Length != 0) {
+      if (Type.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Meta);
+        output.WriteString(Type);
       }
       if (Bytes.Length != 0) {
         output.WriteRawTag(18);
@@ -362,8 +365,8 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Meta.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Meta);
+      if (Type.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Type);
       }
       if (Bytes.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeBytesSize(Bytes);
@@ -372,12 +375,12 @@ namespace Ahghee.Grpc {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public void MergeFrom(MetaBytes other) {
+    public void MergeFrom(TypeBytes other) {
       if (other == null) {
         return;
       }
-      if (other.Meta.Length != 0) {
-        Meta = other.Meta;
+      if (other.Type.Length != 0) {
+        Type = other.Type;
       }
       if (other.Bytes.Length != 0) {
         Bytes = other.Bytes;
@@ -393,7 +396,7 @@ namespace Ahghee.Grpc {
             input.SkipLastField();
             break;
           case 10: {
-            Meta = input.ReadString();
+            Type = input.ReadString();
             break;
           }
           case 18: {
@@ -807,8 +810,8 @@ namespace Ahghee.Grpc {
     /// <summary>Field number for the "metabytes" field.</summary>
     public const int MetabytesFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Ahghee.Grpc.MetaBytes Metabytes {
-      get { return binaryCase_ == BinaryOneofCase.Metabytes ? (global::Ahghee.Grpc.MetaBytes) binary_ : null; }
+    public global::Ahghee.Grpc.TypeBytes Metabytes {
+      get { return binaryCase_ == BinaryOneofCase.Metabytes ? (global::Ahghee.Grpc.TypeBytes) binary_ : null; }
       set {
         binary_ = value;
         binaryCase_ = value == null ? BinaryOneofCase.None : BinaryOneofCase.Metabytes;
@@ -910,7 +913,7 @@ namespace Ahghee.Grpc {
       switch (other.BinaryCase) {
         case BinaryOneofCase.Metabytes:
           if (Metabytes == null) {
-            Metabytes = new global::Ahghee.Grpc.MetaBytes();
+            Metabytes = new global::Ahghee.Grpc.TypeBytes();
           }
           Metabytes.MergeFrom(other.Metabytes);
           break;
@@ -933,7 +936,7 @@ namespace Ahghee.Grpc {
             input.SkipLastField();
             break;
           case 10: {
-            global::Ahghee.Grpc.MetaBytes subBuilder = new global::Ahghee.Grpc.MetaBytes();
+            global::Ahghee.Grpc.TypeBytes subBuilder = new global::Ahghee.Grpc.TypeBytes();
             if (binaryCase_ == BinaryOneofCase.Metabytes) {
               subBuilder.MergeFrom(Metabytes);
             }
@@ -1340,6 +1343,191 @@ namespace Ahghee.Grpc {
 
   }
 
+  public sealed partial class TMD : pb::IMessage<TMD> {
+    private static readonly pb::MessageParser<TMD> _parser = new pb::MessageParser<TMD>(() => new TMD());
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<TMD> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[7]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TMD() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TMD(TMD other) : this() {
+      timestamp_ = other.timestamp_;
+      MetaData = other.metaData_ != null ? other.MetaData.Clone() : null;
+      Data = other.data_ != null ? other.Data.Clone() : null;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public TMD Clone() {
+      return new TMD(this);
+    }
+
+    /// <summary>Field number for the "Timestamp" field.</summary>
+    public const int TimestampFieldNumber = 1;
+    private long timestamp_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public long Timestamp {
+      get { return timestamp_; }
+      set {
+        timestamp_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "MetaData" field.</summary>
+    public const int MetaDataFieldNumber = 2;
+    private global::Ahghee.Grpc.DataBlock metaData_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.DataBlock MetaData {
+      get { return metaData_; }
+      set {
+        metaData_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "Data" field.</summary>
+    public const int DataFieldNumber = 3;
+    private global::Ahghee.Grpc.DataBlock data_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.DataBlock Data {
+      get { return data_; }
+      set {
+        data_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as TMD);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(TMD other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Timestamp != other.Timestamp) return false;
+      if (!object.Equals(MetaData, other.MetaData)) return false;
+      if (!object.Equals(Data, other.Data)) return false;
+      return true;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Timestamp != 0L) hash ^= Timestamp.GetHashCode();
+      if (metaData_ != null) hash ^= MetaData.GetHashCode();
+      if (data_ != null) hash ^= Data.GetHashCode();
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Timestamp != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Timestamp);
+      }
+      if (metaData_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(MetaData);
+      }
+      if (data_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Data);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Timestamp != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Timestamp);
+      }
+      if (metaData_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(MetaData);
+      }
+      if (data_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Data);
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(TMD other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Timestamp != 0L) {
+        Timestamp = other.Timestamp;
+      }
+      if (other.metaData_ != null) {
+        if (metaData_ == null) {
+          metaData_ = new global::Ahghee.Grpc.DataBlock();
+        }
+        MetaData.MergeFrom(other.MetaData);
+      }
+      if (other.data_ != null) {
+        if (data_ == null) {
+          data_ = new global::Ahghee.Grpc.DataBlock();
+        }
+        Data.MergeFrom(other.Data);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            input.SkipLastField();
+            break;
+          case 8: {
+            Timestamp = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            if (metaData_ == null) {
+              metaData_ = new global::Ahghee.Grpc.DataBlock();
+            }
+            input.ReadMessage(metaData_);
+            break;
+          }
+          case 26: {
+            if (data_ == null) {
+              data_ = new global::Ahghee.Grpc.DataBlock();
+            }
+            input.ReadMessage(data_);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
   public sealed partial class KeyValue : pb::IMessage<KeyValue> {
     private static readonly pb::MessageParser<KeyValue> _parser = new pb::MessageParser<KeyValue>(() => new KeyValue());
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1347,7 +1535,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[7]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1375,9 +1563,9 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "key" field.</summary>
     public const int KeyFieldNumber = 1;
-    private global::Ahghee.Grpc.DataBlock key_;
+    private global::Ahghee.Grpc.TMD key_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Ahghee.Grpc.DataBlock Key {
+    public global::Ahghee.Grpc.TMD Key {
       get { return key_; }
       set {
         key_ = value;
@@ -1386,11 +1574,11 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "value" field.</summary>
     public const int ValueFieldNumber = 2;
-    private static readonly pb::FieldCodec<global::Ahghee.Grpc.DataBlock> _repeated_value_codec
-        = pb::FieldCodec.ForMessage(18, global::Ahghee.Grpc.DataBlock.Parser);
-    private readonly pbc::RepeatedField<global::Ahghee.Grpc.DataBlock> value_ = new pbc::RepeatedField<global::Ahghee.Grpc.DataBlock>();
+    private static readonly pb::FieldCodec<global::Ahghee.Grpc.TMD> _repeated_value_codec
+        = pb::FieldCodec.ForMessage(18, global::Ahghee.Grpc.TMD.Parser);
+    private readonly pbc::RepeatedField<global::Ahghee.Grpc.TMD> value_ = new pbc::RepeatedField<global::Ahghee.Grpc.TMD>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Ahghee.Grpc.DataBlock> Value {
+    public pbc::RepeatedField<global::Ahghee.Grpc.TMD> Value {
       get { return value_; }
     }
 
@@ -1451,7 +1639,7 @@ namespace Ahghee.Grpc {
       }
       if (other.key_ != null) {
         if (key_ == null) {
-          key_ = new global::Ahghee.Grpc.DataBlock();
+          key_ = new global::Ahghee.Grpc.TMD();
         }
         Key.MergeFrom(other.Key);
       }
@@ -1468,7 +1656,7 @@ namespace Ahghee.Grpc {
             break;
           case 10: {
             if (key_ == null) {
-              key_ = new global::Ahghee.Grpc.DataBlock();
+              key_ = new global::Ahghee.Grpc.TMD();
             }
             input.ReadMessage(key_);
             break;
@@ -1490,7 +1678,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[8]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
