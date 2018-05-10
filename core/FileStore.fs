@@ -24,11 +24,6 @@ type GrpcFileStore(config:Config) =
                     | _ -> 0
         Math.Abs(hash) % config.ParitionCount                    
 
-    let ChooseNodePartition (n:Node) =
-        n.Ids
-            |> Seq.map (fun x -> ChoosePartition x) 
-            |> Seq.head
-
     let NullPointer = 
         let p = new Grpc.MemoryPointer()
         p.Filename <- ""
@@ -103,7 +98,13 @@ type GrpcFileStore(config:Config) =
             (bc, thread)
             )            
         |> Array.ofSeq                 
-        
+    
+    
+    member this.ChooseNodePartition (n:Node) =
+        n.Ids
+            |> Seq.map (fun x -> ChoosePartition x) 
+            |> Seq.head
+            
     interface IStorage with
         member x.Nodes = raise (new NotImplementedException())
         member x.Flush () = 
@@ -113,7 +114,7 @@ type GrpcFileStore(config:Config) =
             Task.Factory.StartNew(fun () -> 
                 for (n) in nodes do
                     let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                    let (bc,t) = PartitionWriters.[ChooseNodePartition n]
+                    let (bc,t) = PartitionWriters.[this.ChooseNodePartition n]
                     bc.Add ((tcs,n))
                 )
                         
