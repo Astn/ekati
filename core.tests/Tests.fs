@@ -111,8 +111,8 @@ type MyTests(output:ITestOutputHelper) =
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
                                                                     Config.ParitionCount=12; 
-                                                                    log = (
-                                                                            fun msg -> output.WriteLine msg) 
+                                                                    log = (fun msg -> output.WriteLine msg)
+                                                                    DataDirectoryPostfix="c" 
                                                                     }))
             
         let nodes = buildNodesTheCrew
@@ -128,9 +128,9 @@ type MyTests(output:ITestOutputHelper) =
     [<Fact>]
     member __.``ChooseNodePartition is consistent`` () =
         let store = new GrpcFileStore({
-                                        Config.ParitionCount=12; 
-                                        log = (
-                                                fun msg -> output.WriteLine msg) 
+                                        Config.ParitionCount=12;
+                                        log = (fun msg -> output.WriteLine msg)
+                                        DataDirectoryPostfix="a" 
                                         })
                                       
         let nodes = buildNodesTheCrew
@@ -141,9 +141,9 @@ type MyTests(output:ITestOutputHelper) =
         
         (store :> IStorage).Stop |> ignore               
         let store2 = new GrpcFileStore({
-                                        Config.ParitionCount=12; 
-                                        log = (
-                                                fun msg -> output.WriteLine msg) 
+                                        Config.ParitionCount=12
+                                        log = (fun msg -> output.WriteLine msg)
+                                        DataDirectoryPostfix="b" 
                                         })                          
         
         let actual2 = nodes    

@@ -12,6 +12,7 @@ open Ahghee.Grpc
 type Config = {
     ParitionCount:int
     log: string -> unit
+    DataDirectoryPostfix:string
     }
 
 type GrpcFileStore(config:Config) = 
@@ -55,7 +56,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: If we cannot access this file, we need to mark this parition as offline, so it can be written to remotely
                 // TODO: log file access failures
                 
-                let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
+                let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data-"+config.DataDirectoryPostfix))
                 
                 let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
                 let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024,IO.FileOptions.Asynchronous ||| IO.FileOptions.RandomAccess)
