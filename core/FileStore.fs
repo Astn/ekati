@@ -4,6 +4,7 @@ open Google.Protobuf
 open Google.Protobuf.Collections
 open Microsoft.AspNetCore.Mvc
 open System
+open System.IO
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
@@ -57,7 +58,10 @@ type GrpcFileStore(config:Config) =
             let t = new ThreadStart((fun () -> 
                 // TODO: If we cannot access this file, we need to mark this parition as offline, so it can be written to remotely
                 // TODO: log file access failures
-                let fileName = sprintf "/home/austin/git/ahghee/data/ahghee.%i.tmp" i
+                
+                let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
+                
+                let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
                 let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024,IO.FileOptions.Asynchronous ||| IO.FileOptions.RandomAccess)
                 let posEnd = stream.Seek (0L, IO.SeekOrigin.End)
                 let out = new CodedOutputStream(stream)
