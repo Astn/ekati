@@ -13,8 +13,14 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta3" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.7" />
+    <PackageReference Include="System.Data.HashFunction.MurmurHash" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="tinkerpop-modern.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

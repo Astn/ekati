@@ -10,7 +10,7 @@ module TinkerPop =
     open Ahghee.Grpc
     
     type GraphML = XmlProvider<"""https://raw.githubusercontent.com/apache/tinkerpop/master/data/tinkerpop-modern.xml""">
-    let TheCrew = lazy ( GraphML.Load("https://raw.githubusercontent.com/apache/tinkerpop/master/data/tinkerpop-modern.xml") )
+    let TheCrew = lazy ( GraphML.Load("tinkerpop-modern.xml") )
 
     
     let xsType graphMlType : string =
