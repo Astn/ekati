@@ -151,8 +151,8 @@ type MyTests(output:ITestOutputHelper) =
                         |> Seq.map (fun n -> store2.ChooseNodePartition n)
         (store2 :> IStorage).Stop |> ignore                        
         
-        Assert.Equal<int>(expected,actual1)
-        Assert.Equal<int>(expected,actual2)                                               
+        Assert.Equal<uint32>(expected,actual1)
+        Assert.Equal<uint32>(expected,actual2)                                               
                         
                                                 
 
@@ -176,9 +176,23 @@ type MyTests(output:ITestOutputHelper) =
         (len1 = len2 + 1) |> Assert.True 
     
         
-    [<Fact>]
-    member __.``Can traverse local graph index`` () =
-        let g = __.buildGraph
+    [<Theory>]
+    [<InlineData("StorageType.Memory")>]
+    //[<InlineData("StorageType.GrpcFile")>]
+    member __.``Can traverse local graph index`` storeType=
+        let g:Graph = 
+            match storeType with 
+            | "StorageType.Memory" ->   new Graph(new MemoryStore())
+            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                    Config.ParitionCount=12; 
+                                                                    log = (fun msg -> output.WriteLine msg)
+                                                                    DataDirectoryPostfix="d" 
+                                                                    }))
+            | _ -> raise <| new NotImplementedException() 
+            
+        let nodes = buildNodesTheCrew
+        let task = g.Add nodes
+        task.Wait()    
         let nodesWithIncomingEdges = g.Nodes 
                                          |> Seq.collect (fun n -> n.Attributes) 
                                          |> Seq.collect (fun y -> y.Value 
@@ -195,29 +209,104 @@ type MyTests(output:ITestOutputHelper) =
 
         Assert.NotEmpty nodesWithIncomingEdges.Result
     
-    [<Fact>] 
-    member __.``Can get IDs after load tinkerpop-crew.xml into graph`` () =
-         let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("StorageType.Memory")>]
+    [<InlineData("StorageType.GrpcFile")>] 
+    member __.``Can get IDs after load tinkerpop-crew.xml into graph`` storeType =
+         let g:Graph = 
+             match storeType with 
+             | "StorageType.Memory" ->   new Graph(new MemoryStore())
+             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                     Config.ParitionCount=12; 
+                                                                     log = (fun msg -> output.WriteLine msg)
+                                                                     DataDirectoryPostfix="e" 
+                                                                     }))
+             | _ -> raise <| new NotImplementedException() 
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          
-         let actual = g.Nodes
-                         |> Seq.collect (fun n -> n.Ids)
-                         |> Seq.map (fun id -> match id.AddressCase with    
-                                               | AddressBlock.AddressOneofCase.Nodeid -> Some(id.Nodeid.Nodeid)
+         let nodes = buildNodesTheCrew |> List.ofSeq
+         let task = g.Add nodes
+         task.Wait()
+         
+         let n1 = g.Nodes |> List.ofSeq
+         
+         let actual = n1
+                         |> Seq.map (fun id -> 
+                                               let headId =(id.Ids |> Seq.head) 
+                                               match headId.AddressCase with    
+                                               | AddressBlock.AddressOneofCase.Nodeid -> Some(headId.Nodeid.Nodeid)
                                                | _ -> None
                                                )  
                          |> Seq.filter (fun x -> x.IsSome)
                          |> Seq.map (fun x -> x.Value)        
                          |> Seq.sort
+                         |> List.ofSeq
                          
          output.WriteLine("loadedIds: {0}", actual |> String.concat " ")
                                        
          let expectedIds = seq { 1 .. 12 }
                            |> Seq.map (fun n -> n.ToString())
                            |> Seq.sort 
+                           |> List.ofSeq
                            
          Assert.Equal<string>(expectedIds,actual)                             
+
+    [<Theory>]
+    [<InlineData("StorageType.Memory")>]
+    [<InlineData("StorageType.GrpcFile")>] 
+    member __.``The nodes I get out have 1 ID`` storeType =
+         let g:Graph = 
+             match storeType with 
+             | "StorageType.Memory" ->   new Graph(new MemoryStore())
+             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                     Config.ParitionCount=12; 
+                                                                     log = (fun msg -> output.WriteLine msg)
+                                                                     DataDirectoryPostfix="e" 
+                                                                     }))
+             | _ -> raise <| new NotImplementedException() 
+                  
+         
+         
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let task = g.Add nodes 
+         task.Wait()
+         
+         let n1 = g.Nodes 
+                    |> List.ofSeq 
+                    |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+                    |> Seq.map (fun x -> x.Ids)
+         
+         output.WriteLine(sprintf "node in: %A" nodes )
+         output.WriteLine(sprintf "node out: %A" n1 )
+         Assert.All(n1, (fun x -> Assert.Equal ( x.Count, 1)))
+         
+
+    [<Theory>]
+    [<InlineData("StorageType.Memory")>]
+    [<InlineData("StorageType.GrpcFile")>] 
+    member __.``When I put a node in I can get the same out`` storeType =
+         let g:Graph = 
+             match storeType with 
+             | "StorageType.Memory" ->   new Graph(new MemoryStore())
+             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                     Config.ParitionCount=12; 
+                                                                     log = (fun msg -> output.WriteLine msg)
+                                                                     DataDirectoryPostfix="e" 
+                                                                     }))
+             | _ -> raise <| new NotImplementedException() 
+                  
+         
+         
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let task = g.Add nodes 
+         task.Wait()
+         
+         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         output.WriteLine(sprintf "node in: %A" nodes )
+         output.WriteLine(sprintf "node out: %A" n1 )
+         Assert.Equal<Node>(nodes,n1)
+ 
 
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
