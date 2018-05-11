@@ -112,7 +112,7 @@ type MyTests(output:ITestOutputHelper) =
             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
                                                                     Config.ParitionCount=12; 
                                                                     log = (fun msg -> output.WriteLine msg)
-                                                                    DataDirectoryPostfix="c" 
+                                                                    DataDirectoryPostfix="a" 
                                                                     }))
             | _ -> raise <| new NotImplementedException()                                                                    
             
@@ -131,7 +131,7 @@ type MyTests(output:ITestOutputHelper) =
         let store = new GrpcFileStore({
                                         Config.ParitionCount=12;
                                         log = (fun msg -> output.WriteLine msg)
-                                        DataDirectoryPostfix="a" 
+                                        DataDirectoryPostfix="b" 
                                         })
                                       
         let nodes = buildNodesTheCrew
@@ -144,7 +144,7 @@ type MyTests(output:ITestOutputHelper) =
         let store2 = new GrpcFileStore({
                                         Config.ParitionCount=12
                                         log = (fun msg -> output.WriteLine msg)
-                                        DataDirectoryPostfix="b" 
+                                        DataDirectoryPostfix="c" 
                                         })                          
         
         let actual2 = nodes    
@@ -262,7 +262,7 @@ type MyTests(output:ITestOutputHelper) =
              | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
                                                                      Config.ParitionCount=12; 
                                                                      log = (fun msg -> output.WriteLine msg)
-                                                                     DataDirectoryPostfix="e" 
+                                                                     DataDirectoryPostfix="f" 
                                                                      }))
              | _ -> raise <| new NotImplementedException() 
                   
@@ -292,7 +292,7 @@ type MyTests(output:ITestOutputHelper) =
              | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
                                                                      Config.ParitionCount=12; 
                                                                      log = (fun msg -> output.WriteLine msg)
-                                                                     DataDirectoryPostfix="e" 
+                                                                     DataDirectoryPostfix="g" 
                                                                      }))
              | _ -> raise <| new NotImplementedException() 
                   
