@@ -69,7 +69,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: log file access failures
                 
                 let dir = match config.CreateTestingDataDirectory with 
-                          | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+Environment.TickCount.ToString())))
+                          | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+ Path.GetRandomFileName())))
                           | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
                 
                 let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
