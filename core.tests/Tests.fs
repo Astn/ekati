@@ -114,6 +114,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                     log = (fun msg -> output.WriteLine msg)
                                                                     DataDirectoryPostfix="c" 
                                                                     }))
+            | _ -> raise <| new NotImplementedException()                                                                    
             
         let nodes = buildNodesTheCrew
         let task = g.Add nodes

@@ -32,6 +32,7 @@ type MemoryStore() =
                                                                 | None -> (addr, Right (Failure "remote nodes not supported yet"))
                                                 | AddressBlock.AddressOneofCase.Globalnodeid -> raise (new NotImplementedException())
                                                 | AddressBlock.AddressOneofCase.None -> raise (new NotImplementedException())
+                                                | _ -> raise (new NotImplementedException())
                                                 )
             Task.FromResult matches      
         member this.First (predicate: (Node -> bool)) : System.Threading.Tasks.Task<Option<Node>> =

@@ -30,11 +30,16 @@ type GrpcFileStore(config:Config) =
     let ``Index of NodeID without MemoryPointer -> NodeId that need them`` = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.NodeID,list<Grpc.NodeID>>()
     
     let IndexMaintainer =
-        MailboxProcessor<Grpc.NodeID * Grpc.MemoryPointer >.Start(fun inbox ->
+        MailboxProcessor<Grpc.AddressBlock * Grpc.MemoryPointer >.Start(fun inbox ->
             let rec messageLoop() = 
                 async{
                     let! (sn,mp) = inbox.Receive()
-                    ``Index of NodeID -> MemoryPointer``.AddOrUpdate(sn, mp, (fun x y -> mp)) |> ignore
+                    let id = match sn.AddressCase with 
+                             | AddressBlock.AddressOneofCase.Globalnodeid -> sn.Globalnodeid.Nodeid
+                             | AddressBlock.AddressOneofCase.Nodeid -> sn.Nodeid
+                             | _ -> raise <| new NotImplementedException("AddressCase was not a NodeId or GlobalNodeID")
+                    
+                    ``Index of NodeID -> MemoryPointer``.AddOrUpdate(id, mp, (fun x y -> mp)) |> ignore
                     return! messageLoop()
                 }
             messageLoop()    
@@ -64,16 +69,15 @@ type GrpcFileStore(config:Config) =
                             mp.Offset <- offset
                             mp.Length <- (item.CalculateSize() |> int64)
                             item.WriteTo out
-                            //config.log <| sprintf "Finished[%A]: %A" i item
-                            config.log <| sprintf "TaskStatus-1: %A" tcs.Task.Status
-                            tcs.SetResult(())
-                            config.log <| sprintf "TaskStatus-2: %A" tcs.Task.Status
+                           
+                            IndexMaintainer.Post (item.Ids |> Seq.head, mp)
                             // TODO: Flush on interval, or other flush settings
                             config.log <| sprintf "Flushing partition writer[%A]" i
                             out.Flush()
                             stream.Flush()
+                            tcs.SetResult(())
                         with 
-                        | :? Exception as ex -> 
+                        | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex)
                 finally
@@ -116,5 +120,7 @@ type GrpcFileStore(config:Config) =
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  for (bc,t) in PartitionWriters do
                                 bc.CompleteAdding()
-                                t.Join()                
+                                t.Join()    
+                            while IndexMaintainer.CurrentQueueLength > 0 do 
+                                Thread.Sleep(10)            
  
