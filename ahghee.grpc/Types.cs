@@ -23,8 +23,8 @@ namespace Ahghee.Grpc {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cgt0eXBlcy5wcm90bxILYWhnaGVlLmdycGMiVwoNTWVtb3J5UG9pbnRlchIU",
-            "CgxwYXJ0aXRpb25rZXkYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDgoGb2Zm",
-            "c2V0GAMgASgDEg4KBmxlbmd0aBgEIAEoAyIoCglUeXBlQnl0ZXMSDAoEdHlw",
+            "CgxwYXJ0aXRpb25rZXkYASABKAcSEAoIZmlsZW5hbWUYAiABKAcSDgoGb2Zm",
+            "c2V0GAMgASgGEg4KBmxlbmd0aBgEIAEoBiIoCglUeXBlQnl0ZXMSDAoEdHlw",
             "ZRgBIAEoCRINCgVieXRlcxgCIAEoDCJUCgZOb2RlSUQSDQoFZ3JhcGgYASAB",
             "KAkSDgoGbm9kZWlkGAIgASgJEisKB3BvaW50ZXIYAyABKAsyGi5haGdoZWUu",
             "Z3JwYy5NZW1vcnlQb2ludGVyIlUKDEdsb2JhbE5vZGVJRBIOCgZkb21haW4Y",
@@ -63,6 +63,10 @@ namespace Ahghee.Grpc {
 
   }
   #region Messages
+  /// <summary>
+  /// MemoryPointer needs fixed fields, so we can update them
+  /// later without affecting the position of other messages
+  /// </summary>
   public sealed partial class MemoryPointer : pb::IMessage<MemoryPointer> {
     private static readonly pb::MessageParser<MemoryPointer> _parser = new pb::MessageParser<MemoryPointer>(() => new MemoryPointer());
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -100,31 +104,31 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "partitionkey" field.</summary>
     public const int PartitionkeyFieldNumber = 1;
-    private string partitionkey_ = "";
+    private uint partitionkey_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Partitionkey {
+    public uint Partitionkey {
       get { return partitionkey_; }
       set {
-        partitionkey_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        partitionkey_ = value;
       }
     }
 
     /// <summary>Field number for the "filename" field.</summary>
     public const int FilenameFieldNumber = 2;
-    private string filename_ = "";
+    private uint filename_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public string Filename {
+    public uint Filename {
       get { return filename_; }
       set {
-        filename_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        filename_ = value;
       }
     }
 
     /// <summary>Field number for the "offset" field.</summary>
     public const int OffsetFieldNumber = 3;
-    private long offset_;
+    private ulong offset_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public long Offset {
+    public ulong Offset {
       get { return offset_; }
       set {
         offset_ = value;
@@ -133,9 +137,9 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "length" field.</summary>
     public const int LengthFieldNumber = 4;
-    private long length_;
+    private ulong length_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public long Length {
+    public ulong Length {
       get { return length_; }
       set {
         length_ = value;
@@ -165,10 +169,10 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      if (Partitionkey.Length != 0) hash ^= Partitionkey.GetHashCode();
-      if (Filename.Length != 0) hash ^= Filename.GetHashCode();
-      if (Offset != 0L) hash ^= Offset.GetHashCode();
-      if (Length != 0L) hash ^= Length.GetHashCode();
+      if (Partitionkey != 0) hash ^= Partitionkey.GetHashCode();
+      if (Filename != 0) hash ^= Filename.GetHashCode();
+      if (Offset != 0UL) hash ^= Offset.GetHashCode();
+      if (Length != 0UL) hash ^= Length.GetHashCode();
       return hash;
     }
 
@@ -179,39 +183,39 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      if (Partitionkey.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Partitionkey);
-      }
-      if (Filename.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(Filename);
-      }
-      if (Offset != 0L) {
-        output.WriteRawTag(24);
-        output.WriteInt64(Offset);
-      }
-      if (Length != 0L) {
-        output.WriteRawTag(32);
-        output.WriteInt64(Length);
-      }
+      //if (Partitionkey != 0) {
+        output.WriteRawTag(13);
+        output.WriteFixed32(Partitionkey);
+      //}
+      //if (Filename != 0) {
+        output.WriteRawTag(21);
+        output.WriteFixed32(Filename);
+      //}
+      //if (Offset != 0UL) {
+        output.WriteRawTag(25);
+        output.WriteFixed64(Offset);
+      //}
+      //if (Length != 0UL) {
+        output.WriteRawTag(33);
+        output.WriteFixed64(Length);
+      //}
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      if (Partitionkey.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Partitionkey);
-      }
-      if (Filename.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Filename);
-      }
-      if (Offset != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Offset);
-      }
-      if (Length != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Length);
-      }
+      //if (Partitionkey != 0) {
+        size += 1 + 4;
+      //}
+      //if (Filename != 0) {
+        size += 1 + 4;
+      //}
+      //if (Offset != 0UL) {
+        size += 1 + 8;
+      //}
+      //if (Length != 0UL) {
+        size += 1 + 8;
+      //}
       return size;
     }
 
@@ -220,16 +224,16 @@ namespace Ahghee.Grpc {
       if (other == null) {
         return;
       }
-      if (other.Partitionkey.Length != 0) {
+      if (other.Partitionkey != 0) {
         Partitionkey = other.Partitionkey;
       }
-      if (other.Filename.Length != 0) {
+      if (other.Filename != 0) {
         Filename = other.Filename;
       }
-      if (other.Offset != 0L) {
+      if (other.Offset != 0UL) {
         Offset = other.Offset;
       }
-      if (other.Length != 0L) {
+      if (other.Length != 0UL) {
         Length = other.Length;
       }
     }
@@ -242,20 +246,20 @@ namespace Ahghee.Grpc {
           default:
             input.SkipLastField();
             break;
-          case 10: {
-            Partitionkey = input.ReadString();
+          case 13: {
+            Partitionkey = input.ReadFixed32();
             break;
           }
-          case 18: {
-            Filename = input.ReadString();
+          case 21: {
+            Filename = input.ReadFixed32();
             break;
           }
-          case 24: {
-            Offset = input.ReadInt64();
+          case 25: {
+            Offset = input.ReadFixed64();
             break;
           }
-          case 32: {
-            Length = input.ReadInt64();
+          case 33: {
+            Length = input.ReadFixed64();
             break;
           }
         }
@@ -479,29 +483,6 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as NodeID);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public bool Equals(NodeID other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Graph != other.Graph) return false;
-      if (Nodeid != other.Nodeid) return false;
-      if (!object.Equals(Pointer, other.Pointer)) return false;
-      return true;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Graph.Length != 0) hash ^= Graph.GetHashCode();
-      if (Nodeid.Length != 0) hash ^= Nodeid.GetHashCode();
-      if (pointer_ != null) hash ^= Pointer.GetHashCode();
-      return hash;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

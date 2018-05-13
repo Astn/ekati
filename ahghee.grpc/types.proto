@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package ahghee.grpc;
 
+// MemoryPointer needs fixed fields, so we can update them
+// later without affecting the position of other messages
 message MemoryPointer {
-    string partitionkey = 1;
-    string filename = 2;
-    int64 offset = 3;
-    int64 length = 4;
+    fixed32 partitionkey = 1;
+    fixed32 filename = 2;
+    fixed64 offset = 3;
+    fixed64 length = 4;
 }
 
 message TypeBytes{

@@ -12,6 +12,8 @@ type Either<'L, 'R> =
     | Left of 'L
     | Right of 'R
 
+type NodeIdHash = { hash:int; graph:string; nodeid:string }
+
 type IStorage =
     abstract member Nodes: seq<Node>
     abstract member Flush: unit -> unit
@@ -34,6 +36,8 @@ type Graph(storage:IStorage) =
 module Utils =
     open Google.Protobuf
 
+    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash = { hash= nodeid.GetHashCode(); graph=nodeid.Graph; nodeid=nodeid.Nodeid }
+
     let metaPlainTextUtf8 = "xs:string"
     let metaXmlInt = "xs:int"
     let metaXmlDouble = "xs:double"
@@ -46,23 +50,25 @@ module Utils =
     
     let NullMemoryPointer = 
         let p = new Grpc.MemoryPointer()
-        p.Filename <- ""
-        p.Partitionkey <- ""
-        p.Offset <- 0L
-        p.Length <- 0L
+        p.Filename <- uint32 0
+        p.Partitionkey <- uint32 0
+        p.Offset <- uint64 0
+        p.Length <- uint64 0
         p
     
-    let Id graph nodeId pointer = 
+    let Id graph nodeId (pointer:MemoryPointer) = 
         let ab = new AddressBlock()
         ab.Nodeid <- new NodeID()
         ab.Nodeid.Graph <- graph
         ab.Nodeid.Nodeid <- nodeId
-        ab.Nodeid.Pointer <- pointer
+        if (pointer = null) then
+            ab.Nodeid.Pointer <- NullMemoryPointer  
+            ()
+        else
+            ab.Nodeid.Pointer <- pointer
+            ()    
         ab       
         
-    let ABTestId id = 
-        Id "People" id NullMemoryPointer
-     
     let BBString (text:string) =  MetaBytes metaPlainTextUtf8 (Text.UTF8Encoding.UTF8.GetBytes(text))
     let BBInt (value:int) =       MetaBytes metaXmlInt (BitConverter.GetBytes value)
     let BBDouble (value:double) = MetaBytes metaXmlDouble (BitConverter.GetBytes value)
@@ -74,8 +80,6 @@ module Utils =
         let data = new DataBlock()
         data.Binary <- binary
         data        
-    let DABTestId id = 
-        DBA (ABTestId id)    
     let DBBString (text:string) = 
         DBB (BBString text)
     let DBBInt (value:int) = 
