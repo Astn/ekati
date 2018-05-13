@@ -46,35 +46,40 @@ type GrpcFileStore(config:Config) =
     
     // TODO: Switch to PebblesDB when index gets to big
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,Grpc.MemoryPointer>()
+    
+    // TODO: a value of a SortedList might have better performance when we get a lot of items. Test it.
     let Index2 = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,Set<Grpc.NodeID>>()
 
     let UpdateMemoryPointers (node:Node)=
         let UpdateForNodeId (nodeid:NodeID) =
-            let mutable outMp:MemoryPointer = Utils.NullMemoryPointer
-            if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
-                nodeid.Pointer <- outMp
-                ()
-            else
-                nodeid.Pointer <- Utils.NullMemoryPointer
-                let needsIt = (node.Ids |> Seq.head).Nodeid
-                Index2.AddOrUpdate(
-                    Utils.GetNodeIdHash nodeid, 
-                    new Set<NodeID>( [|needsIt|]) , 
-                    (fun (nid:NodeIdHash) (s:Set<NodeID>) -> s.Add needsIt) ) |> ignore
-                ()    
-            ()
+            if (nodeid.Pointer.Length = uint64 0) then
+                let mutable outMp:MemoryPointer = Utils.NullMemoryPointer
+                if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
+                    nodeid.Pointer <- outMp
+                    true
+                else
+                    nodeid.Pointer <- Utils.NullMemoryPointer
+                    let needsIt = (node.Ids |> Seq.head).Nodeid
+                    Index2.AddOrUpdate(
+                        Utils.GetNodeIdHash nodeid, 
+                        new Set<NodeID>( [|needsIt|]) , 
+                        (fun (nid:NodeIdHash) (s:Set<NodeID>) -> s.Add needsIt) ) |> ignore
+                    false    
+            else 
+                false    
     
-        let valuePointers = node.Attributes
+        let updated = node.Attributes
                             |> Seq.collect (fun attr -> attr.Value)
-                            |> Seq.iter (fun tmd ->
+                            |> Seq.map (fun tmd ->
                                             match  tmd.Data.DataCase with
                                             | DataBlock.DataOneofCase.Address -> 
                                                 match tmd.Data.Address.AddressCase with 
                                                 | AddressBlock.AddressOneofCase.Nodeid -> UpdateForNodeId tmd.Data.Address.Nodeid
                                                 | AddressBlock.AddressOneofCase.Globalnodeid -> UpdateForNodeId tmd.Data.Address.Globalnodeid.Nodeid
-                                                | _ ->  ()
-                                            | _ -> ())
-        ()
+                                                | _ ->  false
+                                            | _ -> false)
+                            |> Seq.contains true                
+        updated
 
     
     let IndexMaintainer =
@@ -92,9 +97,14 @@ type GrpcFileStore(config:Config) =
                         // check if there are any nodes looking for the one we just added.
                         let mutable fixers = Set.empty<NodeID>
                         // TODO: Why are we not getting into this If block..!!??
-                        config.log (sprintf "Index2 length: %A - Contains Item: %A" Index2.Count (Index2.ContainsKey (Utils.GetNodeIdHash id)))
-                        if (Index2.TryGetValue((Utils.GetNodeIdHash id), & fixers)) then
-                            let allDone = seq {for f in fixers do
+                        //config.log (sprintf "Index2 length: %A - Contains Item: %A" Index2.Count (Index2.ContainsKey (Utils.GetNodeIdHash id)))
+                        // TODO: TryGetValue doesn't every remove anything.
+                        // We need to use TryRemove, but there is a race condition I'm thinking.
+                        if (Index2.TryRemove((Utils.GetNodeIdHash id), & fixers)) then
+                            let sorted = fixers 
+                                         |> Seq.sortBy (fun x -> int <| x.Pointer.Offset)
+                                                                                                 
+                            let allDone = seq {for f in sorted do
                                                 let tcs = new TaskCompletionSource<unit>()
                                                 // Make sure to ask for data out of the correct reader!!!
                                                 fnNodeIO (FixPointers (tcs, f.Pointer))
@@ -108,7 +118,7 @@ type GrpcFileStore(config:Config) =
                                         tcs.SetException(t.Exception) |> ignore
                                 )) |> ignore  
                         else 
-                            config.log (sprintf "Index2 Missing: %A \n Contains Items: \n%A" (Utils.GetNodeIdHash id) Index2.Keys)  
+                            //config.log (sprintf "Index2 Missing: %A \n Contains Items: \n%A" (Utils.GetNodeIdHash id) Index2.Keys)  
                             tcs.SetResult()                                                      
                     with
                     | ex -> tcs.SetException ex   
@@ -146,6 +156,8 @@ type GrpcFileStore(config:Config) =
                 let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
                 let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
                 let out = new CodedOutputStream(stream)
+                //let mutable buffer = Array.zeroCreate<byte> (1024)
+                
                 let mutable lastOpIsWrite = false
                 try
                     for nio in bc.GetConsumingEnumerable() do
@@ -176,10 +188,9 @@ type GrpcFileStore(config:Config) =
                                                                                 
                                 // update all NodeIds with their memoryPointers if we have them.
                                 UpdateMemoryPointers item |> ignore
-                                
                                 item.WriteTo out
-                                out.Flush()  
-                                stream.Flush()
+                                //out.Flush()  
+                                //stream.Flush()
                                 IndexMaintainer.Post (item.Ids |> Seq.head, mp, fnNio, tcs)
                                 // TODO: Flush on interval, or other flush settings
                                 //config.log <| sprintf "Flushing partition writer[%A]" i
@@ -202,8 +213,11 @@ type GrpcFileStore(config:Config) =
                                 
                                 let nnnnnnnn = new Node()
                                 let buffer = Array.zeroCreate<byte> (int request.Length)
+//                                if (buffer.Length < (int request.Length)) then
+//                                    Array.Resize ((ref buffer), (int request.Length))
+                                
                                 stream.Read(buffer,0,int request.Length) |> ignore
-                                MessageExtensions.MergeFrom(nnnnnnnn,buffer)
+                                MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
                                 
                                 tcs.SetResult(nnnnnnnn)
                             with 
@@ -220,19 +234,18 @@ type GrpcFileStore(config:Config) =
                                 
                                 let toFix = new Node()
                                 let buffer = Array.zeroCreate<byte> (int request.Length)
+//                                if (buffer.Length < (int request.Length)) then
+//                                    Array.Resize ((ref buffer), (int request.Length))
                                 let readResult = stream.Read(buffer,0,int request.Length)
                                 if(readResult <> int request.Length || buffer.[0] = byte 0) then
                                     raise (new Exception("wtf"))
-                                MessageExtensions.MergeFrom(toFix,buffer)
+                                MessageExtensions.MergeFrom(toFix,buffer,0,int request.Length)
                                 // now fix it.
-                                UpdateMemoryPointers toFix |> ignore
-                                
-                                if (toFix.CalculateSize() |> uint64 <> request.Length) then
-                                    raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" request.Length (toFix.CalculateSize() |> uint64)))
-                                   
-                                
-                                stream.Seek(int64 request.Offset,SeekOrigin.Begin) |> ignore                   
-                                toFix.WriteTo out
+                                if (UpdateMemoryPointers toFix ) then
+                                    if (toFix.CalculateSize() |> uint64 <> request.Length) then
+                                        raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" request.Length (toFix.CalculateSize() |> uint64)))
+                                    stream.Seek(int64 request.Offset,SeekOrigin.Begin) |> ignore                   
+                                    toFix.WriteTo out
                                 
                                 tcs.SetResult()
                             with 
