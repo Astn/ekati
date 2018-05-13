@@ -346,7 +346,8 @@ type MyTests(output:ITestOutputHelper) =
       let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
       let task = g.Add nodes 
       task.Wait()
-
+      // This test sometimes fails due to concurrency in the indexing. Adding some sleep time to see if that helps.
+      System.Threading.Thread.Sleep 5000
       let n1 = g.Nodes 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
