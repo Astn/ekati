@@ -13,6 +13,19 @@ module TinkerPop =
     let TheCrew = lazy ( GraphML.Load("tinkerpop-modern.xml") )
 
     
+    let ABtoyId id : AddressBlock =
+            let ab graph i= 
+                let a = new AddressBlock()
+                a.Nodeid <- new NodeID()
+                a.Nodeid.Pointer <- NullMemoryPointer
+                a.Nodeid.Graph <- graph
+                a.Nodeid.Nodeid <- i
+                a
+            ab "TheCrew" id
+    
+    let DABtoyId id : DataBlock =
+        DBA (ABtoyId id)
+            
     let xsType graphMlType : string =
         match graphMlType with
         | "string" -> metaPlainTextUtf8
@@ -71,7 +84,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "out." + d.String.Value)
                                                                                          ))
-                                                                 [DABTestId (e.Id.ToString())]                     
+                                                                 [DABtoyId (e.Id.ToString())]                     
                                                          )
                                              ) 
                             |> Seq.append (edges
@@ -81,7 +94,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "in." + d.String.Value)
                                                                                          ))
-                                                                 [DABTestId (e.Id.ToString())]                     
+                                                                 [DABtoyId (e.Id.ToString())]                     
                                                          )
                                              )                  
                         |> z.Attributes.AddRange
@@ -124,7 +137,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "out." + d.String.Value)
                                                                                          ))
-                                                                [DABTestId (e.Id.ToString())]                      
+                                                                [DABtoyId (e.Id.ToString())]                      
                                                          )
                                              ) 
                             |> Seq.append (edges
@@ -134,12 +147,12 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "in." + d.String.Value)
                                                                                          ))
-                                                                [DABTestId (e.Id.ToString())]
+                                                                [DABtoyId (e.Id.ToString())]
                                                          )
                                              )
                             |> Seq.append ( [ 
-                                                Prop (DBBString "source") [DABTestId (n.Source.ToString())]
-                                                Prop (DBBString "target") [DABTestId (n.Target.ToString())]
+                                                Prop (DBBString "source") [DABtoyId (n.Source.ToString())]
+                                                Prop (DBBString "target") [DABtoyId (n.Target.ToString())]
                                             ] ) 
                         |> z.Attributes.AddRange
                         z)

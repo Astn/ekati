@@ -21,9 +21,30 @@ type StorageType =
     
 
 type MyTests(output:ITestOutputHelper) =
+    
+    member __.buildGraph : Graph =
+        let g:Graph = new Graph(new MemoryStore())
+        let nodes = __.buildNodes
+        let task = g.Add nodes
+        match task.Status with
+        | TaskStatus.Created -> task.Start()
+        | _ -> ()                                                                     
+        task.Wait()
+        g
+        
+    member __.toyGraph : Graph =
+        let g:Graph = new Graph(new MemoryStore())
+        let nodes = buildNodesTheCrew
+        let task = g.Add nodes
+        match task.Status with
+             | TaskStatus.Created -> task.Start()
+             | _ -> ()                                                                     
+        task.Wait()
+        g
+
     [<Fact>]
     member __.``Can create an InternalIRI type`` () =
-        let id = DBA ( ABTestId "1" ) 
+        let id = DBA ( ABtoyId "1" ) 
         let success = match id.DataCase with 
                         | DataBlock.DataOneofCase.Address-> true
                         | _ -> false 
@@ -50,7 +71,7 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can create a Node`` () =
-        let node = Node [| ABTestId "1" |] 
+        let node = Node [| ABtoyId "1" |] 
                         [| PropString "firstName" [|"Richard"; "Dick"|] |]
     
         let empty = node.Attributes |> Seq.isEmpty
@@ -59,49 +80,28 @@ type MyTests(output:ITestOutputHelper) =
     
     
     member __.buildNodes : seq<Node> = 
-        let node1 = Node [| ABTestId "1" |] 
+        let node1 = Node [| ABtoyId "1" |] 
                          [|
                             PropString "firstName" [|"Richard"; "Dick"|] 
-                            PropData "follows" [| DABTestId "2" |] 
+                            PropData "follows" [| DABtoyId "2" |] 
                          |]
                    
-        let node2 = Node [| ABTestId "2" |] 
+        let node2 = Node [| ABtoyId "2" |] 
                          [|
                             PropString "firstName" [|"Sam"; "Sammy"|] 
-                            PropData "follows" [| DABTestId "1" |]
+                            PropData "follows" [| DABtoyId "1" |]
                          |]
                    
-        let node3 = Node [| ABTestId "3" |] 
+        let node3 = Node [| ABtoyId "3" |] 
                          [|
                             PropString "firstName" [|"Jim"|]
-                            PropData "follows" [| DABTestId "1"; DABTestId "2" |] 
+                            PropData "follows" [| DABtoyId "1"; DABtoyId "2" |] 
                          |]
                                       
         [| node1; node2; node3 |]      
         |> Array.toSeq             
     
     
-    
-    member __.buildGraph : Graph =
-        let g:Graph = new Graph(new MemoryStore())
-        let nodes = __.buildNodes
-        let task = g.Add nodes
-        match task.Status with
-        | TaskStatus.Created -> task.Start()
-        | _ -> ()                                                                     
-        task.Wait()
-        g
-        
-    member __.toyGraph : Graph =
-        let g:Graph = new Graph(new MemoryStore())
-        let nodes = buildNodesTheCrew
-        let task = g.Add nodes
-        match task.Status with
-             | TaskStatus.Created -> task.Start()
-             | _ -> ()                                                                     
-        task.Wait()
-        g
-
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>]
@@ -244,7 +244,7 @@ type MyTests(output:ITestOutputHelper) =
                          |> List.ofSeq
                          
          output.WriteLine("loadedIds: {0}", actual |> String.concat " ")
-                                       
+         output.WriteLine(sprintf "Error?: %A" task.Exception)                                        
          let expectedIds = seq { 1 .. 12 }
                            |> Seq.map (fun n -> n.ToString())
                            |> Seq.sort 
@@ -307,7 +307,49 @@ type MyTests(output:ITestOutputHelper) =
          output.WriteLine(sprintf "node out: %A" n1 )
          Assert.Equal<Node>(nodes,n1)
  
-
+    [<Theory>]
+    //[<InlineData("StorageType.Memory")>]
+    [<InlineData("StorageType.GrpcFile")>] 
+    member __.``When I put a nodes in their values have MemoryPointers when I get them out`` storeType =
+      let g:Graph = 
+          match storeType with 
+          | "StorageType.Memory" ->   new Graph(new MemoryStore())
+          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                  Config.ParitionCount=12; 
+                                                                  log = (fun msg -> output.WriteLine msg)
+                                                                  CreateTestingDataDirectory=true
+                                                                  }))
+          | _ -> raise <| new NotImplementedException() 
+               
+      
+      
+      let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+      let task = g.Add nodes 
+      task.Wait()
+      System.Threading.Thread.Sleep(5000)
+      let n1 = g.Nodes 
+                |> List.ofSeq 
+                |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+                |> Seq.map (fun n -> 
+                            let valuePointers = n.Attributes
+                                                |> Seq.collect (fun attr -> attr.Value)
+                                                |> Seq.filter (fun tmd ->
+                                                                match  tmd.Data.DataCase with
+                                                                | DataBlock.DataOneofCase.Address -> true
+                                                                | _ -> false)
+                                                |> Seq.map (fun tmd ->
+                                                                match tmd.Data.Address.AddressCase with 
+                                                                | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid.Pointer
+                                                                | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid.Pointer
+                                                                | _ -> NullMemoryPointer)
+                            (n.Ids |> Seq.head).Nodeid, valuePointers                                                                                
+                            )
+      output.WriteLine(sprintf "node out: %A" n1 )
+      
+      Assert.All<NodeID * seq<MemoryPointer>>(n1, (fun (nid,mps) -> 
+            Assert.All<MemoryPointer>(mps, (fun mp -> Assert.NotEqual(mp, NullMemoryPointer)))
+        ))
+ 
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
@@ -379,8 +421,8 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                    "1",attrName, [TMDAuto <| DABTestId "7"]
-                    "1",attrName, [TMDAuto <| DABTestId "8"]
+                    "1",attrName, [TMDAuto <| DABtoyId "7"]
+                    "1",attrName, [TMDAuto <| DABtoyId "8"]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
@@ -393,10 +435,10 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                     "1",attrName, [TMDAuto <| DABTestId "9"]
-                     "4",attrName, [TMDAuto <| DABTestId "10"]
-                     "4",attrName, [TMDAuto <| DABTestId "11"]
-                     "6",attrName, [TMDAuto <| DABTestId "12"]
+                     "1",attrName, [TMDAuto <| DABtoyId "9"]
+                     "4",attrName, [TMDAuto <| DABtoyId "10"]
+                     "4",attrName, [TMDAuto <| DABtoyId "11"]
+                     "6",attrName, [TMDAuto <| DABtoyId "12"]
                      ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
@@ -411,8 +453,8 @@ type MyTests(output:ITestOutputHelper) =
         let actual = __.CollectValues attrName g                                         
         
         let expected = [ 
-                    "2",attrName, [TMDAuto <| DABTestId "7"]
-                    "4",attrName, [TMDAuto <| DABTestId "8"]
+                    "2",attrName, [TMDAuto <| DABtoyId "7"]
+                    "4",attrName, [TMDAuto <| DABtoyId "8"]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
@@ -436,10 +478,10 @@ type MyTests(output:ITestOutputHelper) =
                     |> sortedByNodeIdEdgeId                                         
         
         let expected = [ 
-                         "3",attrName, [TMDAuto <| DABTestId "9"]
-                         "5",attrName, [TMDAuto <| DABTestId "10"]
-                         "3",attrName, [TMDAuto <| DABTestId "11"]
-                         "3",attrName, [TMDAuto <| DABTestId "12"]
+                         "3",attrName, [TMDAuto <| DABtoyId "9"]
+                         "5",attrName, [TMDAuto <| DABtoyId "10"]
+                         "3",attrName, [TMDAuto <| DABtoyId "11"]
+                         "3",attrName, [TMDAuto <| DABtoyId "12"]
                        ] 
                        |> sortedByNodeIdEdgeId
                      
