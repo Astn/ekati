@@ -9,6 +9,7 @@ open Ahghee.Utils
 open Ahghee.TinkerPop
 open System
 open System.Collections
+open System.Diagnostics
 open System.IO
 open System.Text
 open System.Threading.Tasks
@@ -101,6 +102,25 @@ type MyTests(output:ITestOutputHelper) =
         [| node1; node2; node3 |]      
         |> Array.toSeq             
     
+    member __.buildLotsNodes nodeCount perNodeFollowsCount : seq<Node> =
+        // static seed, keeps runs comparable
+        
+        let seededRandom = new Random(nodeCount)
+               
+        seq { for i in 1 .. nodeCount do 
+              yield Node [| ABtoyId (i.ToString()) |] 
+                         ([|
+                            PropString "firstName" [|"Austin"|]
+                            PropString "lastName"  [|"Harris"|]
+                            PropString "age"       [|"36"|]
+                            PropString "city"      [|"Boulder"|]
+                            PropString "state"     [|"Colorado"|]
+                         |] |> Seq.append (seq {for j in 0 .. perNodeFollowsCount do 
+                                                yield PropData "follows" [| DABtoyId (seededRandom.Next(nodeCount).ToString()) |]                                                    
+                                                })
+                         
+                         )    
+            }
     
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
@@ -326,7 +346,7 @@ type MyTests(output:ITestOutputHelper) =
       let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
       let task = g.Add nodes 
       task.Wait()
-      System.Threading.Thread.Sleep(5000)
+
       let n1 = g.Nodes 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
@@ -349,6 +369,33 @@ type MyTests(output:ITestOutputHelper) =
       Assert.All<NodeID * seq<MemoryPointer>>(n1, (fun (nid,mps) -> 
             Assert.All<MemoryPointer>(mps, (fun mp -> Assert.NotEqual(mp, NullMemoryPointer)))
         ))
+        
+    [<Theory>]
+    //[<InlineData("StorageType.Memory")>]
+    [<InlineData("StorageType.GrpcFile", 1000, 1)>]
+    [<InlineData("StorageType.GrpcFile", 10000, 1)>]
+    [<InlineData("StorageType.GrpcFile", 100000, 1)>]
+    [<InlineData("StorageType.GrpcFile", 1000, 10)>]
+    [<InlineData("StorageType.GrpcFile", 10000, 10)>]
+    //[<InlineData("StorageType.GrpcFile", 50000, 10)>]    
+    member __.``We can nodes in 30 seconds`` storeType count followsCount=
+      let g:Graph = 
+          match storeType with 
+          | "StorageType.Memory" ->   new Graph(new MemoryStore())
+          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                  Config.ParitionCount=12; 
+                                                                  log = (fun msg -> output.WriteLine msg)
+                                                                  CreateTestingDataDirectory=true
+                                                                  }))
+          | _ -> raise <| new NotImplementedException() 
+        
+      let startTime = Stopwatch.StartNew()
+      let task = g.Add (__.buildLotsNodes count followsCount)
+      task.Wait()
+      let stopTime = startTime.Stop()
+      output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
+      
+      Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
