@@ -198,7 +198,7 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
-    //[<InlineData("StorageType.GrpcFile")>]
+    [<InlineData("StorageType.GrpcFile")>]
     member __.``Can traverse local graph index`` storeType=
         let g:Graph = 
             match storeType with 
