@@ -300,7 +300,44 @@ type GrpcFileStore(config:Config) =
                 )
                         
         member x.Remove (nodes:seq<AddressBlock>) = raise (new NotImplementedException())
-        member x.Items (addressBlock:seq<AddressBlock>) = raise (new NotImplementedException())
+        member x.Items (addressBlock:seq<AddressBlock>) = 
+            let requestsMade =
+                addressBlock
+                |> Seq.map (fun ab ->
+                    let tcs = new TaskCompletionSource<Node>()
+                    let (bc,t) = PartitionWriters.[int <| ChoosePartition ab]
+                    let nid = match ab.AddressCase with 
+                              | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
+                              | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
+                              | _ -> raise (new ArgumentException("AddressBlock did not contain a valid AddressCase"))
+                    
+                    let t = 
+                        if (nid.Pointer = Utils.NullMemoryPointer) then
+                            let mutable mp = Utils.NullMemoryPointer
+                            if(``Index of NodeID -> MemoryPointer``.TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
+                                bc.Add (Read(tcs, mp))
+                                tcs.Task
+                            else 
+                                tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
+                                tcs.Task   
+                        else 
+                            bc.Add(Read(tcs,nid.Pointer))
+                            tcs.Task
+                            
+                    let res = t.ContinueWith(fun (isdone:Task<Node>) ->
+                                if (isdone.IsCompletedSuccessfully) then
+                                    ab,Left(isdone.Result)
+                                else 
+                                    ab,Right(isdone.Exception :> Exception)
+                                )
+                                
+                    
+                    res)
+            
+            Task.FromResult 
+                (seq { for t in requestsMade do 
+                       yield t.Result 
+                })  
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  for (bc,t) in PartitionWriters do
                                 bc.CompleteAdding()
