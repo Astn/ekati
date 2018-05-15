@@ -138,8 +138,9 @@ type MyTests(output:ITestOutputHelper) =
             
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
+        task.Wait()
         output.WriteLine <| sprintf "task is: %A" task.Status
-        let result = task.Wait(10000)
+        g.Flush()
         g.Stop()
         output.WriteLine <| sprintf "task is now : %A" task.Status
         Assert.Equal( TaskStatus.RanToCompletion, task.Status)
@@ -341,13 +342,10 @@ type MyTests(output:ITestOutputHelper) =
                                                                   }))
           | _ -> raise <| new NotImplementedException() 
                
-      
-      
-      let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
-      let task = g.Add nodes 
+      let task = g.Add buildNodesTheCrew 
       task.Wait()
-      // This test sometimes fails due to concurrency in the indexing. Adding some sleep time to see if that helps.
-      System.Threading.Thread.Sleep 5000
+      g.Flush()
+
       let n1 = g.Nodes 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
@@ -360,15 +358,14 @@ type MyTests(output:ITestOutputHelper) =
                                                                 | _ -> false)
                                                 |> Seq.map (fun tmd ->
                                                                 match tmd.Data.Address.AddressCase with 
-                                                                | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid.Pointer
-                                                                | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid.Pointer
-                                                                | _ -> NullMemoryPointer)
+                                                                | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid
+                                                                | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid
+                                                                | _ -> raise (new Exception("Invalid address case")))
                             (n.Ids |> Seq.head).Nodeid, valuePointers                                                                                
                             )
-      output.WriteLine(sprintf "node out: %A" n1 )
       
-      Assert.All<NodeID * seq<MemoryPointer>>(n1, (fun (nid,mps) -> 
-            Assert.All<MemoryPointer>(mps, (fun mp -> Assert.NotEqual(mp, NullMemoryPointer)))
+      Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
+            Assert.All<NodeID>(mps, (fun mp -> Assert.NotEqual(mp.Pointer, NullMemoryPointer)))
         ))
         
     [<Theory>]
@@ -394,7 +391,11 @@ type MyTests(output:ITestOutputHelper) =
       let task = g.Add (__.buildLotsNodes count followsCount)
       task.Wait()
       let stopTime = startTime.Stop()
+      let startFlush = Stopwatch.StartNew()
+      g.Flush()
+      let stopFlush = startFlush.Stop()
       output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
+      output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
       
       Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
