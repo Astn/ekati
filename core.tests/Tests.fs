@@ -31,6 +31,7 @@ type MyTests(output:ITestOutputHelper) =
         | TaskStatus.Created -> task.Start()
         | _ -> ()                                                                     
         task.Wait()
+        g.Flush()
         g
         
     member __.toyGraph : Graph =
@@ -41,6 +42,7 @@ type MyTests(output:ITestOutputHelper) =
              | TaskStatus.Created -> task.Start()
              | _ -> ()                                                                     
         task.Wait()
+        g.Flush()
         g
 
     [<Fact>]
@@ -213,7 +215,8 @@ type MyTests(output:ITestOutputHelper) =
             
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
-        task.Wait()    
+        task.Wait()   
+        g.Flush() 
         let nodesWithIncomingEdges = g.Nodes 
                                          |> Seq.collect (fun n -> n.Attributes) 
                                          |> Seq.collect (fun y -> y.Value 
@@ -249,7 +252,7 @@ type MyTests(output:ITestOutputHelper) =
          let nodes = buildNodesTheCrew |> List.ofSeq
          let task = g.Add nodes
          task.Wait()
-         
+         g.Flush()
          let n1 = g.Nodes |> List.ofSeq
          
          let actual = n1
@@ -292,7 +295,7 @@ type MyTests(output:ITestOutputHelper) =
          let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
          let task = g.Add nodes 
          task.Wait()
-         
+         g.Flush()
          let n1 = g.Nodes 
                     |> List.ofSeq 
                     |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
@@ -322,7 +325,7 @@ type MyTests(output:ITestOutputHelper) =
          let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
          let task = g.Add nodes 
          task.Wait()
-         
+         g.Flush()
          let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
          output.WriteLine(sprintf "node in: %A" nodes )
          output.WriteLine(sprintf "node out: %A" n1 )
