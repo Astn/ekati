@@ -5,6 +5,7 @@ open Google.Protobuf.Collections
 open Microsoft.AspNetCore.Mvc
 open System
 open System.Collections.Generic
+open System.Diagnostics
 open System.IO
 open System.Threading
 open System.Threading.Tasks
@@ -18,39 +19,19 @@ type Config = {
 
 
 type NodeIO =
-    | Write of TaskCompletionSource<unit> * Node
+    | Write of TaskCompletionSource<unit> * seq<Node>
     | Read  of TaskCompletionSource<Node> * MemoryPointer
     | FlushFixPointers of TaskCompletionSource<unit>
     | FlushWrites of TaskCompletionSource<unit>
 
 type IndexMessage =
-    | Index of Grpc.AddressBlock * Grpc.MemoryPointer * TaskCompletionSource<unit> 
+    | Index of Grpc.NodeID
     | Flush of AsyncReplyChannel<bool>
     
 type NodeIOGroup = { start:uint64; length:uint64; items:List<NodeID> }
 
 type GrpcFileStore(config:Config) = 
-    
-    let ChooseMemoryPointerPartition (mp: MemoryPointer) =
-        mp.Partitionkey
-    
-    let ChooseNodeIdHashPartition (nidHash: NodeIdHash) =
-        let hash = uint32 <| nidHash.hash
-        hash % (uint32 config.ParitionCount)
-    
-    let ChooseNodeIdPartition (nid: NodeID) = 
-        let hash = uint32 <| nid.GetHashCode()
-        hash % (uint32 config.ParitionCount)
-        
-    let rec ChoosePartition (ab:AddressBlock) =
-        match ab.AddressCase with
-        | AddressBlock.AddressOneofCase.Nodeid -> ChooseNodeIdPartition ab.Nodeid
-        | AddressBlock.AddressOneofCase.Globalnodeid -> ChooseNodeIdPartition ab.Globalnodeid.Nodeid
-        | AddressBlock.AddressOneofCase.None -> uint32 0  
-        | _ -> uint32 0
-                    
-    
-    
+
     // TODO: Switch to PebblesDB when index gets to big
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,Grpc.MemoryPointer>()
     
@@ -60,16 +41,9 @@ type GrpcFileStore(config:Config) =
                 async{
                     let! message = inbox.Receive()
                     match message with 
-                    | Index(sn,mp, tcs) ->
-                        try
-                            let id = match sn.AddressCase with 
-                                     | AddressBlock.AddressOneofCase.Globalnodeid -> sn.Globalnodeid.Nodeid
-                                     | AddressBlock.AddressOneofCase.Nodeid -> sn.Nodeid
-                                     | _ -> raise <| new NotImplementedException("AddressCase was not a NodeId or GlobalNodeID")
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, mp, (fun x y -> mp)) |> ignore
-                            tcs.SetResult()                                                      
-                        with
-                        | ex -> tcs.SetException ex   
+                    | Index(nid) ->
+                            let id = nid
+                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, nid.Pointer, (fun x y -> nid.Pointer)) |> ignore
                     | Flush(replyChannel)->
                         replyChannel.Reply(true)
                         
@@ -81,7 +55,7 @@ type GrpcFileStore(config:Config) =
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
             if (nodeid.Pointer.Length = uint64 0) then
-                let mutable outMp:MemoryPointer = Utils.NullMemoryPointer
+                let mutable outMp:MemoryPointer = Utils.NullMemoryPointer()
                 if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
                     nodeid.Pointer <- outMp
                     true,true
@@ -110,7 +84,7 @@ type GrpcFileStore(config:Config) =
 
     
     
-    let BuildGroups (fpwb:SortedList<uint64,List<NodeID>>) = 
+    let BuildGroups (fpwb:SortedList<uint64,NodeID>) = 
         let groups = new List<NodeIOGroup>()
         let mutable blockStarted = false
         let mutable start =uint64 0
@@ -131,11 +105,11 @@ type GrpcFileStore(config:Config) =
             if (blockStarted = false) then
                 blockStarted <- true 
                 start <- key
-                length <- length + values.[0].Pointer.Length
-                blockItems <- values    
+                length <- length + values.Pointer.Length
+                blockItems.Add values    
             else // this **must** be the next contigious space in memory because the earlier if forces it
-                length <- length + values.[0].Pointer.Length 
-                blockItems.AddRange values
+                length <- length + values.Pointer.Length 
+                blockItems.Add values
         
         // close out last group
         if (blockItems.Count > 0) then
@@ -212,15 +186,6 @@ type GrpcFileStore(config:Config) =
             |> Array.ofSeq
         bcs    
         |>  Seq.map (fun (i,bc) -> 
-            // this function allows a thread to tell others how to add stuff to the collections
-            // or to add stuff back into its own collections
-            let fnNio (nio:NodeIO) = 
-                let i,bc =
-                    match nio with 
-                    | Write(a,b) ->bcs.[int <| ChoosePartition (b.Ids |> Seq.head)]
-                    | Read(a,b) -> bcs.[int <| ChooseMemoryPointerPartition b]
-                    | x -> raise (new NotSupportedException(sprintf "Not Supported: %A" x))
-                bc.Add (nio)
                 
             let t = new ThreadStart((fun () -> 
                 // TODO: If we cannot access this file, we need to mark this parition as offline, so it can be written to remotely
@@ -231,10 +196,12 @@ type GrpcFileStore(config:Config) =
                           | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
                 let fileNameid = i 
                 let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
-                let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+                let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+                // PRE-ALLOCATE the file to reduce fragmentation https://arxiv.org/pdf/cs/0502012.pdf
+                let PreAllocSize = int64 (1024 * 100000 )
+                stream.SetLength(PreAllocSize)
                 let out = new CodedOutputStream(stream)
-                //let mutable buffer = Array.zeroCreate<byte> (1024)
-                let FixPointersWriteBuffer = new SortedList<uint64,List<NodeID>>()
+                let FixPointersWriteBuffer = new SortedList<uint64,NodeID>()
                 let mutable lastOpIsWrite = false
                 
                 let FLUSHWRITES () =   
@@ -243,50 +210,47 @@ type GrpcFileStore(config:Config) =
                 try
                     for nio in bc.GetConsumingEnumerable() do
                         match nio with
-                        | Write(tcs,item) -> 
+                        | Write(tcs,items) -> 
                             try
+                                let FixPointersWriteBufferTime = new Stopwatch()
+                                let CreatePointerTime = new Stopwatch()
+                                let WriteTime = new Stopwatch()
+                                let IndexMaintainerPostTime = new Stopwatch()
+                                let StopWatchTime = Stopwatch.StartNew()
                                 if (lastOpIsWrite = false) then
                                     stream.Seek (0L, IO.SeekOrigin.End) |> ignore
                                     lastOpIsWrite <- true
-                                
-                                let offset = out.Position
-                                let mp = Ahghee.Grpc.MemoryPointer()
-                                mp.Partitionkey <- uint32 i
-                                mp.Filename <- uint32 fileNameid
-                                mp.Offset <- uint64 offset
-                                mp.Length <- (item.CalculateSize() |> uint64)
-                                
-                                let hid =(item.Ids |> Seq.head) 
-                                let id = match hid.AddressCase with
-                                            | AddressBlock.AddressOneofCase.Nodeid -> hid.Nodeid 
-                                            | AddressBlock.AddressOneofCase.Globalnodeid -> hid.Globalnodeid.Nodeid
-                                            | _ -> raise (new Exception("node id was not an address"))
-                                // store the items own pointer in its address
-                                id.Pointer <- mp    
-                                
-                                if (item.CalculateSize() |> uint64 <> mp.Length) then
-                                    raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" mp.Length (item.CalculateSize() |> uint64)))
-                                                                                
-                                // update all NodeIds with their memoryPointers if we have them.
-                                let (anyChanged,anyMissed) = UpdateMemoryPointers item
-                                item.WriteTo out
-                                
-                                if (anyMissed) then
-                                    if (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset) then
-                                        let l = (FixPointersWriteBuffer.Item id.Pointer.Offset)
-                                        l.Add id
-                                        let allOffsetsSame = l |> Seq.forall( fun x -> x.Pointer.Offset = id.Pointer.Offset )
-                                        if(allOffsetsSame <> true) then
-                                            tcs.SetException (new Exception("all offsets not same"))    
-                                        ()    
+                                let startPos = out.Position
+                                for item in items do
+                                    
+                                    CreatePointerTime.Start()
+                                    let offset = out.Position
+                                    let id = item.Ids.[0].Nodeid
+                                    let mp = id.Pointer
+                                    mp.Partitionkey <- uint32 i
+                                    mp.Filename <- uint32 fileNameid
+                                    mp.Offset <- uint64 offset
+                                    mp.Length <- (item.CalculateSize() |> uint64)
+
+                                    CreatePointerTime.Stop()
+
+                                    WriteTime.Start()
+                                    item.WriteTo out
+                                    WriteTime.Stop()
+                                    FixPointersWriteBufferTime.Start()
+                                    if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
+                                        FixPointersWriteBuffer.Add(id.Pointer.Offset,id)
                                     else
-                                        FixPointersWriteBuffer.Add(id.Pointer.Offset,(new List<NodeID>([id])))
-                                IndexMaintainer.Post (Index(hid, mp, tcs))
-                                // TODO: Flush on interval, or other flush settings
-                                //config.log <| sprintf "Flushing partition writer[%A]" i
-                                //out.Flush()
-                                //stream.Flush()
-                                
+                                        ()    
+                                    FixPointersWriteBufferTime.Stop()
+                                    IndexMaintainerPostTime.Start()                                                                                
+                                    IndexMaintainer.Post (Index(id))
+                                    IndexMaintainerPostTime.Stop()
+
+                                StopWatchTime.Stop()
+                                let swtime = StopWatchTime.Elapsed -  CreatePointerTime.Elapsed -  FixPointersWriteBufferTime.Elapsed - WriteTime.Elapsed - IndexMaintainerPostTime.Elapsed      
+                                config.log <| sprintf "--->\nCreatePointerTime: %A\nFixPointersWriteBufferTime: %A\nWriteTime: %A\nIndexMaintainerPostTime: %A\nStopWatchTime: %A\nTotalTime:%A\nbytesWritten:%A\n<---" CreatePointerTime.Elapsed FixPointersWriteBufferTime.Elapsed WriteTime.Elapsed IndexMaintainerPostTime.Elapsed swtime StopWatchTime.Elapsed (out.Position - startPos)   
+                                tcs.SetResult()
                             with 
                             | ex -> 
                                 config.log <| sprintf "ERROR[%A]: %A" i ex
@@ -319,9 +283,9 @@ type GrpcFileStore(config:Config) =
                                 FLUSHWRITES()    
                                 let groups = BuildGroups FixPointersWriteBuffer        
                                 FixPointersWriteBuffer.Clear()
-                                config.log (sprintf "####Flushing Index Maintainer for partion: %A" i)
+                                //config.log (sprintf "####Flushing Index Maintainer for partion: %A" i)
                                 let reply = IndexMaintainer.PostAndReply(Flush)
-                                config.log (sprintf "####Flushed Index Maintainer for partition: %A = %A" i reply )
+                                //config.log (sprintf "####Flushed Index Maintainer for partition: %A = %A" i reply )
                                 let anySize = float 0
                                 if( writeGroups groups anySize stream ) then
                                     lastOpIsWrite <- false
@@ -369,11 +333,6 @@ type GrpcFileStore(config:Config) =
         if (allDone.IsFaulted) then
             raise allDone.Exception
         ()
-    
-    member this.ChooseNodePartition (n:Node) =
-        n.Ids
-            |> Seq.map (fun x -> ChoosePartition x) 
-            |> Seq.head
                     
     interface IStorage with
         member x.Nodes = 
@@ -385,7 +344,7 @@ type GrpcFileStore(config:Config) =
             // todo: just read from the file sequentially
             seq { for kv in ``Index of NodeID -> MemoryPointer`` do
                   let tcs = new TaskCompletionSource<Node>()
-                  let (bc,t) = PartitionWriters.[int <| ChooseNodeIdHashPartition kv.Key]
+                  let (bc,t) = PartitionWriters.[int <| kv.Value.Partitionkey]
                   bc.Add (Read( tcs, kv.Value)) 
                   yield tcs.Task.Result
                 }
@@ -395,11 +354,29 @@ type GrpcFileStore(config:Config) =
             
         member this.Add (nodes:seq<Node>) = 
             Task.Factory.StartNew(fun () -> 
-                for (n) in nodes do
-                    let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                    let (bc,t) = PartitionWriters.[int <| this.ChooseNodePartition n]
-                    bc.Add (Write(tcs,n))
+                let timer = Stopwatch.StartNew()
+                let partitionLists = 
+                    seq {for i in 0 .. (config.ParitionCount - 1) do 
+                         yield new System.Collections.Generic.List<Node>(50000)}
+                    |> Array.ofSeq
+                    
+                let mutable i = 0    
+                for node in nodes do 
+                    partitionLists.[i % config.ParitionCount].Add node
+                    i <- i + 1
+                    
+                timer.Stop()
+                let timer2 = Stopwatch.StartNew()
+                partitionLists
+                    |> Seq.iteri (fun i list ->
+                        let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
+                        let (bc,t) = PartitionWriters.[i]
+                        bc.Add (Write(tcs,list))
+                        )
+                timer2.Stop()
+                config.log(sprintf "grouping: %A tasking: %A" timer.Elapsed timer2.Elapsed)
                 )
+                
                         
         member x.Remove (nodes:seq<AddressBlock>) = raise (new NotImplementedException())
         member x.Items (addressBlock:seq<AddressBlock>) = 
@@ -407,15 +384,21 @@ type GrpcFileStore(config:Config) =
                 addressBlock
                 |> Seq.map (fun ab ->
                     let tcs = new TaskCompletionSource<Node>()
-                    let (bc,t) = PartitionWriters.[int <| ChoosePartition ab]
+                    let nodeId = 
+                        match ab.AddressCase with 
+                        | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
+                        | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
+                        | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
+                    
+                    let (bc,t) = PartitionWriters.[int <| nodeId.Pointer.Partitionkey]
                     let nid = match ab.AddressCase with 
                               | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
                               | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
                               | _ -> raise (new ArgumentException("AddressBlock did not contain a valid AddressCase"))
                     
                     let t = 
-                        if (nid.Pointer = Utils.NullMemoryPointer) then
-                            let mutable mp = Utils.NullMemoryPointer
+                        if (nid.Pointer = Utils.NullMemoryPointer()) then
+                            let mutable mp = Utils.NullMemoryPointer()
                             if(``Index of NodeID -> MemoryPointer``.TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
                                 bc.Add (Read(tcs, mp))
                                 tcs.Task
