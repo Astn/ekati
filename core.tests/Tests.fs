@@ -338,7 +338,7 @@ type MyTests(output:ITestOutputHelper) =
                             )
       
       Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
-            Assert.All<NodeID>(mps, (fun mp -> Assert.NotEqual(mp.Pointer, NullMemoryPointer)))
+            Assert.All<NodeID>(mps, (fun mp -> Assert.NotEqual(mp.Pointer, NullMemoryPointer())))
         ))
         
     [<Theory>]

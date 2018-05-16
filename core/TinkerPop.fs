@@ -17,7 +17,7 @@ module TinkerPop =
             let ab graph i= 
                 let a = new AddressBlock()
                 a.Nodeid <- new NodeID()
-                a.Nodeid.Pointer <- NullMemoryPointer
+                a.Nodeid.Pointer <- NullMemoryPointer()
                 a.Nodeid.Graph <- graph
                 a.Nodeid.Nodeid <- i
                 a
@@ -44,7 +44,7 @@ module TinkerPop =
         let EdgeAttrs = attrs "edge" 
         
         let Id id = 
-            Id "TheCrew" id NullMemoryPointer
+            Id "TheCrew" id (NullMemoryPointer())
         
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
             nodes

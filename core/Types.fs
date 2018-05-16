@@ -48,7 +48,7 @@ module Utils =
         bb.Metabytes.Bytes <- Google.Protobuf.ByteString.CopyFrom(bytes)
         bb
     
-    let NullMemoryPointer = 
+    let NullMemoryPointer() = 
         let p = new Grpc.MemoryPointer()
         p.Filename <- uint32 0
         p.Partitionkey <- uint32 0
@@ -62,7 +62,7 @@ module Utils =
         ab.Nodeid.Graph <- graph
         ab.Nodeid.Nodeid <- nodeId
         if (pointer = null) then
-            ab.Nodeid.Pointer <- NullMemoryPointer  
+            ab.Nodeid.Pointer <- NullMemoryPointer () 
             ()
         else
             ab.Nodeid.Pointer <- pointer
