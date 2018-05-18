@@ -212,6 +212,7 @@ type GrpcFileStore(config:Config) =
                         match nio with
                         | Write(tcs,items) -> 
                             try
+                                
                                 let FixPointersWriteBufferTime = new Stopwatch()
                                 let CreatePointerTime = new Stopwatch()
                                 let WriteTime = new Stopwatch()
@@ -319,6 +320,12 @@ type GrpcFileStore(config:Config) =
         |> Array.ofSeq                 
 
     
+    let setTimestamps (node:Node) (nowInt:Int64) =
+        for kv in node.Attributes do
+            kv.Key.Timestamp <- nowInt
+            for v in kv.Value do
+            v.Timestamp <- nowInt
+    
     let Flush () =
         let allDone =
             seq {for (bc,t) in PartitionWriters do
@@ -354,14 +361,18 @@ type GrpcFileStore(config:Config) =
             
         member this.Add (nodes:seq<Node>) = 
             Task.Factory.StartNew(fun () -> 
+                // TODO: Might need to have multiple add functions so the caller can specify a time for the operation
+                // Add time here so it's the same for all TMDs
+                let nowInt = DateTime.UtcNow.ToBinary()
                 let timer = Stopwatch.StartNew()
                 let partitionLists = 
                     seq {for i in 0 .. (config.ParitionCount - 1) do 
-                         yield new System.Collections.Generic.List<Node>(50000)}
+                         yield new System.Collections.Generic.List<Node>()}
                     |> Array.ofSeq
                     
                 let mutable i = 0    
                 for node in nodes do 
+                    setTimestamps node nowInt
                     partitionLists.[i % config.ParitionCount].Add node
                     i <- i + 1
                     
