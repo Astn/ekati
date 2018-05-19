@@ -6,6 +6,17 @@ This project is still in it's early early stages, so click that *Watch* button.
 
 I'm looking for other contributors to help.
 
+## References
+
+- [BigTable](https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf)
+- [DynamoDB](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)
+- [Cassandra](https://www.cs.cornell.edu/projects/ladis2009/papers/lakshman-ladis2009.pdf)
+- [Kafka](http://notes.stephenholiday.com/Kafka.pdf)
+- [PebblesDb](http://www.cs.utexas.edu/~vijay/papers/sosp17-pebblesdb.pdf)
+- [RocksDb](http://cidrdb.org/cidr2017/papers/p82-dong-cidr17.pdf)
+- [Lucene](https://pdfs.semanticscholar.org/2795/d9d165607b5ad6d8b9718373b82e55f41606.pdf)
+- [Neo4j](https://neo4j.com/whitepapers/graph-algorithms-optimized-neo4j/)
+
 ## Design goals
 
 - Massive graphs (Trillions of nodes)
