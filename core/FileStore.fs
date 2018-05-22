@@ -33,7 +33,7 @@ type NodeIOGroup = { start:uint64; length:uint64; items:List<NodeID> }
 type GrpcFileStore(config:Config) = 
 
     // TODO: Switch to PebblesDB when index gets to big
-    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,Grpc.MemoryPointer>()
+    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,seq<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
         MailboxProcessor<IndexMessage>.Start(fun inbox ->
@@ -43,7 +43,12 @@ type GrpcFileStore(config:Config) =
                     match message with 
                     | Index(nid) ->
                             let id = nid
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, nid.Pointer, (fun x y -> nid.Pointer)) |> ignore
+                            let seqId = [id.Pointer] |> Seq.ofList
+                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, [nid.Pointer], 
+                                (fun x y -> 
+                                    let appended = y |> Seq.append seqId
+                                    appended
+                                    )) |> ignore
                     | Flush(replyChannel)->
                         replyChannel.Reply(true)
                         
@@ -52,29 +57,56 @@ type GrpcFileStore(config:Config) =
             messageLoop()    
         )
 
+        
+    let NodeIdFromAddress (addr:AddressBlock) =
+        match addr.AddressCase with 
+        | AddressBlock.AddressOneofCase.Nodeid -> addr.Nodeid
+        | AddressBlock.AddressOneofCase.Globalnodeid -> addr.Nodeid
+        | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
+    
+
+    let LinkFragments (n:Node) =
+        let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
+        let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
+        if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) then
+            for mp in outMp do
+                if (mp.Partitionkey <> n.Id.Nodeid.Pointer.Partitionkey
+                    && mp.Filename <> n.Id.Nodeid.Pointer.Filename
+                    && mp.Offset <> n.Id.Nodeid.Pointer.Offset) then 
+                    // Assign other addresses to this node, but maybe not all of them.
+                    // We don't use ADD because that would change the memory size for this fragment.
+                    // Instead we find a reserved null pointer and update it
+                    for i in 0 .. n.Fragments.Count do
+                        if n.Fragments.Item(0) = Utils.NullMemoryPointer() then 
+                            n.Fragments.Item(0) <- mp
+                    // TODO: Also, we may need to tell other fragments about this one
+                    // TODO: If there are more than a few fragments, we need to link them In a way where they are all connected
+                    ()
+
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
             if (nodeid.Pointer.Length = uint64 0) then
-                let mutable outMp:MemoryPointer = Utils.NullMemoryPointer()
+                let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
                 if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
-                    nodeid.Pointer <- outMp
+                    nodeid.Pointer <- outMp |> Seq.head
                     true,true
                 else
                     true,false 
             else 
                 false,false    
-    
+
+
+        LinkFragments node
+        
+             
         let updated = node.Attributes
                             |> Seq.collect (fun attr -> 
                                 attr.Value
                                 |> Seq.append [|attr.Key|])
                             |> Seq.map (fun tmd ->
                                             match  tmd.Data.DataCase with
-                                            | DataBlock.DataOneofCase.Address -> 
-                                                match tmd.Data.Address.AddressCase with 
-                                                | AddressBlock.AddressOneofCase.Nodeid -> AttachMemoryPointer tmd.Data.Address.Nodeid
-                                                | AddressBlock.AddressOneofCase.Globalnodeid -> AttachMemoryPointer tmd.Data.Address.Globalnodeid.Nodeid
-                                                | _ ->  false,false
+                                            | DataBlock.DataOneofCase.Address ->
+                                                tmd.Data.Address |> NodeIdFromAddress |> AttachMemoryPointer
                                             | _ -> false,false)
         let anyChanged = 
             updated |> Seq.contains (true,true)
@@ -226,7 +258,7 @@ type GrpcFileStore(config:Config) =
                                     
                                     CreatePointerTime.Start()
                                     let offset = out.Position
-                                    let id = item.Ids.[0].Nodeid
+                                    let id = item.Id.Nodeid
                                     let mp = id.Pointer
                                     mp.Partitionkey <- uint32 i
                                     mp.Filename <- uint32 fileNameid
@@ -350,10 +382,11 @@ type GrpcFileStore(config:Config) =
             // todo: additionally, Using the index likely results in Random file access, we could instead
             // todo: just read from the file sequentially
             seq { for kv in ``Index of NodeID -> MemoryPointer`` do
-                  let tcs = new TaskCompletionSource<Node>()
-                  let (bc,t) = PartitionWriters.[int <| kv.Value.Partitionkey]
-                  bc.Add (Read( tcs, kv.Value)) 
-                  yield tcs.Task.Result
+                  for fragment in kv.Value do
+                      let tcs = new TaskCompletionSource<Node>()
+                      let (bc,t) = PartitionWriters.[int <| fragment.Partitionkey]
+                      bc.Add (Read( tcs, (kv.Value |> Seq.head))) 
+                      yield tcs.Task.Result
                 }
             // todo return remote nodes
             
@@ -407,11 +440,12 @@ type GrpcFileStore(config:Config) =
                               | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
                               | _ -> raise (new ArgumentException("AddressBlock did not contain a valid AddressCase"))
                     
+                    // TODO: Read all the fragments, not just the first one.
                     let t = 
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
-                            let mutable mp = Utils.NullMemoryPointer()
+                            let mutable mp = Seq.empty<MemoryPointer>
                             if(``Index of NodeID -> MemoryPointer``.TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
-                                bc.Add (Read(tcs, mp))
+                                bc.Add (Read(tcs, mp |> Seq.head))
                                 tcs.Task
                             else 
                                 tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 

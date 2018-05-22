@@ -74,7 +74,7 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can create a Node`` () =
-        let node = Node [| ABtoyId "1" |] 
+        let node = Node (ABtoyId "1") 
                         [| PropString "firstName" [|"Richard"; "Dick"|] |]
     
         let empty = node.Attributes |> Seq.isEmpty
@@ -83,19 +83,19 @@ type MyTests(output:ITestOutputHelper) =
     
     
     member __.buildNodes : seq<Node> = 
-        let node1 = Node [| ABtoyId "1" |] 
+        let node1 = Node (ABtoyId "1" ) 
                          [|
                             PropString "firstName" [|"Richard"; "Dick"|] 
                             PropData "follows" [| DABtoyId "2" |] 
                          |]
                    
-        let node2 = Node [| ABtoyId "2" |] 
+        let node2 = Node (ABtoyId "2") 
                          [|
                             PropString "firstName" [|"Sam"; "Sammy"|] 
                             PropData "follows" [| DABtoyId "1" |]
                          |]
                    
-        let node3 = Node [| ABtoyId "3" |] 
+        let node3 = Node (ABtoyId "3") 
                          [|
                             PropString "firstName" [|"Jim"|]
                             PropData "follows" [| DABtoyId "1"; DABtoyId "2" |] 
@@ -110,7 +110,7 @@ type MyTests(output:ITestOutputHelper) =
         let seededRandom = new Random(nodeCount)
                
         seq { for i in 1 .. nodeCount do 
-              yield Node [| ABtoyId (i.ToString()) |] 
+              yield Node (ABtoyId (i.ToString()) )
                          ([|
                             PropString "firstName" [|"Austin"|]
                             PropString "lastName"  [|"Harris"|]
@@ -158,8 +158,8 @@ type MyTests(output:ITestOutputHelper) =
         
         let toRemove = n1 
                         |> Seq.head 
-                        |> (fun n -> n.Ids)
-        let task = g.Remove(toRemove)
+                        |> (fun n -> n.Id)
+        let task = g.Remove([toRemove])
         task.Wait()
         let n2 = g.Nodes
         let len2 = n2 |> Seq.length                        
@@ -227,7 +227,7 @@ type MyTests(output:ITestOutputHelper) =
          
          let actual = n1
                          |> Seq.map (fun id -> 
-                                               let headId =(id.Ids |> Seq.head) 
+                                               let headId = id.Id  
                                                match headId.AddressCase with    
                                                | AddressBlock.AddressOneofCase.Nodeid -> Some(headId.Nodeid.Nodeid)
                                                | _ -> None
@@ -246,34 +246,34 @@ type MyTests(output:ITestOutputHelper) =
                            
          Assert.Equal<string>(expectedIds,actual)                             
 
-    [<Theory>]
-    [<InlineData("StorageType.Memory")>]
-    [<InlineData("StorageType.GrpcFile")>] 
-    member __.``The nodes I get out have 1 ID`` storeType =
-         let g:Graph = 
-             match storeType with 
-             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=12; 
-                                                                     log = (fun msg -> output.WriteLine msg)
-                                                                     CreateTestingDataDirectory=true
-                                                                     }))
-             | _ -> raise <| new NotImplementedException() 
-                  
-         
-         
-         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
-         let task = g.Add nodes 
-         task.Wait()
-         g.Flush()
-         let n1 = g.Nodes 
-                    |> List.ofSeq 
-                    |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
-                    |> Seq.map (fun x -> x.Ids)
-         
-         output.WriteLine(sprintf "node in: %A" nodes )
-         output.WriteLine(sprintf "node out: %A" n1 )
-         Assert.All(n1, (fun x -> Assert.Equal ( x.Count, 1)))
+//    [<Theory>]
+//    [<InlineData("StorageType.Memory")>]
+//    [<InlineData("StorageType.GrpcFile")>] 
+//    member __.``The nodes I get out have 1 ID`` storeType =
+//         let g:Graph = 
+//             match storeType with 
+//             | "StorageType.Memory" ->   new Graph(new MemoryStore())
+//             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+//                                                                     Config.ParitionCount=12; 
+//                                                                     log = (fun msg -> output.WriteLine msg)
+//                                                                     CreateTestingDataDirectory=true
+//                                                                     }))
+//             | _ -> raise <| new NotImplementedException() 
+//                  
+//         
+//         
+//         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
+//         let task = g.Add nodes 
+//         task.Wait()
+//         g.Flush()
+//         let n1 = g.Nodes 
+//                    |> List.ofSeq 
+//                    |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
+//                    |> Seq.map (fun x -> x.Id)
+//         
+//         output.WriteLine(sprintf "node in: %A" nodes )
+//         output.WriteLine(sprintf "node out: %A" n1 )
+//         Assert.All(n1, (fun x -> Assert.Equal ( x.Count, 1)))
          
 
     [<Theory>]
@@ -292,11 +292,11 @@ type MyTests(output:ITestOutputHelper) =
                   
          
          
-         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
          let task = g.Add nodes 
          task.Wait()
          g.Flush()
-         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
          output.WriteLine(sprintf "node in: %A" nodes )
          output.WriteLine(sprintf "node out: %A" n1 )
          Assert.Equal<Node>(nodes,n1)
@@ -321,7 +321,7 @@ type MyTests(output:ITestOutputHelper) =
 
       let n1 = g.Nodes 
                 |> List.ofSeq 
-                |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+                |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
                 |> Seq.map (fun n -> 
                             let valuePointers = n.Attributes
                                                 |> Seq.collect (fun attr -> attr.Value)
@@ -334,7 +334,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                 | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid
                                                                 | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid
                                                                 | _ -> raise (new Exception("Invalid address case")))
-                            (n.Ids |> Seq.head).Nodeid, valuePointers                                                                                
+                            n.Id.Nodeid, valuePointers                                                                                
                             )
       
       Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
@@ -372,6 +372,19 @@ type MyTests(output:ITestOutputHelper) =
             output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
             //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
+    [<Theory>]
+    [<InlineData("StorageType.GrpcFile", 2)>]
+    [<InlineData("StorageType.GrpcFile", 3)>]
+    [<InlineData("StorageType.GrpcFile", 4)>]
+    [<InlineData("StorageType.GrpcFile", 5)>]
+    [<InlineData("StorageType.GrpcFile", 6)>]
+    [<InlineData("StorageType.GrpcFile", 7)>]
+    [<InlineData("StorageType.GrpcFile", 8)>]
+    [<InlineData("StorageType.GrpcFile", 9)>]
+    [<InlineData("StorageType.GrpcFile", 10)>]
+    member __.``Multiple calls to add for the same nodeId results in all the fragments being linked`` storeType fragments =
+        Assert.True false
+ 
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
@@ -383,8 +396,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                  | _ -> false
                                                     )
                                       |> Seq.map (fun attr -> 
-                                                    let _id = n.Ids 
-                                                                |> Seq.head 
+                                                    let _id = n.Id 
                                                                 |> (fun id -> match id.AddressCase with    
                                                                               | AddressBlock.AddressOneofCase.Nodeid -> id.Nodeid.Nodeid
                                                                               | _ -> String.Empty

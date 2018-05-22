@@ -41,9 +41,10 @@ namespace Ahghee.Grpc {
             "AiABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSJAoERGF0YRgDIAEoCzIW",
             "LmFoZ2hlZS5ncnBjLkRhdGFCbG9jayJKCghLZXlWYWx1ZRIdCgNrZXkYASAB",
             "KAsyEC5haGdoZWUuZ3JwYy5UTUQSHwoFdmFsdWUYAiADKAsyEC5haGdoZWUu",
-            "Z3JwYy5UTUQiWQoETm9kZRImCgNpZHMYASADKAsyGS5haGdoZWUuZ3JwYy5B",
-            "ZGRyZXNzQmxvY2sSKQoKYXR0cmlidXRlcxgCIAMoCzIVLmFoZ2hlZS5ncnBj",
-            "LktleVZhbHVlYgZwcm90bzM="));
+            "Z3JwYy5UTUQihwEKBE5vZGUSJQoCaWQYASABKAsyGS5haGdoZWUuZ3JwYy5B",
+            "ZGRyZXNzQmxvY2sSLQoJZnJhZ21lbnRzGAIgAygLMhouYWhnaGVlLmdycGMu",
+            "TWVtb3J5UG9pbnRlchIpCgphdHRyaWJ1dGVzGAMgAygLMhUuYWhnaGVlLmdy",
+            "cGMuS2V5VmFsdWViBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
@@ -56,7 +57,7 @@ namespace Ahghee.Grpc {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.DataBlock), global::Ahghee.Grpc.DataBlock.Parser, new[]{ "Address", "Binary" }, new[]{ "Data" }, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TMD), global::Ahghee.Grpc.TMD.Parser, new[]{ "Timestamp", "MetaData", "Data" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.KeyValue), global::Ahghee.Grpc.KeyValue.Parser, new[]{ "Key", "Value" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Ids", "Attributes" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Id", "Fragments", "Attributes" }, null, null, null)
           }));
     }
     #endregion
@@ -1676,7 +1677,8 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public Node(Node other) : this() {
-      ids_ = other.ids_.Clone();
+      Id = other.id_ != null ? other.Id.Clone() : null;
+      fragments_ = other.fragments_.Clone();
       attributes_ = other.attributes_.Clone();
     }
 
@@ -1685,20 +1687,31 @@ namespace Ahghee.Grpc {
       return new Node(this);
     }
 
-    /// <summary>Field number for the "ids" field.</summary>
-    public const int IdsFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Ahghee.Grpc.AddressBlock> _repeated_ids_codec
-        = pb::FieldCodec.ForMessage(10, global::Ahghee.Grpc.AddressBlock.Parser);
-    private readonly pbc::RepeatedField<global::Ahghee.Grpc.AddressBlock> ids_ = new pbc::RepeatedField<global::Ahghee.Grpc.AddressBlock>();
+    /// <summary>Field number for the "id" field.</summary>
+    public const int IdFieldNumber = 1;
+    private global::Ahghee.Grpc.AddressBlock id_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Ahghee.Grpc.AddressBlock> Ids {
-      get { return ids_; }
+    public global::Ahghee.Grpc.AddressBlock Id {
+      get { return id_; }
+      set {
+        id_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "fragments" field.</summary>
+    public const int FragmentsFieldNumber = 2;
+    private static readonly pb::FieldCodec<global::Ahghee.Grpc.MemoryPointer> _repeated_fragments_codec
+        = pb::FieldCodec.ForMessage(18, global::Ahghee.Grpc.MemoryPointer.Parser);
+    private readonly pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer> fragments_ = new pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer> Fragments {
+      get { return fragments_; }
     }
 
     /// <summary>Field number for the "attributes" field.</summary>
-    public const int AttributesFieldNumber = 2;
+    public const int AttributesFieldNumber = 3;
     private static readonly pb::FieldCodec<global::Ahghee.Grpc.KeyValue> _repeated_attributes_codec
-        = pb::FieldCodec.ForMessage(18, global::Ahghee.Grpc.KeyValue.Parser);
+        = pb::FieldCodec.ForMessage(26, global::Ahghee.Grpc.KeyValue.Parser);
     private readonly pbc::RepeatedField<global::Ahghee.Grpc.KeyValue> attributes_ = new pbc::RepeatedField<global::Ahghee.Grpc.KeyValue>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public pbc::RepeatedField<global::Ahghee.Grpc.KeyValue> Attributes {
@@ -1718,7 +1731,8 @@ namespace Ahghee.Grpc {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if(!ids_.Equals(other.ids_)) return false;
+      if (!object.Equals(Id, other.Id)) return false;
+      if(!fragments_.Equals(other.fragments_)) return false;
       if(!attributes_.Equals(other.attributes_)) return false;
       return true;
     }
@@ -1726,7 +1740,8 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
-      hash ^= ids_.GetHashCode();
+      if (id_ != null) hash ^= Id.GetHashCode();
+      hash ^= fragments_.GetHashCode();
       hash ^= attributes_.GetHashCode();
       return hash;
     }
@@ -1738,14 +1753,21 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
-      ids_.WriteTo(output, _repeated_ids_codec);
+      if (id_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Id);
+      }
+      fragments_.WriteTo(output, _repeated_fragments_codec);
       attributes_.WriteTo(output, _repeated_attributes_codec);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
-      size += ids_.CalculateSize(_repeated_ids_codec);
+      if (id_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Id);
+      }
+      size += fragments_.CalculateSize(_repeated_fragments_codec);
       size += attributes_.CalculateSize(_repeated_attributes_codec);
       return size;
     }
@@ -1755,7 +1777,13 @@ namespace Ahghee.Grpc {
       if (other == null) {
         return;
       }
-      ids_.Add(other.ids_);
+      if (other.id_ != null) {
+        if (id_ == null) {
+          id_ = new global::Ahghee.Grpc.AddressBlock();
+        }
+        Id.MergeFrom(other.Id);
+      }
+      fragments_.Add(other.fragments_);
       attributes_.Add(other.attributes_);
     }
 
@@ -1768,10 +1796,17 @@ namespace Ahghee.Grpc {
             input.SkipLastField();
             break;
           case 10: {
-            ids_.AddEntriesFrom(input, _repeated_ids_codec);
+            if (id_ == null) {
+              id_ = new global::Ahghee.Grpc.AddressBlock();
+            }
+            input.ReadMessage(id_);
             break;
           }
           case 18: {
+            fragments_.AddEntriesFrom(input, _repeated_fragments_codec);
+            break;
+          }
+          case 26: {
             attributes_.AddEntriesFrom(input, _repeated_attributes_codec);
             break;
           }

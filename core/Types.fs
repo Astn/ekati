@@ -104,6 +104,9 @@ module Utils =
     let PropData (key:string) (values:seq<DataBlock>) = Prop (DBBString key) values
     let Node key values = 
         let node = new Node()
-        node.Ids.AddRange key
+        // TODO: let the number of reserved fragments be configurable
+        let fragments = [|(NullMemoryPointer());(NullMemoryPointer()); (NullMemoryPointer())|]
+        node.Id <- key
+        node.Fragments.AddRange fragments
         node.Attributes.AddRange values
         node

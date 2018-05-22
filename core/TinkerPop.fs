@@ -51,7 +51,7 @@ module TinkerPop =
             |> Seq.map (fun n -> 
                      
                         let z = new Grpc.Node()
-                        z.Ids.AddRange [| Id (n.Id.ToString()) |];  
+                        z.Id <- Id (n.Id.ToString());  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->
@@ -104,7 +104,7 @@ module TinkerPop =
             edges
             |> Seq.map (fun n -> 
                         let z = new Grpc.Node()
-                        z.Ids.AddRange [| Id (n.Id.ToString()) |];  
+                        z.Id <-  Id (n.Id.ToString()) ;  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->
