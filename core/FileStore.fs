@@ -192,18 +192,19 @@ type GrpcFileStore(config:Config) =
                             | _ -> 
                                 raise (new InvalidOperationException("How did this happen?"))          
                         // do all the writing
-                        stream.Position <- int64 g.start
-                        let flatArray = Array.zeroCreate<byte>(int g.length)
-                        let oout = new CodedOutputStream(flatArray) 
-                        for wb in writeback do
-                            let req,n = wb
-                            n.WriteTo oout
-                        
-                        oout.Flush()
-                        if (stream.Position <> (int64 g.start)) then
+                        if (writeback.Count > 0) then 
                             stream.Position <- int64 g.start
-                        stream.Write(flatArray,0,flatArray.Length)    
-                        stream.Flush() 
+                            let flatArray = Array.zeroCreate<byte>(int g.length)
+                            let oout = new CodedOutputStream(flatArray) 
+                            for wb in writeback do
+                                let req,n = wb
+                                n.WriteTo oout
+                            
+                            oout.Flush()
+                            if (stream.Position <> (int64 g.start)) then
+                                stream.Position <- int64 g.start
+                            stream.Write(flatArray,0,flatArray.Length)    
+                            stream.Flush() 
                            
                         true
                     else 
@@ -235,10 +236,12 @@ type GrpcFileStore(config:Config) =
                 let out = new CodedOutputStream(stream)
                 let FixPointersWriteBuffer = new SortedList<uint64,NodeID>()
                 let mutable lastOpIsWrite = false
-                
+                let mutable lastPosition = 0L 
                 let FLUSHWRITES () =   
-                    out.Flush()
-                    stream.Flush()
+                    // TODO: ?? maybe only flush if out.pos > stream.pos ?? Flushing may make Out no longer usable, and further flushes might corupt the underlying stream?
+                    if (out.Position > stream.Position) then
+                        out.Flush()
+                        stream.Flush()
                 try
                     for nio in bc.GetConsumingEnumerable() do
                         match nio with
@@ -251,7 +254,7 @@ type GrpcFileStore(config:Config) =
                                 let IndexMaintainerPostTime = new Stopwatch()
                                 let StopWatchTime = Stopwatch.StartNew()
                                 if (lastOpIsWrite = false) then
-                                    stream.Seek (0L, IO.SeekOrigin.End) |> ignore
+                                    stream.Position <- lastPosition
                                     lastOpIsWrite <- true
                                 let startPos = out.Position
                                 for item in items do
@@ -280,9 +283,10 @@ type GrpcFileStore(config:Config) =
                                     IndexMaintainer.Post (Index(id))
                                     IndexMaintainerPostTime.Stop()
 
+                                lastPosition <- out.Position
                                 StopWatchTime.Stop()
                                 let swtime = StopWatchTime.Elapsed -  CreatePointerTime.Elapsed -  FixPointersWriteBufferTime.Elapsed - WriteTime.Elapsed - IndexMaintainerPostTime.Elapsed      
-                                config.log <| sprintf "--->\nCreatePointerTime: %A\nFixPointersWriteBufferTime: %A\nWriteTime: %A\nIndexMaintainerPostTime: %A\nStopWatchTime: %A\nTotalTime:%A\nbytesWritten:%A\n<---" CreatePointerTime.Elapsed FixPointersWriteBufferTime.Elapsed WriteTime.Elapsed IndexMaintainerPostTime.Elapsed swtime StopWatchTime.Elapsed (out.Position - startPos)   
+                                config.log <| sprintf "--->\nCreatePointerTime: %A\nFixPointersWriteBufferTime: %A\nWriteTime: %A\nIndexMaintainerPostTime: %A\nStopWatchTime: %A\nTotalTime:%A\nbytesWritten:%A\n<---" CreatePointerTime.Elapsed FixPointersWriteBufferTime.Elapsed WriteTime.Elapsed IndexMaintainerPostTime.Elapsed swtime StopWatchTime.Elapsed (lastPosition - startPos)   
                                 tcs.SetResult()
                             with 
                             | ex -> 
@@ -302,7 +306,7 @@ type GrpcFileStore(config:Config) =
                             if(readResult <> int request.Length ) then
                                 raise (new Exception("wtf"))
                             if(buffer.[0] = byte 0) then
-                                raise (new Exception(sprintf "Read null data @ %A\n%A" request buffer))    
+                                raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName request buffer))    
                             try     
                                 MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
                                 
@@ -413,9 +417,10 @@ type GrpcFileStore(config:Config) =
                 let timer2 = Stopwatch.StartNew()
                 partitionLists
                     |> Seq.iteri (fun i list ->
-                        let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                        let (bc,t) = PartitionWriters.[i]
-                        bc.Add (Write(tcs,list))
+                        if (list.Count > 0) then
+                            let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
+                            let (bc,t) = PartitionWriters.[i]
+                            bc.Add (Write(tcs,list))
                         )
                 timer2.Stop()
                 config.log(sprintf "grouping: %A tasking: %A" timer.Elapsed timer2.Elapsed)

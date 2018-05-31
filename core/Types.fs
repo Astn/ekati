@@ -89,7 +89,12 @@ module Utils =
     let TMDAuto data = 
         let tmd = new TMD()
         tmd.Data <- data
-        tmd     
+        tmd
+    let TMDTime data time =
+        let tmd = TMDAuto data
+        tmd.Timestamp <- time
+        tmd 
+             
     let Prop (key:DataBlock) (values:seq<DataBlock>) =
         let kv = new KeyValue()
         kv.Key <- TMDAuto key
