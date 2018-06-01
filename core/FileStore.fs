@@ -23,17 +23,27 @@ type NodeIO =
     | Read  of TaskCompletionSource<Node> * MemoryPointer
     | FlushFixPointers of TaskCompletionSource<unit>
     | FlushWrites of TaskCompletionSource<unit>
+    | FlushFragmentLinks of TaskCompletionSource<unit>
 
 type IndexMessage =
     | Index of Grpc.NodeID
     | Flush of AsyncReplyChannel<bool>
+
+[<System.FlagsAttribute>]
+type WriteGroupsOperation = LinkFragments = 1 | FixPointers = 2  
     
-type NodeIOGroup = { start:uint64; length:uint64; items:List<NodeID> }
+type NodeIOGroup = { start:uint64; length:uint64; items:List<MemoryPointer> }
 
 type GrpcFileStore(config:Config) = 
 
     // TODO: Switch to PebblesDB when index gets to big
-    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash,seq<Grpc.MemoryPointer>>()
+    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>()
+    
+    // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
+    // The idea behind this index is to know which connections we do not need to make as they are already made
+    let FragmentLinksConnected = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
+    // The idea behind this index is to know which connections we know we need to make that we have not yet made
+    let FragmentLinksRequested = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
         MailboxProcessor<IndexMessage>.Start(fun inbox ->
@@ -64,24 +74,90 @@ type GrpcFileStore(config:Config) =
         | AddressBlock.AddressOneofCase.Globalnodeid -> addr.Nodeid
         | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
     
+    // returns true if the node is or was linked to the pointer
+    // also updates indexes (FragmentLinksRequested; FragmentLinksConnected) to reflect changes, and request 
+    // bidirectional linking for this fragment and the pointer it links to
+    let LinkFragmentTo (n:Node) (mp:MemoryPointer) =
+        if (mp.Partitionkey <> n.Id.Nodeid.Pointer.Partitionkey
+            || mp.Filename <> n.Id.Nodeid.Pointer.Filename
+            || mp.Offset <> n.Id.Nodeid.Pointer.Offset) then 
+            
+            // Find the first null pointer and update it.
+            // We don't use ADD because that would change the memory size for this fragment. 
+            let mutable previouslyAttached = false
+            let mutable attached = false 
+            let mutable i = 0
+            while not previouslyAttached && not attached && i < n.Fragments.Count do
+                
+                previouslyAttached <- 
+                    if n.Fragments.Item(i) = mp then true
+                    else false
+                
+                attached <- 
+                    if n.Fragments.Item(i) = Utils.NullMemoryPointer() then 
+                        n.Fragments.Item(i) <- mp
 
+                        // Track that we have linked these fragments
+                        FragmentLinksConnected.AddOrUpdate (n.Id.Nodeid.Pointer, [mp], (fun key value -> value |> Seq.append [mp] ))
+                        |> ignore
+                        let mutable existingLinks = Seq.empty<MemoryPointer>
+                        
+                        // If this was a requested link, remove it from the requests
+                        if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & existingLinks) && existingLinks |> Seq.contains mp then 
+                            if existingLinks |> Seq.length > 1 then 
+                                FragmentLinksRequested.TryUpdate (n.Id.Nodeid.Pointer, existingLinks |> Seq.except [mp], existingLinks)
+                            else
+                                FragmentLinksRequested.TryRemove(n.Id.Nodeid.Pointer, & existingLinks)                                        
+                            |> ignore
+                            
+                        // Track that we want to link it from the other direction, but only if that hasn't already been done
+                        if FragmentLinksConnected.TryGetValue(mp, & existingLinks) = false || existingLinks |> Seq.contains n.Id.Nodeid.Pointer = false then 
+                            FragmentLinksRequested.AddOrUpdate (mp, [n.Id.Nodeid.Pointer], (fun key value -> value |> Seq.append [n.Id.Nodeid.Pointer] ))
+                            |> ignore
+
+                        true
+                    else 
+                        false
+                i <- i + 1
+            previouslyAttached || attached
+        else false
+
+    // Right now this function will update the fragment pointers inside the passed in node to link to
+    // any fragments in the FragmentLinksRequested index -OR- it will link it to the fragment at the end of the
+    // ``Index of NodeID -> MemoryPointer`` index.
+    // NOTE: It will also update the FragmentLinksRequested with bi-directional links that are still needed
     let LinkFragments (n:Node) =
-        let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
-        let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
-        if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) then
-            for mp in outMp do
-                if (mp.Partitionkey <> n.Id.Nodeid.Pointer.Partitionkey
-                    && mp.Filename <> n.Id.Nodeid.Pointer.Filename
-                    && mp.Offset <> n.Id.Nodeid.Pointer.Offset) then 
-                    // Assign other addresses to this node, but maybe not all of them.
-                    // We don't use ADD because that would change the memory size for this fragment.
-                    // Instead we find a reserved null pointer and update it
-                    for i in 0 .. n.Fragments.Count do
-                        if n.Fragments.Item(0) = Utils.NullMemoryPointer() then 
-                            n.Fragments.Item(0) <- mp
-                    // TODO: Also, we may need to tell other fragments about this one
-                    // TODO: If there are more than a few fragments, we need to link them In a way where they are all connected
-                    ()
+        try
+            let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
+            // If this node has links requested, then make those and exit
+            let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
+            if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMp) && outMp |> Seq.length > 0 then 
+                seq {
+                    for mp in outMp do
+                        if LinkFragmentTo n mp then  
+                            yield mp 
+                    }
+            // otherwise link it to something at the end of the NodeIdToPointers index
+            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) &&
+                not (n.Fragments |> Seq.exists(fun frag -> frag <> Utils.NullMemoryPointer())) then
+                // we want to create a basic linked list. 
+                let pointers = outMp |> List.ofSeq
+                let mutable linked = false 
+                let mutable i = 0
+                let mutable mp = Utils.NullMemoryPointer()
+                while pointers.Length > 1 && not linked && i < pointers.Length do
+                    mp <- pointers.Item(i)
+                    linked <- LinkFragmentTo n mp
+                if linked then 
+                    [mp] |> Seq.ofList
+                else Seq.empty
+            else Seq.empty
+        with
+        | e -> 
+            config.log (sprintf "Errors: %A" e)
+            raise e  
+              
+                
 
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
@@ -94,20 +170,17 @@ type GrpcFileStore(config:Config) =
                     true,false 
             else 
                 false,false    
-
-
-        LinkFragments node
-        
              
-        let updated = node.Attributes
-                            |> Seq.collect (fun attr -> 
-                                attr.Value
-                                |> Seq.append [|attr.Key|])
-                            |> Seq.map (fun tmd ->
-                                            match  tmd.Data.DataCase with
-                                            | DataBlock.DataOneofCase.Address ->
-                                                tmd.Data.Address |> NodeIdFromAddress |> AttachMemoryPointer
-                                            | _ -> false,false)
+        let updated = 
+            node.Attributes
+            |> Seq.collect (fun attr -> 
+                attr.Value
+                |> Seq.append [|attr.Key|])
+            |> Seq.map (fun tmd ->
+                            match  tmd.Data.DataCase with
+                            | DataBlock.DataOneofCase.Address ->
+                                tmd.Data.Address |> NodeIdFromAddress |> AttachMemoryPointer
+                                | _ -> false,false)
         let anyChanged = 
             updated |> Seq.contains (true,true)
         let anyMissed =
@@ -116,12 +189,12 @@ type GrpcFileStore(config:Config) =
 
     
     
-    let BuildGroups (fpwb:SortedList<uint64,NodeID>) = 
+    let BuildGroups (fpwb:SortedList<uint64,MemoryPointer>) = 
         let groups = new List<NodeIOGroup>()
         let mutable blockStarted = false
         let mutable start =uint64 0
         let mutable length = uint64 0
-        let mutable blockItems = new List<NodeID>()
+        let mutable blockItems = new List<MemoryPointer>()
         for i in 0 .. fpwb.Count - 1 do
             let key = fpwb.Keys.[i]
             let values = fpwb.Values.[i]
@@ -132,15 +205,15 @@ type GrpcFileStore(config:Config) =
                blockStarted <- false 
                start <- uint64 0                 
                length <- uint64 0
-               blockItems <- new List<NodeID>() 
+               blockItems <- new List<MemoryPointer>() 
         
             if (blockStarted = false) then
                 blockStarted <- true 
                 start <- key
-                length <- length + values.Pointer.Length
+                length <- length + values.Length
                 blockItems.Add values    
             else // this **must** be the next contigious space in memory because the earlier if forces it
-                length <- length + values.Pointer.Length 
+                length <- length + values.Length 
                 blockItems.Add values
         
         // close out last group
@@ -150,7 +223,7 @@ type GrpcFileStore(config:Config) =
         groups    
 
     // returns true if we flushed or moved the position in the out or filestream
-    let writeGroups groups ofSize (stream:FileStream) = 
+    let writeGroups groups ofSize (stream:FileStream) (op:WriteGroupsOperation)= 
         seq {for g in groups do
                 // Any group over size we will write out.
              yield if (float g.length >= ofSize) then
@@ -165,28 +238,39 @@ type GrpcFileStore(config:Config) =
                         for nid in g.items do
 
                             match nid with 
-                            | _ when int64 nid.Pointer.Offset = stream.Position -> 
+                            | _ when int64 nid.Offset = stream.Position -> 
                                 lastex <- null
                                 let toFix = new Node()
-                                let buffer = Array.zeroCreate<byte> (int nid.Pointer.Length)
+                                let buffer = Array.zeroCreate<byte> (int nid.Length)
     
-                                let readResult = stream.Read(buffer,0,int nid.Pointer.Length)
-                                if(readResult <> int nid.Pointer.Length || buffer.[0] = byte 0) then
+                                let readResult = stream.Read(buffer,0,int nid.Length)
+                                if(readResult <> int nid.Length || buffer.[0] = byte 0) then
                                     raise (new Exception("wtf"))
-                                MessageExtensions.MergeFrom(toFix,buffer,0,int nid.Pointer.Length)
+                                MessageExtensions.MergeFrom(toFix,buffer,0,int nid.Length)
                                 // now fix it.
-                                let (anyChanged,anyMissed) = UpdateMemoryPointers toFix 
                                 
-                                if (anyChanged && toFix.CalculateSize() |> uint64 <> nid.Pointer.Length) then
-                                    raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" nid.Pointer.Length (toFix.CalculateSize() |> uint64)))
+                                let linksChanged = 
+                                    if op &&& WriteGroupsOperation.LinkFragments = WriteGroupsOperation.LinkFragments then 
+                                        (LinkFragments toFix
+                                            |> Seq.length)
+                                            > 0
+                                    else false
+                                    
+                                let (anyChanged,anyMissed) = 
+                                    if op &&& WriteGroupsOperation.FixPointers = WriteGroupsOperation.FixPointers then
+                                        UpdateMemoryPointers toFix
+                                    else (false, false)    
                                 
-                                if (anyChanged) then    
+                                if ((anyChanged || linksChanged) && toFix.CalculateSize() |> uint64 <> nid.Length) then
+                                    raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" nid.Length (toFix.CalculateSize() |> uint64)))
+                                
+                                if (anyChanged || linksChanged) then    
                                     // !!!!do the writing later in a batch..
-                                    writeback.Add (nid.Pointer, toFix)
-                            | _ when int64 nid.Pointer.Offset < stream.Position -> 
+                                    writeback.Add (nid, toFix)
+                            | _ when int64 nid.Offset < stream.Position -> 
                                 // this should be because its a duplicate request for the previous item
                                 ()
-                            | _ when int64 nid.Pointer.Offset > stream.Position ->
+                            | _ when int64 nid.Offset > stream.Position ->
                                 // this should not happen
                                 raise (new InvalidOperationException("The block of FixPointers was not contigious"))
                             | _ -> 
@@ -234,7 +318,7 @@ type GrpcFileStore(config:Config) =
                 let PreAllocSize = int64 (1024 * 100000 )
                 stream.SetLength(PreAllocSize)
                 let out = new CodedOutputStream(stream)
-                let FixPointersWriteBuffer = new SortedList<uint64,NodeID>()
+                let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
                 let mutable lastOpIsWrite = false
                 let mutable lastPosition = 0L 
                 let FLUSHWRITES () =   
@@ -275,7 +359,7 @@ type GrpcFileStore(config:Config) =
                                     WriteTime.Stop()
                                     FixPointersWriteBufferTime.Start()
                                     if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
-                                        FixPointersWriteBuffer.Add(id.Pointer.Offset,id)
+                                        FixPointersWriteBuffer.Add(id.Pointer.Offset,id.Pointer)
                                     else
                                         ()    
                                     FixPointersWriteBufferTime.Stop()
@@ -324,7 +408,7 @@ type GrpcFileStore(config:Config) =
                                 let reply = IndexMaintainer.PostAndReply(Flush)
                                 //config.log (sprintf "####Flushed Index Maintainer for partition: %A = %A" i reply )
                                 let anySize = float 0
-                                if( writeGroups groups anySize stream ) then
+                                if( writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments)) then
                                     lastOpIsWrite <- false
                                 tcs.SetResult()  
                                 
@@ -340,7 +424,41 @@ type GrpcFileStore(config:Config) =
                             | ex ->
                                 config.log <| sprintf "ERROR[%A]: %A" i ex
                                 tcs.SetException(ex)      
-                                                                   
+                        | FlushFragmentLinks (tcs) ->
+                            try 
+                                FLUSHWRITES()
+                                // And read, and update each of those fragments calling LinkFragments.
+                                
+                                
+                                let reply = IndexMaintainer.PostAndReply(Flush)
+                                
+                                // we may have to do this multiple times as the FragmentLinksRequested my get new entries
+                                // as we satisify the ones in there. 
+                                // Todo: We might be able to avoid that by pre processing the
+                                // FragmentLinksRequested to also contain the bidirectional link for anything in it. 
+                                let mutable doAgain = true
+                                while doAgain do 
+                                    // buildgroups from the keys of FragmentLinksRequested that are for this partition.
+                                    let groupsInput = new SortedList<uint64,MemoryPointer>() 
+                                    for mp in (FragmentLinksRequested.Keys 
+                                                |> Seq.filter (fun x -> x.Partitionkey = uint32 i)
+                                                |> Seq.sortBy (fun x -> x.Offset)) do
+                                        groupsInput.Add(mp.Offset, mp)
+                                    let groups = BuildGroups groupsInput    
+                                    
+                                    let anySize = float 0
+                                    if( writeGroups groups anySize stream WriteGroupsOperation.LinkFragments) then
+                                        lastOpIsWrite <- false
+                                    doAgain <-     
+                                        FragmentLinksRequested.Keys 
+                                            |> Seq.filter (fun x -> x.Partitionkey = uint32 i)
+                                            |> Seq.exists (fun x -> true)
+                                    
+                                tcs.SetResult()  
+                            with 
+                            | ex ->
+                                config.log <| sprintf "ERROR[%A]: %A" i ex
+                                tcs.SetException(ex)                                           
                 finally
                     config.log <| sprintf "Shutting down partition writer[%A]" i 
                     config.log <| sprintf "Flushing partition writer[%A]" i
@@ -369,7 +487,9 @@ type GrpcFileStore(config:Config) =
                     bc.Add( FlushWrites(fwtcs))
                     let tcs = new TaskCompletionSource<unit>()
                     bc.Add( FlushFixPointers(tcs))
-                    yield [ fwtcs.Task :> Task; tcs.Task :> Task]}
+                    let ffltcs = new TaskCompletionSource<unit>()
+                    bc.Add( FlushFragmentLinks(ffltcs))
+                    yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
             |> Seq.collect (fun x -> x)
             |> Array.ofSeq    
             |> Task.WhenAll
@@ -389,7 +509,7 @@ type GrpcFileStore(config:Config) =
                   for fragment in kv.Value do
                       let tcs = new TaskCompletionSource<Node>()
                       let (bc,t) = PartitionWriters.[int <| fragment.Partitionkey]
-                      bc.Add (Read( tcs, (kv.Value |> Seq.head))) 
+                      bc.Add (Read( tcs, fragment)) 
                       yield tcs.Task.Result
                 }
             // todo return remote nodes

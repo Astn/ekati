@@ -33,10 +33,10 @@ type MyTests(output:ITestOutputHelper) =
             match storageType with 
             | Memory ->   new Graph(new MemoryStore())
             | GrpcFile -> new Graph(new GrpcFileStore({
-                                                          Config.ParitionCount=4; 
-                                                          log = (fun msg -> output.WriteLine msg)
-                                                          CreateTestingDataDirectory=true
-                                                          }))
+                                                        Config.ParitionCount=4; 
+                                                        log = (fun msg -> output.WriteLine msg)
+                                                        CreateTestingDataDirectory=true
+                                                        }))
         
         let nodes = __.buildNodes
         let task = g.Add nodes
@@ -52,10 +52,10 @@ type MyTests(output:ITestOutputHelper) =
             match storageType with 
             | Memory ->   new Graph(new MemoryStore())
             | GrpcFile -> new Graph(new GrpcFileStore({
-                                                          Config.ParitionCount=4; 
-                                                          log = (fun msg -> output.WriteLine msg)
-                                                          CreateTestingDataDirectory=true
-                                                          }))
+                                                        Config.ParitionCount=4; 
+                                                        log = (fun msg -> output.WriteLine msg)
+                                                        CreateTestingDataDirectory=true
+                                                        }))
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
         match task.Status with
@@ -268,36 +268,6 @@ type MyTests(output:ITestOutputHelper) =
                            
          Assert.Equal<string>(expectedIds,actual)                             
 
-//    [<Theory>]
-//    [<InlineData("StorageType.Memory")>]
-//    [<InlineData("StorageType.GrpcFile")>] 
-//    member __.``The nodes I get out have 1 ID`` storeType =
-//         let g:Graph = 
-//             match storeType with 
-//             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-//             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-//                                                                     Config.ParitionCount=12; 
-//                                                                     log = (fun msg -> output.WriteLine msg)
-//                                                                     CreateTestingDataDirectory=true
-//                                                                     }))
-//             | _ -> raise <| new NotImplementedException() 
-//                  
-//         
-//         
-//         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
-//         let task = g.Add nodes 
-//         task.Wait()
-//         g.Flush()
-//         let n1 = g.Nodes 
-//                    |> List.ofSeq 
-//                    |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
-//                    |> Seq.map (fun x -> x.Id)
-//         
-//         output.WriteLine(sprintf "node in: %A" nodes )
-//         output.WriteLine(sprintf "node out: %A" n1 )
-//         Assert.All(n1, (fun x -> Assert.Equal ( x.Count, 1)))
-         
-
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
@@ -424,8 +394,14 @@ type MyTests(output:ITestOutputHelper) =
             let adding = g.Add [fragment]
             adding.Wait()
             g.Flush()
-        
+        // TODO: Bug somewhere causing us to not wait for flush to finish, so sometimes we don't get all the adding
+        // Flushed before we try to read the nodes.    
+        System.Threading.Thread.Sleep(2000)
         let allOfThem = g.Nodes |> List.ofSeq
+        
+        for n in allOfThem do
+            output.WriteLine (sprintf "%A %A" n.Id n.Fragments)
+        
         let len = allOfThem |> Seq.length
         Assert.InRange(len, fragments, fragments)
         
