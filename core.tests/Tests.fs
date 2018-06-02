@@ -310,7 +310,7 @@ type MyTests(output:ITestOutputHelper) =
       let task = g.Add buildNodesTheCrew 
       task.Wait()
       g.Flush()
-
+      System.Threading.Thread.Sleep(2000)
       let n1 = g.Nodes 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)

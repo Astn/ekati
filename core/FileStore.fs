@@ -2,7 +2,6 @@ namespace Ahghee
 
 open Google.Protobuf
 open Google.Protobuf.Collections
-open Microsoft.AspNetCore.Mvc
 open System
 open System.Collections.Generic
 open System.Diagnostics
@@ -148,6 +147,7 @@ type GrpcFileStore(config:Config) =
                 while pointers.Length > 1 && not linked && i < pointers.Length do
                     mp <- pointers.Item(i)
                     linked <- LinkFragmentTo n mp
+                    i <- i + 1
                 if linked then 
                     [mp] |> Seq.ofList
                 else Seq.empty
@@ -411,7 +411,6 @@ type GrpcFileStore(config:Config) =
                                 if( writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments)) then
                                     lastOpIsWrite <- false
                                 tcs.SetResult()  
-                                
                             with 
                             | ex -> 
                                 config.log <| sprintf "ERROR[%A]: %A" i ex
@@ -481,20 +480,20 @@ type GrpcFileStore(config:Config) =
             v.Timestamp <- nowInt
     
     let Flush () =
-        let allDone =
-            seq {for (bc,t) in PartitionWriters do
-                    let fwtcs = new TaskCompletionSource<unit>()
-                    bc.Add( FlushWrites(fwtcs))
-                    let tcs = new TaskCompletionSource<unit>()
-                    bc.Add( FlushFixPointers(tcs))
-                    let ffltcs = new TaskCompletionSource<unit>()
-                    bc.Add( FlushFragmentLinks(ffltcs))
-                    yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
-            |> Seq.collect (fun x -> x)
-            |> Array.ofSeq    
-            |> Task.WhenAll
-        if (allDone.IsFaulted) then
-            raise allDone.Exception
+        let parentTask = Task.Factory.StartNew((fun () ->
+            let allDone =
+                seq {for (bc,t) in PartitionWriters do
+                        let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                        bc.Add( FlushWrites(fwtcs))
+                        let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                        bc.Add( FlushFixPointers(tcs))
+                        let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                        bc.Add( FlushFragmentLinks(ffltcs))
+                        yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
+                |> Seq.collect (fun x -> x)
+            allDone    
+            ))
+        parentTask.Wait()        
         ()
                     
     interface IStorage with

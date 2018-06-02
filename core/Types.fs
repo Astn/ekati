@@ -2,7 +2,6 @@ namespace Ahghee
 
 open Google.Protobuf
 open Google.Protobuf.Collections
-open Microsoft.AspNetCore.Mvc
 open System
 open System.Threading
 open System.Threading.Tasks

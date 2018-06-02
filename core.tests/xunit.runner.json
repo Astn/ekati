@@ -1,0 +1,6 @@
+﻿{
+  "parallelizeTestCollections": false,
+  "longRunningTestSeconds": 120,
+  "diagnosticMessages": true
+  
+}
