@@ -366,14 +366,14 @@ type MyTests(output:ITestOutputHelper) =
  
     [<Theory>]
     [<InlineData("StorageType.GrpcFile", 2)>]
-//    [<InlineData("StorageType.GrpcFile", 3)>]
-//    [<InlineData("StorageType.GrpcFile", 4)>]
-//    [<InlineData("StorageType.GrpcFile", 5)>]
-//    [<InlineData("StorageType.GrpcFile", 6)>]
-//    [<InlineData("StorageType.GrpcFile", 7)>]
-//    [<InlineData("StorageType.GrpcFile", 8)>]
-//    [<InlineData("StorageType.GrpcFile", 9)>]
-//    [<InlineData("StorageType.GrpcFile", 10)>]
+    [<InlineData("StorageType.GrpcFile", 3)>]
+    [<InlineData("StorageType.GrpcFile", 4)>]
+    [<InlineData("StorageType.GrpcFile", 5)>]
+    [<InlineData("StorageType.GrpcFile", 6)>]
+    [<InlineData("StorageType.GrpcFile", 7)>]
+    [<InlineData("StorageType.GrpcFile", 8)>]
+    [<InlineData("StorageType.GrpcFile", 9)>]
+    [<InlineData("StorageType.GrpcFile", 10)>]
     member __.``Multiple calls to add for the same nodeId results in all the fragments being linked`` storeType fragments =
         let g:Graph = 
             match storeType with 
@@ -412,21 +412,25 @@ type MyTests(output:ITestOutputHelper) =
         let firstOne = allOfThem.Head
         let theRest = allOfThem.Tail
         
-        let rec findConnectedFragments (aFragment:Node) (otherPotentialFragments:List<Node>) =
+        let rec findConnectedFragments (aFragment:Node) (otherPotentialFragments:List<Node>) (collected:List<Node>) =
             // find the ones it has fragment links to and remove them from the list.
-            let links = otherPotentialFragments |> List.filter (fun frag ->  aFragment.Fragments.Contains(frag.Id.Nodeid.Pointer))
-            let leftOvers = otherPotentialFragments |> List.except links
+            let newCollected = collected |> List.append [aFragment]
             
-            if (leftOvers.IsEmpty || links.IsEmpty) then 
-                links
+            
+            let links = 
+                otherPotentialFragments 
+                |> List.except newCollected 
+                |> List.filter (fun frag ->  aFragment.Fragments.Contains(frag.Id.Nodeid.Pointer))
+            
+            if (links.IsEmpty) then 
+                newCollected
             else
-                links 
-                |> List.append 
-                    links 
-                    |> List.collect (fun lnk -> findConnectedFragments lnk leftOvers )
+                newCollected 
+                |> List.append (links |> List.collect (fun lnk -> findConnectedFragments lnk otherPotentialFragments newCollected ))
+                |> List.distinct
             // repeat for the one we pull out of the list.
         
-        let connectedFragments = List.append [firstOne] (findConnectedFragments firstOne theRest)    
+        let connectedFragments = findConnectedFragments firstOne theRest List.empty   
         
         Assert.All(allOfThem, (fun frag -> 
             Assert.NotEqual(frag.Fragments.Item(0), NullMemoryPointer())
