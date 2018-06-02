@@ -13,9 +13,9 @@ open Ahghee.Grpc
 type FileStorePartition(config:Config, i:int, cluster:ClusterServices) = 
     // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
     // The idea behind this index is to know which connections we do not need to make as they are already made
-    let FragmentLinksConnected = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
+    let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
     // The idea behind this index is to know which connections we know we need to make that we have not yet made
-    let FragmentLinksRequested = new System.Collections.Concurrent.ConcurrentDictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
+    let FragmentLinksRequested = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
     
     // TODO: rename to IORequests
     let bc = new System.Collections.Concurrent.BlockingCollection<NodeIO>()
@@ -52,22 +52,23 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
                         n.Fragments.Item(i) <- mp
 
                         // Track that we have linked these fragments
-                        FragmentLinksConnected.AddOrUpdate (n.Id.Nodeid.Pointer, [mp], (fun key value -> value |> Seq.append [mp] ))
-                        |> ignore
-                        let mutable existingLinks = Seq.empty<MemoryPointer>
-                        
+                        if FragmentLinksConnected.ContainsKey(n.Id.Nodeid.Pointer) = false then 
+                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- [mp]
+                        else
+                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) |> Seq.append [mp]   
+
                         // If this was a requested link, remove it from the requests
-                        if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & existingLinks) && existingLinks |> Seq.contains mp then 
-                            if existingLinks |> Seq.length > 1 then 
-                                FragmentLinksRequested.TryUpdate (n.Id.Nodeid.Pointer, existingLinks |> Seq.except [mp], existingLinks)
-                            else
-                                FragmentLinksRequested.TryRemove(n.Id.Nodeid.Pointer, & existingLinks)                                        
-                            |> ignore
+                        if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) && FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) |> Seq.length > 1 then
+                            FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) <- FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) |> Seq.except [mp]
+                        else if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) then  
+                            FragmentLinksRequested.Remove(n.Id.Nodeid.Pointer) |> ignore
                             
+                                                   
                         // Track that we want to link it from the other direction, but only if that hasn't already been done
-                        if FragmentLinksConnected.TryGetValue(mp, & existingLinks) = false || existingLinks |> Seq.contains n.Id.Nodeid.Pointer = false then 
-                            FragmentLinksRequested.AddOrUpdate (mp, [n.Id.Nodeid.Pointer], (fun key value -> value |> Seq.append [n.Id.Nodeid.Pointer] ))
-                            |> ignore
+                        if FragmentLinksConnected.ContainsKey(mp) = false && FragmentLinksRequested.ContainsKey(mp) = false then 
+                            FragmentLinksRequested.Add(mp, [n.Id.Nodeid.Pointer]) 
+                        else if FragmentLinksRequested.ContainsKey(mp) && FragmentLinksRequested.Item(mp) |> Seq.contains n.Id.Nodeid.Pointer = false then
+                            FragmentLinksRequested.Item(mp) <- FragmentLinksRequested.Item(mp) |> Seq.append [n.Id.Nodeid.Pointer] 
 
                         true
                     else 
