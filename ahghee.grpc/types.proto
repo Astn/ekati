@@ -61,6 +61,7 @@ message KeyValue {
 }
 
 message Node {
-    repeated AddressBlock ids = 1;
-    repeated KeyValue attributes = 2;
+    AddressBlock id = 1;
+    repeated MemoryPointer fragments = 2;
+    repeated KeyValue attributes = 3;
 }

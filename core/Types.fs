@@ -2,7 +2,6 @@ namespace Ahghee
 
 open Google.Protobuf
 open Google.Protobuf.Collections
-open Microsoft.AspNetCore.Mvc
 open System
 open System.Threading
 open System.Threading.Tasks
@@ -89,7 +88,12 @@ module Utils =
     let TMDAuto data = 
         let tmd = new TMD()
         tmd.Data <- data
-        tmd     
+        tmd
+    let TMDTime data time =
+        let tmd = TMDAuto data
+        tmd.Timestamp <- time
+        tmd 
+             
     let Prop (key:DataBlock) (values:seq<DataBlock>) =
         let kv = new KeyValue()
         kv.Key <- TMDAuto key
@@ -104,6 +108,9 @@ module Utils =
     let PropData (key:string) (values:seq<DataBlock>) = Prop (DBBString key) values
     let Node key values = 
         let node = new Node()
-        node.Ids.AddRange key
+        // TODO: let the number of reserved fragments be configurable
+        let fragments = [|(NullMemoryPointer());(NullMemoryPointer()); (NullMemoryPointer())|]
+        node.Id <- key
+        node.Fragments.AddRange fragments
         node.Attributes.AddRange values
         node

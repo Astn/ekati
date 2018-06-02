@@ -2,7 +2,6 @@ namespace Ahghee
 
 open Google.Protobuf
 open Google.Protobuf.Collections
-open Microsoft.AspNetCore.Mvc
 open System
 open System.Threading
 open System.Threading.Tasks
@@ -18,7 +17,7 @@ type MemoryStore() =
             Task.CompletedTask
         member this.Remove (nodeIDs:seq<AddressBlock>) = 
             _nodes <- _nodes |> Seq.filter (fun n -> 
-                                                    let head = n.Ids |> Seq.head 
+                                                    let head = n.Id 
                                                     nodeIDs |> Seq.contains head |> not)
             Task.CompletedTask    
         member this.Items (addresses:seq<AddressBlock>) =
@@ -26,7 +25,7 @@ type MemoryStore() =
                                                 match addr.AddressCase with 
                                                 | AddressBlock.AddressOneofCase.Nodeid -> 
                                                                 let isLocal = _nodes 
-                                                                              |> Seq.tryFind ( fun n -> n.Ids |> Seq.exists (fun nn -> nn = addr))
+                                                                              |> Seq.tryFind ( fun n -> n.Id = addr)
                                                                 match isLocal with 
                                                                 | Some node -> (addr, Left(node))
                                                                 | None -> (addr, Right (Failure "remote nodes not supported yet"))

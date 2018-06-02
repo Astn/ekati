@@ -19,12 +19,25 @@ open FSharp.Data
 type StorageType =
     | Memory
     | GrpcFile
-    
+
+let dbtype str =
+    match str with 
+    | "mem" -> Memory
+    | "file" -> GrpcFile
+    | _ -> raise (new NotImplementedException(str + " is not a storagetype"))   
 
 type MyTests(output:ITestOutputHelper) =
     
-    member __.buildGraph : Graph =
-        let g:Graph = new Graph(new MemoryStore())
+    member __.buildGraph (storageType:StorageType): Graph =
+        let g:Graph = 
+            match storageType with 
+            | Memory ->   new Graph(new MemoryStore())
+            | GrpcFile -> new Graph(new GrpcFileStore({
+                                                        Config.ParitionCount=4; 
+                                                        log = (fun msg -> output.WriteLine msg)
+                                                        CreateTestingDataDirectory=true
+                                                        }))
+        
         let nodes = __.buildNodes
         let task = g.Add nodes
         match task.Status with
@@ -34,8 +47,15 @@ type MyTests(output:ITestOutputHelper) =
         g.Flush()
         g
         
-    member __.toyGraph : Graph =
-        let g:Graph = new Graph(new MemoryStore())
+    member __.toyGraph (storageType:StorageType): Graph =
+        let g:Graph = 
+            match storageType with 
+            | Memory ->   new Graph(new MemoryStore())
+            | GrpcFile -> new Graph(new GrpcFileStore({
+                                                        Config.ParitionCount=4; 
+                                                        log = (fun msg -> output.WriteLine msg)
+                                                        CreateTestingDataDirectory=true
+                                                        }))
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
         match task.Status with
@@ -74,7 +94,7 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can create a Node`` () =
-        let node = Node [| ABtoyId "1" |] 
+        let node = Node (ABtoyId "1") 
                         [| PropString "firstName" [|"Richard"; "Dick"|] |]
     
         let empty = node.Attributes |> Seq.isEmpty
@@ -83,19 +103,19 @@ type MyTests(output:ITestOutputHelper) =
     
     
     member __.buildNodes : seq<Node> = 
-        let node1 = Node [| ABtoyId "1" |] 
+        let node1 = Node (ABtoyId "1" ) 
                          [|
                             PropString "firstName" [|"Richard"; "Dick"|] 
                             PropData "follows" [| DABtoyId "2" |] 
                          |]
                    
-        let node2 = Node [| ABtoyId "2" |] 
+        let node2 = Node (ABtoyId "2") 
                          [|
                             PropString "firstName" [|"Sam"; "Sammy"|] 
                             PropData "follows" [| DABtoyId "1" |]
                          |]
                    
-        let node3 = Node [| ABtoyId "3" |] 
+        let node3 = Node (ABtoyId "3") 
                          [|
                             PropString "firstName" [|"Jim"|]
                             PropData "follows" [| DABtoyId "1"; DABtoyId "2" |] 
@@ -110,7 +130,7 @@ type MyTests(output:ITestOutputHelper) =
         let seededRandom = new Random(nodeCount)
                
         seq { for i in 1 .. nodeCount do 
-              yield Node [| ABtoyId (i.ToString()) |] 
+              yield Node (ABtoyId (i.ToString()) )
                          ([|
                             PropString "firstName" [|"Austin"|]
                             PropString "lastName"  [|"Harris"|]
@@ -132,7 +152,7 @@ type MyTests(output:ITestOutputHelper) =
             match storeType with 
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                    Config.ParitionCount=12; 
+                                                                    Config.ParitionCount=4; 
                                                                     log = (fun msg -> output.WriteLine msg)
                                                                     CreateTestingDataDirectory=true
                                                                     }))
@@ -149,17 +169,19 @@ type MyTests(output:ITestOutputHelper) =
         Assert.Equal( task.IsCompletedSuccessfully, true)
         ()
                                       
-    [<Fact>]
-    member __.``Can Remove nodes from graph`` () =
-        let g:Graph = __.buildGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    //[<InlineData("file")>] 
+    member __.``Can Remove nodes from graph`` db =
+        let g:Graph = __.buildGraph (dbtype db)
 
         let n1 = g.Nodes
         let len1 = n1 |> Seq.length
         
         let toRemove = n1 
                         |> Seq.head 
-                        |> (fun n -> n.Ids)
-        let task = g.Remove(toRemove)
+                        |> (fun n -> n.Id)
+        let task = g.Remove([toRemove])
         task.Wait()
         let n2 = g.Nodes
         let len2 = n2 |> Seq.length                        
@@ -177,7 +199,7 @@ type MyTests(output:ITestOutputHelper) =
             match storeType with 
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                    Config.ParitionCount=12; 
+                                                                    Config.ParitionCount=4; 
                                                                     log = (fun msg -> output.WriteLine msg)
                                                                     CreateTestingDataDirectory=true
                                                                     }))
@@ -211,7 +233,7 @@ type MyTests(output:ITestOutputHelper) =
              match storeType with 
              | "StorageType.Memory" ->   new Graph(new MemoryStore())
              | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=12; 
+                                                                     Config.ParitionCount=4; 
                                                                      log = (fun msg -> output.WriteLine msg)
                                                                      CreateTestingDataDirectory=true
                                                                      }))
@@ -227,7 +249,7 @@ type MyTests(output:ITestOutputHelper) =
          
          let actual = n1
                          |> Seq.map (fun id -> 
-                                               let headId =(id.Ids |> Seq.head) 
+                                               let headId = id.Id  
                                                match headId.AddressCase with    
                                                | AddressBlock.AddressOneofCase.Nodeid -> Some(headId.Nodeid.Nodeid)
                                                | _ -> None
@@ -249,42 +271,12 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
-    member __.``The nodes I get out have 1 ID`` storeType =
-         let g:Graph = 
-             match storeType with 
-             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=12; 
-                                                                     log = (fun msg -> output.WriteLine msg)
-                                                                     CreateTestingDataDirectory=true
-                                                                     }))
-             | _ -> raise <| new NotImplementedException() 
-                  
-         
-         
-         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
-         let task = g.Add nodes 
-         task.Wait()
-         g.Flush()
-         let n1 = g.Nodes 
-                    |> List.ofSeq 
-                    |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
-                    |> Seq.map (fun x -> x.Ids)
-         
-         output.WriteLine(sprintf "node in: %A" nodes )
-         output.WriteLine(sprintf "node out: %A" n1 )
-         Assert.All(n1, (fun x -> Assert.Equal ( x.Count, 1)))
-         
-
-    [<Theory>]
-    [<InlineData("StorageType.Memory")>]
-    [<InlineData("StorageType.GrpcFile")>] 
     member __.``When I put a node in I can get the same out`` storeType =
          let g:Graph = 
              match storeType with 
              | "StorageType.Memory" ->   new Graph(new MemoryStore())
              | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=12; 
+                                                                     Config.ParitionCount=4; 
                                                                      log = (fun msg -> output.WriteLine msg)
                                                                      CreateTestingDataDirectory=true
                                                                      }))
@@ -292,11 +284,11 @@ type MyTests(output:ITestOutputHelper) =
                   
          
          
-         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
          let task = g.Add nodes 
          task.Wait()
          g.Flush()
-         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
          output.WriteLine(sprintf "node in: %A" nodes )
          output.WriteLine(sprintf "node out: %A" n1 )
          Assert.Equal<Node>(nodes,n1)
@@ -309,7 +301,7 @@ type MyTests(output:ITestOutputHelper) =
           match storeType with 
           | "StorageType.Memory" ->   new Graph(new MemoryStore())
           | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                  Config.ParitionCount=12; 
+                                                                  Config.ParitionCount=4; 
                                                                   log = (fun msg -> output.WriteLine msg)
                                                                   CreateTestingDataDirectory=true
                                                                   }))
@@ -321,7 +313,7 @@ type MyTests(output:ITestOutputHelper) =
 
       let n1 = g.Nodes 
                 |> List.ofSeq 
-                |> List.sortBy (fun x -> (x.Ids |> Seq.head).Nodeid.Nodeid)
+                |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
                 |> Seq.map (fun n -> 
                             let valuePointers = n.Attributes
                                                 |> Seq.collect (fun attr -> attr.Value)
@@ -334,7 +326,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                 | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid
                                                                 | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid
                                                                 | _ -> raise (new Exception("Invalid address case")))
-                            (n.Ids |> Seq.head).Nodeid, valuePointers                                                                                
+                            n.Id.Nodeid, valuePointers                                                                                
                             )
       
       Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
@@ -372,6 +364,78 @@ type MyTests(output:ITestOutputHelper) =
             output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
             //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
+    [<Theory>]
+    [<InlineData("StorageType.GrpcFile", 2)>]
+    [<InlineData("StorageType.GrpcFile", 3)>]
+    [<InlineData("StorageType.GrpcFile", 4)>]
+    [<InlineData("StorageType.GrpcFile", 5)>]
+    [<InlineData("StorageType.GrpcFile", 6)>]
+    [<InlineData("StorageType.GrpcFile", 7)>]
+    [<InlineData("StorageType.GrpcFile", 8)>]
+    [<InlineData("StorageType.GrpcFile", 9)>]
+    [<InlineData("StorageType.GrpcFile", 10)>]
+    member __.``Multiple calls to add for the same nodeId results in all the fragments being linked`` storeType fragments =
+        let g:Graph = 
+            match storeType with 
+            | "StorageType.Memory" ->   new Graph(new MemoryStore())
+            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
+                                                                      Config.ParitionCount=4; 
+                                                                      log = (fun msg -> output.WriteLine msg)
+                                                                      CreateTestingDataDirectory=true
+                                                                      }))
+            | _ -> raise <| new NotImplementedException() 
+        
+        
+        for i in 1 .. fragments do
+            let fragment = Node (ABtoyId ("TESTID") )
+                                                    ([|
+                                                       PropString (sprintf "property-%A" i) [|sprintf "%A" i|]
+                                                    |]) 
+            let adding = g.Add [fragment]
+            adding.Wait()
+            g.Flush()
+        // TODO: Bug somewhere causing us to not wait for flush to finish, so sometimes we don't get all the adding
+        // Flushed before we try to read the nodes.    
+        
+        let allOfThem = g.Nodes |> List.ofSeq
+        
+        for n in allOfThem do
+            output.WriteLine (sprintf "%A %A" n.Id n.Fragments)
+        
+        let len = allOfThem |> Seq.length
+        Assert.InRange(len, fragments, fragments)
+        
+        // Assert that all the fragments are connected.
+
+        // put them all in a list
+        // remove the first one
+        let firstOne = allOfThem.Head
+        let theRest = allOfThem.Tail
+        
+        let rec findConnectedFragments (aFragment:Node) (otherPotentialFragments:List<Node>) (collected:List<Node>) =
+            // find the ones it has fragment links to and remove them from the list.
+            let newCollected = collected |> List.append [aFragment]
+            
+            
+            let links = 
+                otherPotentialFragments 
+                |> List.except newCollected 
+                |> List.filter (fun frag ->  aFragment.Fragments.Contains(frag.Id.Nodeid.Pointer))
+            
+            if (links.IsEmpty) then 
+                newCollected
+            else
+                newCollected 
+                |> List.append (links |> List.collect (fun lnk -> findConnectedFragments lnk otherPotentialFragments newCollected ))
+                |> List.distinct
+            // repeat for the one we pull out of the list.
+        
+        let connectedFragments = findConnectedFragments firstOne theRest List.empty   
+        
+        Assert.All(allOfThem, (fun frag -> 
+            Assert.NotEqual(frag.Fragments.Item(0), NullMemoryPointer())
+            Assert.Contains(frag, connectedFragments)))
+ 
     member __.CollectValues key (graph:Graph) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
@@ -383,8 +447,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                  | _ -> false
                                                     )
                                       |> Seq.map (fun attr -> 
-                                                    let _id = n.Ids 
-                                                                |> Seq.head 
+                                                    let _id = n.Id 
                                                                 |> (fun id -> match id.AddressCase with    
                                                                               | AddressBlock.AddressOneofCase.Nodeid -> id.Nodeid.Nodeid
                                                                               | _ -> String.Empty
@@ -393,97 +456,172 @@ type MyTests(output:ITestOutputHelper) =
                                                     _id,key,attr.Value |> List.ofSeq
                                                  )                                                           
                              )
+             |> Seq.sortBy (fun (x,_,_) -> x)
              |> List.ofSeq
-             
-    [<Fact>] 
-    member __.``Can get labelV after load tinkerpop-crew.xml into graph`` () =
-         let g:Graph = __.toyGraph
+
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>]
+    member __.``Can get labelV after load tinkerpop-crew.xml into graph`` db =
+         let g:Graph = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          
          let attrName = "labelV"
          let actual = __.CollectValues attrName g
-                                       
+         let (_,_,one) = actual |> Seq.head 
+         let time = one.Head.Timestamp                    
+         
          let expected = [ 
-                                "1",attrName ,[TMDAuto <| DBBString "person"]
-                                "2",attrName ,[TMDAuto <| DBBString "person"]
-                                "3",attrName ,[TMDAuto <| DBBString "software"]
-                                "4",attrName ,[TMDAuto <| DBBString "person"]
-                                "5",attrName ,[TMDAuto <| DBBString "software"]
-                                "6",attrName ,[TMDAuto <| DBBString "person"] 
+                                "1",attrName ,[TMDTime (DBBString "person") time]
+                                "2",attrName ,[TMDTime (DBBString "person") time]
+                                "3",attrName ,[TMDTime (DBBString "software") time]
+                                "4",attrName ,[TMDTime (DBBString "person") time]
+                                "5",attrName ,[TMDTime (DBBString "software") time]
+                                "6",attrName ,[TMDTime (DBBString "person") time] 
                            ]
                            
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)                           
          Assert.Equal<string * string * list<TMD>>(expected,actual) 
          
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` () =
-         let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` db =
+         let g:Graph = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
-
+         let (_,_,one) = actual |> Seq.head 
+         let time = one.Head.Timestamp
          let expected = [ 
-                        "1",attrName, [TMDAuto <| DBBInt 29]
-                        "2",attrName, [TMDAuto <| DBBInt 27]
-                        "4",attrName, [TMDAuto <| DBBInt 32]
-                        "6",attrName, [TMDAuto <| DBBInt 35]
+                        "1",attrName, [TMDTime (DBBInt 29) time]
+                        "2",attrName, [TMDTime (DBBInt 27) time]
+                        "4",attrName, [TMDTime (DBBInt 32) time]
+                        "6",attrName, [TMDTime (DBBInt 35) time]
                         ]
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)
-         Assert.Equal<string * string * list<TMD>>(expected,actual)         
+         Assert.Equal<string * string * list<TMD>>(expected,actual)  
+         
+    [<Theory>]
+    [<InlineData("mem", 0)>]
+    [<InlineData("mem", 1)>]
+    [<InlineData("mem", 2)>]
+    [<InlineData("file", 0)>]
+    [<InlineData("file", 1)>]
+    [<InlineData("file", 2)>]
+    member __.``After load tinkerpop-crew.xml multiple flush do not destroy data`` db flushes =
+         let g:Graph = __.toyGraph (dbtype db)
+         
+         for i in 0 .. flushes do
+            g.Flush()
+                  
+         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         let attrName = "age"
+         let actual = __.CollectValues attrName g                                         
+         let (_,_,one) = actual |> Seq.head 
+         let time = one.Head.Timestamp
+         let expected = [ 
+                        "1",attrName, [TMDTime (DBBInt 29) time]
+                        "2",attrName, [TMDTime (DBBInt 27) time]
+                        "4",attrName, [TMDTime (DBBInt 32) time]
+                        "6",attrName, [TMDTime (DBBInt 35) time]
+                        ]
+         output.WriteLine(sprintf "foundData: %A" actual)
+         output.WriteLine(sprintf "expectedData: %A" expected)
+         Assert.Equal<string * string * list<TMD>>(expected,actual)                   
 
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'out.knows' Edges`` () =
-        let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem", 0)>]
+    [<InlineData("mem", 1)>]
+    [<InlineData("mem", 2)>]
+    [<InlineData("file", 0)>]
+    [<InlineData("file", 1)>]
+    [<InlineData("file", 2)>]
+    member __.``After load tinkerpop-crew.xml multiple adds do not destroy data`` db flushes =
+         let g:Graph = __.toyGraph (dbtype db)
+         
+         for i in 0 .. flushes do
+            g.Flush()
+                  
+         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         let attrName = "age"
+         let actual = __.CollectValues attrName g                                         
+         let (_,_,one) = actual |> Seq.head 
+         let time = one.Head.Timestamp
+         let expected = [ 
+                        "1",attrName, [TMDTime (DBBInt 29) time]
+                        "2",attrName, [TMDTime (DBBInt 27) time]
+                        "4",attrName, [TMDTime (DBBInt 32) time]
+                        "6",attrName, [TMDTime (DBBInt 35) time]
+                        ]
+         output.WriteLine(sprintf "foundData: %A" actual)
+         output.WriteLine(sprintf "expectedData: %A" expected)
+         Assert.Equal<string * string * list<TMD>>(expected,actual) 
+
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>]  
+    member __.``After load tinkerpop-crew.xml Nodes have 'out.knows' Edges`` db =
+        let g:Graph = __.toyGraph (dbtype db)
               
         let attrName = "out.knows"
         let actual = __.CollectValues attrName g                                         
-        
+        let (_,_,one) = actual |> Seq.head 
+        let time = one.Head.Timestamp
         let expected = [ 
-                    "1",attrName, [TMDAuto <| DABtoyId "7"]
-                    "1",attrName, [TMDAuto <| DABtoyId "8"]
+                    "1",attrName, [TMDTime (DABtoyId "7") time]
+                    "1",attrName, [TMDTime (DABtoyId "8") time]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
         Assert.Equal<string * string * list<TMD>>(expected,actual)
         
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'out.created' Edges`` () =        
-        let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml Nodes have 'out.created' Edges`` db =        
+        let g:Graph = __.toyGraph (dbtype db)
         let attrName = "out.created"
         let actual = __.CollectValues attrName g                                         
-        
+        let (_,_,one) = actual |> Seq.head 
+        let time = one.Head.Timestamp        
         let expected = [ 
-                     "1",attrName, [TMDAuto <| DABtoyId "9"]
-                     "4",attrName, [TMDAuto <| DABtoyId "10"]
-                     "4",attrName, [TMDAuto <| DABtoyId "11"]
-                     "6",attrName, [TMDAuto <| DABtoyId "12"]
+                     "1",attrName, [TMDTime (DABtoyId "9") time]
+                     "4",attrName, [TMDTime (DABtoyId "10") time]
+                     "4",attrName, [TMDTime (DABtoyId "11") time]
+                     "6",attrName, [TMDTime (DABtoyId "12") time]
                      ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
         Assert.Equal<string * string * list<TMD>>(expected,actual)
     
 
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'in.knows' Edges`` () =
-        let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml Nodes have 'in.knows' Edges`` db =
+        let g:Graph = __.toyGraph (dbtype db)
               
         let attrName = "in.knows"
         let actual = __.CollectValues attrName g                                         
-        
+        let (_,_,one) = actual |> Seq.head 
+        let time = one.Head.Timestamp
         let expected = [ 
-                    "2",attrName, [TMDAuto <| DABtoyId "7"]
-                    "4",attrName, [TMDAuto <| DABtoyId "8"]
+                    "2",attrName, [TMDTime (DABtoyId "7") time]
+                    "4",attrName, [TMDTime (DABtoyId "8") time]
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
         Assert.Equal<string * string * list<TMD>>(expected,actual)
         
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'in.created' Edges`` () =        
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml Nodes have 'in.created' Edges`` db =        
         let sortedByNodeIdEdgeId (data: list<string * string * list<TMD>>) = 
             data 
             |> List.sortBy (fun (a,b,c) -> 
@@ -494,16 +632,19 @@ type MyTests(output:ITestOutputHelper) =
                                     | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Globalnodeid ->
                                                                             h1.Data.Address.Globalnodeid.Nodeid.Nodeid                                        
                                     | _ ->  "")
-        let g:Graph = __.toyGraph
+        let g:Graph = __.toyGraph (dbtype db)
         let attrName = "in.created"
         let actual = __.CollectValues attrName g
                     |> sortedByNodeIdEdgeId                                         
         
+        let (_,_,one) = actual |> Seq.head 
+        let time = one.Head.Timestamp
+        
         let expected = [ 
-                         "3",attrName, [TMDAuto <| DABtoyId "9"]
-                         "5",attrName, [TMDAuto <| DABtoyId "10"]
-                         "3",attrName, [TMDAuto <| DABtoyId "11"]
-                         "3",attrName, [TMDAuto <| DABtoyId "12"]
+                         "3",attrName, [TMDTime (DABtoyId "9") time]
+                         "5",attrName, [TMDTime (DABtoyId "10") time]
+                         "3",attrName, [TMDTime (DABtoyId "11") time]
+                         "3",attrName, [TMDTime (DABtoyId "12") time]
                        ] 
                        |> sortedByNodeIdEdgeId
                      
@@ -511,28 +652,33 @@ type MyTests(output:ITestOutputHelper) =
         output.WriteLine(sprintf "expectedData: %A" expected)
         Assert.Equal<string * string * list<TMD>>(expected,actual)
          
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml has Edge-nodes`` () =        
-        let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml has Edge-nodes`` db =        
+        let g:Graph = __.toyGraph (dbtype db)
         let attrName = "labelE"
         let actual = __.CollectValues attrName g                                       
-        
+        let (_,_,one) = actual |> Seq.head 
+        let time = one.Head.Timestamp        
         let expected = [ 
-                         "7",attrName, [TMDAuto <| DBBString "knows"]
-                         "8",attrName, [TMDAuto <| DBBString "knows"]
-                         "9",attrName, [TMDAuto <| DBBString "created"]
-                         "10",attrName, [TMDAuto <| DBBString "created"]
-                         "11",attrName, [TMDAuto <| DBBString "created"]
-                         "12",attrName, [TMDAuto <| DBBString "created"]
-                       ] 
+                         "7",attrName, [TMDTime (DBBString "knows") time]
+                         "8",attrName, [TMDTime (DBBString "knows") time]
+                         "9",attrName, [TMDTime (DBBString "created") time]
+                         "10",attrName, [TMDTime (DBBString "created") time]
+                         "11",attrName, [TMDTime (DBBString "created") time]
+                         "12",attrName, [TMDTime (DBBString "created") time]
+                       ] |> List.sortBy (fun (x,_,_) -> x)
                      
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
         Assert.Equal<string * string * list<TMD>>(expected,actual)         
          
-    [<Fact>] 
-    member __.``After load tinkerpop-crew.xml has node data`` () =        
-        let g:Graph = __.toyGraph
+    [<Theory>]
+    [<InlineData("mem")>]
+    [<InlineData("file")>] 
+    member __.``After load tinkerpop-crew.xml has node data`` db =        
+        let g:Graph = __.toyGraph (dbtype db)
         output.WriteLine(sprintf "%A" g.Nodes)
         Assert.NotEmpty(g.Nodes)
 

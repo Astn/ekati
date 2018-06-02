@@ -63,12 +63,11 @@ namespace Ahghee.Grpc
 
         public int GetHashCode(NodeID obj)
         {
-//            var array = new byte[System.Text.Encoding.UTF8.GetByteCount(obj.Graph) + System.Text.Encoding.UTF8.GetByteCount(obj.Nodeid)];
-//            var written = System.Text.Encoding.UTF8.GetBytes(obj.Graph,0,obj.Graph.Length,array,0);
-//            var written2 = System.Text.Encoding.UTF8.GetBytes(obj.Nodeid,0,obj.Nodeid.Length,array,written);
-//            var hash = hasher.ComputeHash(array);
-//            return BitConverter.ToInt32(hash.Hash, 0);
-            return obj.Graph.GetHashCode() * 31 + obj.Nodeid.GetHashCode();
+            var array = new byte[System.Text.Encoding.UTF8.GetByteCount(obj.Graph) + System.Text.Encoding.UTF8.GetByteCount(obj.Nodeid)];
+            var written = System.Text.Encoding.UTF8.GetBytes(obj.Graph,0,obj.Graph.Length,array,0);
+            System.Text.Encoding.UTF8.GetBytes(obj.Nodeid,0,obj.Nodeid.Length,array,written);
+            var hash = hasher.ComputeHash(array);
+            return BitConverter.ToInt32(hash.Hash, 0);
         }
     }
 }
