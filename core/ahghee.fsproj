@@ -5,6 +5,8 @@
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="MemoryStore.fs" />
+    <Compile Include="FileStoreCommon.fs" />
+    <Compile Include="FileStorePartition.fs" />
     <Compile Include="FileStore.fs" />
     <Compile Include="TinkerPop.fs" />
     <Compile Include="Program.fs" />
