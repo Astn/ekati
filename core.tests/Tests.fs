@@ -171,7 +171,7 @@ type MyTests(output:ITestOutputHelper) =
                                       
     [<Theory>]
     [<InlineData("mem")>]
-    [<InlineData("file")>] 
+    //[<InlineData("file")>] 
     member __.``Can Remove nodes from graph`` db =
         let g:Graph = __.buildGraph (dbtype db)
 
@@ -310,7 +310,7 @@ type MyTests(output:ITestOutputHelper) =
       let task = g.Add buildNodesTheCrew 
       task.Wait()
       g.Flush()
-      System.Threading.Thread.Sleep(2000)
+
       let n1 = g.Nodes 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
@@ -396,7 +396,7 @@ type MyTests(output:ITestOutputHelper) =
             g.Flush()
         // TODO: Bug somewhere causing us to not wait for flush to finish, so sometimes we don't get all the adding
         // Flushed before we try to read the nodes.    
-        System.Threading.Thread.Sleep(2000)
+        
         let allOfThem = g.Nodes |> List.ofSeq
         
         for n in allOfThem do
