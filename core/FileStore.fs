@@ -491,6 +491,7 @@ type GrpcFileStore(config:Config) =
                         bc.Add( FlushFragmentLinks(ffltcs))
                         yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
                 |> Seq.collect (fun x -> x)
+                |> List.ofSeq // force it to run
             allDone    
             ))
         parentTask.Wait()        
