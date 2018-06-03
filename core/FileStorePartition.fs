@@ -13,7 +13,7 @@ open Ahghee.Grpc
 open App.Metrics
 
 type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
-    let tags = MetricTags([| "parition_id" |],
+    let tags = MetricTags([| "partition_id" |],
                           [| i.ToString() |]) 
         
 
