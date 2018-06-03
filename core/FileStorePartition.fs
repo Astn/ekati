@@ -6,6 +6,7 @@ open System
 open System.Collections.Generic
 open System.Diagnostics
 open System.IO
+open System.Linq
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
@@ -408,27 +409,34 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             
                             let reply = IndexMaintainer.PostAndReply(Flush)
                             
-                            // we may have to do this multiple times as the FragmentLinksRequested my get new entries
-                            // as we satisify the ones in there. 
-                            // Todo: We might be able to avoid that by pre processing the
-                            // FragmentLinksRequested to also contain the bidirectional link for anything in it. 
-                            let mutable doAgain = true
-                            while doAgain do 
-                                // buildgroups from the keys of FragmentLinksRequested that are for this partition.
-                                let groupsInput = new SortedList<uint64,MemoryPointer>() 
-                                for mp in (FragmentLinksRequested.Keys 
-                                            |> Seq.filter (fun x -> x.Partitionkey = uint32 i)
-                                            |> Seq.sortBy (fun x -> x.Offset)) do
-                                    groupsInput.Add(mp.Offset, mp)
-                                let groups = BuildGroups groupsInput    
-                                
-                                let anySize = float 0
-                                if( writeGroups groups anySize stream WriteGroupsOperation.LinkFragments) then
-                                    lastOpIsWrite <- false
-                                doAgain <-     
-                                    FragmentLinksRequested.Keys 
+                            // Try to use a single pass to update everything                           
+                            // for everything in FragmentLinksRequested, If it's inverse is not already contained
+                            // in FragmentLinksConnected, then insert that inverse into FragmentLinksRequested
+                            let toAdd = 
+                                seq {
+                                    for flr in FragmentLinksRequested do
+                                        for subflr in flr.Value do
+                                            if FragmentLinksConnected.ContainsKey(subflr) = false ||
+                                               FragmentLinksConnected.Item(subflr).Contains(flr.Key) = false then
+                                               yield subflr , flr.Key
+                                    }           
+                            
+                            for k,v in toAdd do
+                                if FragmentLinksRequested.ContainsKey(k) = false then
+                                    FragmentLinksRequested.Add(k,[v])
+                                else if FragmentLinksRequested.Item(k).Contains(v) = false then
+                                    FragmentLinksRequested.Item(k) <- FragmentLinksRequested.Item(k).Concat [v] 
+                            
+                            let groupsInput = new SortedList<uint64,MemoryPointer>() 
+                            for mp in (FragmentLinksRequested.Keys 
                                         |> Seq.filter (fun x -> x.Partitionkey = uint32 i)
-                                        |> Seq.exists (fun x -> true)
+                                        |> Seq.sortBy (fun x -> x.Offset)) do
+                                groupsInput.Add(mp.Offset, mp)
+                            let groups = BuildGroups groupsInput    
+                            
+                            let anySize = float 0
+                            if( writeGroups groups anySize stream WriteGroupsOperation.LinkFragments) then
+                                lastOpIsWrite <- false
                                 
                             tcs.SetResult()  
                         with 
