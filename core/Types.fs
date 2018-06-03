@@ -36,6 +36,15 @@ module Utils =
     open Google.Protobuf
 
     let GetNodeIdHash (nodeid:NodeID) : NodeIdHash = { hash= nodeid.GetHashCode(); graph=nodeid.Graph; nodeid=nodeid.Nodeid }
+    let GetAddressBlockHash (ab:AddressBlock) : NodeIdHash =
+        let nid = 
+            match ab.AddressCase with 
+            | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
+            | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
+            | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
+        GetNodeIdHash nid    
+    let GetPartitionFromHash (partitionCount:int) (nodeHash:NodeIdHash) =
+        int ((uint32 nodeHash.hash) % uint32 partitionCount)
 
     let metaPlainTextUtf8 = "xs:string"
     let metaXmlInt = "xs:int"
