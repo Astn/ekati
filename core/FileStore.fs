@@ -3,56 +3,58 @@ namespace Ahghee
 open Google.Protobuf
 open Google.Protobuf.Collections
 open System
+open System.Collections.Concurrent
 open System.Collections.Generic
+open System.Data.SqlTypes
 open System.Diagnostics
 open System.IO
+open System.Linq
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
 
+type ClusterServices() = 
+    let remotePartitions = new ConcurrentDictionary<int,FileStorePartition>()
+    member this.RemotePartitions() = remotePartitions
+    interface IClusterServices with 
+        member this.RemoteLookup (partition:int) (hash:NodeIdHash) : bool * MemoryPointer = 
+            if remotePartitions.ContainsKey partition then 
+                let remote = remotePartitions.[ partition ]
+                let mutable refPointers = Seq.empty<MemoryPointer>
+                if remote.Index().TryGetValue(hash, & refPointers) then
+                    true, refPointers |> Seq.head
+                else
+                    false, Utils.NullMemoryPointer()
+                
+            else false, Utils.NullMemoryPointer()    
+            
+
 
 type GrpcFileStore(config:Config) = 
 
-    // TODO: Switch to PebblesDB when index gets to big
-    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>()
-    
-
-    let IndexMaintainer =
-        MailboxProcessor<IndexMessage>.Start(fun inbox ->
-            let rec messageLoop() = 
-                async{
-                    let! message = inbox.Receive()
-                    match message with 
-                    | Index(nid) ->
-                            let id = nid
-                            let seqId = [id.Pointer] |> Seq.ofList
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, [nid.Pointer], 
-                                (fun x y -> 
-                                    let appended = y |> Seq.append seqId
-                                    appended
-                                    )) |> ignore
-                    | Flush(replyChannel)->
-                        replyChannel.Reply(true)
-                        
-                    return! messageLoop()
-                }    
-            messageLoop()    
-        )
-
+    let clusterServices = new ClusterServices()
 
     let PartitionWriters = 
         let bcs = 
             seq {for i in 0 .. (config.ParitionCount - 1) do 
                  yield i}
             |> Array.ofSeq
-        bcs    
-        |>  Seq.map (fun (i) -> 
+        let writers = 
+            bcs    
+            |>  Seq.map (fun (i) -> 
+                    
+                let partition = FileStorePartition(config,i,clusterServices)   
                 
-            let partition = FileStorePartition(config,i,ClusterServices(``Index of NodeID -> MemoryPointer``, IndexMaintainer))   
+                (partition.IORequests(), partition.Thread(), partition)
+                )            
+            |> Array.ofSeq
+        
+        for i in 0 .. (writers.Length - 1) do
+            let (_,_,part) = writers.[i]
+            clusterServices.RemotePartitions().AddOrUpdate(i,part, (fun x p -> part)) |> ignore
             
-            (partition.IORequests(), partition.Thread())
-            )            
-        |> Array.ofSeq                 
+            
+        writers                     
 
     
     let setTimestamps (node:Node) (nowInt:Int64) =
@@ -64,7 +66,7 @@ type GrpcFileStore(config:Config) =
     let Flush () =
         let parentTask = Task.Factory.StartNew((fun () ->
             let allDone =
-                seq {for (bc,t) in PartitionWriters do
+                seq {for (bc,t,_) in PartitionWriters do
                         let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
                         bc.Add( FlushWrites(fwtcs))
                         let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
@@ -87,10 +89,10 @@ type GrpcFileStore(config:Config) =
             // todo: this could be a lot smarter and fetch from more than one partition reader at a time
             // todo: additionally, Using the index likely results in Random file access, we could instead
             // todo: just read from the file sequentially
-            seq { for kv in ``Index of NodeID -> MemoryPointer`` do
+            seq { for bc,t,part in PartitionWriters do
+                  for kv in part.Index() do
                   for fragment in kv.Value do
                       let tcs = new TaskCompletionSource<Node>()
-                      let (bc,t) = PartitionWriters.[int <| fragment.Partitionkey]
                       bc.Add (Read( tcs, fragment)) 
                       yield tcs.Task.Result
                 }
@@ -109,11 +111,10 @@ type GrpcFileStore(config:Config) =
                          yield new System.Collections.Generic.List<Node>()}
                     |> Array.ofSeq
                     
-                let mutable i = 0    
                 for node in nodes do 
                     setTimestamps node nowInt
-                    partitionLists.[i % config.ParitionCount].Add node
-                    i <- i + 1
+                    let nodeHash = Utils.GetAddressBlockHash node.Id
+                    partitionLists.[Utils.GetPartitionFromHash config.ParitionCount nodeHash].Add node
                     
                 timer.Stop()
                 let timer2 = Stopwatch.StartNew()
@@ -121,7 +122,7 @@ type GrpcFileStore(config:Config) =
                     |> Seq.iteri (fun i list ->
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                            let (bc,t) = PartitionWriters.[i]
+                            let (bc,t,_) = PartitionWriters.[i]
                             bc.Add (Write(tcs,list))
                         )
                 timer2.Stop()
@@ -135,23 +136,19 @@ type GrpcFileStore(config:Config) =
                 addressBlock
                 |> Seq.map (fun ab ->
                     let tcs = new TaskCompletionSource<Node>()
-                    let nodeId = 
+                    let nid = 
                         match ab.AddressCase with 
                         | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
                         | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
                         | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
                     
-                    let (bc,t) = PartitionWriters.[int <| nodeId.Pointer.Partitionkey]
-                    let nid = match ab.AddressCase with 
-                              | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
-                              | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
-                              | _ -> raise (new ArgumentException("AddressBlock did not contain a valid AddressCase"))
+                    let (bc,t,part) = PartitionWriters.[int <| nid.Pointer.Partitionkey]
                     
                     // TODO: Read all the fragments, not just the first one.
                     let t = 
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
                             let mutable mp = Seq.empty<MemoryPointer>
-                            if(``Index of NodeID -> MemoryPointer``.TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
+                            if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
                                 bc.Add (Read(tcs, mp |> Seq.head))
                                 tcs.Task
                             else 
@@ -178,8 +175,6 @@ type GrpcFileStore(config:Config) =
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  
             Flush()
-            for (bc,t) in PartitionWriters do
+            for (bc,t,part) in PartitionWriters do
                 bc.CompleteAdding()
                 t.Join()    
-            while IndexMaintainer.CurrentQueueLength > 0 do 
-                Thread.Sleep(10)            

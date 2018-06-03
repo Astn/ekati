@@ -5,6 +5,7 @@ open Google.Protobuf.Collections
 open System
 open System.Collections.Generic
 open System.Diagnostics
+open System.Drawing
 open System.IO
 open System.Threading
 open System.Threading.Tasks
@@ -33,7 +34,5 @@ type WriteGroupsOperation = LinkFragments = 1 | FixPointers = 2
     
 type NodeIOGroup = { start:uint64; length:uint64; items:List<MemoryPointer> }
 
-type ClusterServices(index1:System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>,
-                     indexer:MailboxProcessor<IndexMessage>) =
-    member __.IndexOfNodeHashToPointer():System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>=index1
-    member __.Indexer():MailboxProcessor<IndexMessage> = indexer
+type IClusterServices =
+    abstract RemoteLookup : int -> NodeIdHash -> bool * MemoryPointer

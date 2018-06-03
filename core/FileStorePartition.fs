@@ -10,7 +10,7 @@ open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
 
-type FileStorePartition(config:Config, i:int, cluster:ClusterServices) = 
+type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
     // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
     // The idea behind this index is to know which connections we do not need to make as they are already made
     let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
@@ -26,7 +26,30 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
         | AddressBlock.AddressOneofCase.Globalnodeid -> addr.Nodeid
         | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
 
-
+    // TODO: Switch to PebblesDB when index gets to big
+    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>()
+    
+    let IndexMaintainer =
+        MailboxProcessor<IndexMessage>.Start(fun inbox ->
+            let rec messageLoop() = 
+                async{
+                    let! message = inbox.Receive()
+                    match message with 
+                    | Index(nid) ->
+                            let id = nid
+                            let seqId = [id.Pointer] |> Seq.ofList
+                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, [nid.Pointer], 
+                                (fun x y -> 
+                                    let appended = y |> Seq.append seqId
+                                    appended
+                                    )) |> ignore
+                    | Flush(replyChannel)->
+                        replyChannel.Reply(true)
+                        
+                    return! messageLoop()
+                }    
+            messageLoop()    
+        )
     
     // returns true if the node is or was linked to the pointer
     // also updates indexes (FragmentLinksRequested; FragmentLinksConnected) to reflect changes, and request 
@@ -93,7 +116,7 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
                             yield mp 
                     }
             // otherwise link it to something at the end of the NodeIdToPointers index
-            else if (cluster.IndexOfNodeHashToPointer().TryGetValue (hash, & outMp)) &&
+            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) &&
                 not (n.Fragments |> Seq.exists(fun frag -> frag <> Utils.NullMemoryPointer())) then
                 // we want to create a basic linked list. 
                 let pointers = outMp |> List.ofSeq
@@ -116,12 +139,22 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
             if (nodeid.Pointer.Length = uint64 0) then
-                let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
-                if (cluster.IndexOfNodeHashToPointer().TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
-                    nodeid.Pointer <- outMp |> Seq.head
-                    true,true
-                else
-                    true,false 
+                let hash = Utils.GetNodeIdHash nodeid
+                let partition = Utils.GetPartitionFromHash config.ParitionCount hash
+                if partition = i then // we have the info local
+                    let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
+                    if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
+                        nodeid.Pointer <- outMp |> Seq.head
+                        true,true
+                    else
+                        true,false
+                else // its a remote node and we need to ask the cluster for the info.
+                    let success,pointer = cluster.RemoteLookup partition hash 
+                    if success then
+                        nodeid.Pointer <- pointer 
+                        true,true
+                    else
+                        true,false 
             else 
                 false,false    
              
@@ -310,7 +343,7 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
                                     ()    
                                 FixPointersWriteBufferTime.Stop()
                                 IndexMaintainerPostTime.Start()                                                                                
-                                cluster.Indexer().Post (Index(id))
+                                IndexMaintainer.Post (Index(id))
                                 IndexMaintainerPostTime.Stop()
 
                             lastPosition <- out.Position
@@ -349,7 +382,7 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
                             let groups = BuildGroups FixPointersWriteBuffer        
                             FixPointersWriteBuffer.Clear()
                             //config.log (sprintf "####Flushing Index Maintainer for partion: %A" i)
-                            let reply = cluster.Indexer().PostAndReply(Flush)
+                            let reply = IndexMaintainer.PostAndReply(Flush)
                             //config.log (sprintf "####Flushed Index Maintainer for partition: %A = %A" i reply )
                             let anySize = float 0
                             if( writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments)) then
@@ -373,7 +406,7 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
                             // And read, and update each of those fragments calling LinkFragments.
                             
                             
-                            let reply = cluster.Indexer().PostAndReply(Flush)
+                            let reply = IndexMaintainer.PostAndReply(Flush)
                             
                             // we may have to do this multiple times as the FragmentLinksRequested my get new entries
                             // as we satisify the ones in there. 
@@ -416,3 +449,5 @@ type FileStorePartition(config:Config, i:int, cluster:ClusterServices) =
         
     member __.Thread() = IOThread
     member __.IORequests() = bc  
+    // NOTE: This is allowing access to our index by other threads
+    member __.Index() = ``Index of NodeID -> MemoryPointer``
