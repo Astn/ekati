@@ -216,77 +216,83 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         groups    
 
     // returns true if we flushed or moved the position in the out or filestream
-    let writeGroups groups ofSize (stream:FileStream) (op:WriteGroupsOperation)= 
-        seq {for g in groups do
-                // Any group over size we will write out.
-             yield if (float g.length >= ofSize) then
-                        // gotta flush before we try to read data we put in it.
-                        stream.Flush()
-                        stream.Position <- int64 g.start
-                        
-                        let writeback = new List<MemoryPointer * Node>()
-                        
-                        // do all the reading
-                        let mutable lastex:Exception=null
-                        for nid in g.items do
-
-                            match nid with 
-                            | _ when int64 nid.Offset = stream.Position -> 
-                                lastex <- null
-                                let toFix = new Node()
-                                let buffer = Array.zeroCreate<byte> (int nid.Length)
-    
-                                let readResult = stream.Read(buffer,0,int nid.Length)
-                                if(readResult <> int nid.Length || buffer.[0] = byte 0) then
-                                    raise (new Exception("wtf"))
-                                MessageExtensions.MergeFrom(toFix,buffer,0,int nid.Length)
-                                // now fix it.
-                                
-                                let linksChanged = 
-                                    if op &&& WriteGroupsOperation.LinkFragments = WriteGroupsOperation.LinkFragments then 
-                                        (LinkFragments toFix
-                                            |> Seq.length)
-                                            > 0
-                                    else false
-                                    
-                                let (anyChanged,anyMissed) = 
-                                    if op &&& WriteGroupsOperation.FixPointers = WriteGroupsOperation.FixPointers then
-                                        UpdateMemoryPointers toFix
-                                    else (false, false)    
-                                
-                                if ((anyChanged || linksChanged) && toFix.CalculateSize() |> uint64 <> nid.Length) then
-                                    raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" nid.Length (toFix.CalculateSize() |> uint64)))
-                                
-                                if (anyChanged || linksChanged) then    
-                                    // !!!!do the writing later in a batch..
-                                    writeback.Add (nid, toFix)
-                            | _ when int64 nid.Offset < stream.Position -> 
-                                // this should be because its a duplicate request for the previous item
-                                ()
-                            | _ when int64 nid.Offset > stream.Position ->
-                                // this should not happen
-                                raise (new InvalidOperationException("The block of FixPointers was not contigious"))
-                            | _ -> 
-                                raise (new InvalidOperationException("How did this happen?"))          
-                        // do all the writing
-                        if (writeback.Count > 0) then 
+    let writeGroups groups ofSize (stream:FileStream) (op:WriteGroupsOperation) : bool * IOStat = 
+        let mutable readBytes = 0UL
+        let mutable writeBytes = 0UL
+        let flushOrMoved =
+            seq {for g in groups do
+                    // Any group over size we will write out.
+                 yield if (float g.length >= ofSize) then
+                            // gotta flush before we try to read data we put in it.
+                            stream.Flush()
                             stream.Position <- int64 g.start
-                            let flatArray = Array.zeroCreate<byte>(int g.length)
-                            let oout = new CodedOutputStream(flatArray) 
-                            for wb in writeback do
-                                let req,n = wb
-                                n.WriteTo oout
                             
-                            oout.Flush()
-                            if (stream.Position <> (int64 g.start)) then
+                            let writeback = new List<MemoryPointer * Node>()
+                            
+                            // do all the reading
+                            let mutable lastex:Exception=null
+                            for nid in g.items do
+    
+                                match nid with 
+                                | _ when int64 nid.Offset = stream.Position -> 
+                                    lastex <- null
+                                    let toFix = new Node()
+                                    let buffer = Array.zeroCreate<byte> (int nid.Length)
+        
+                                    let readResult = stream.Read(buffer,0,int nid.Length)
+                                    readBytes <- readBytes + nid.Length
+                                    if(readResult <> int nid.Length || buffer.[0] = byte 0) then
+                                        raise (new Exception("wtf"))
+                                    MessageExtensions.MergeFrom(toFix,buffer,0,int nid.Length)
+                                    // now fix it.
+                                    
+                                    let linksChanged = 
+                                        if op &&& WriteGroupsOperation.LinkFragments = WriteGroupsOperation.LinkFragments then 
+                                            (LinkFragments toFix
+                                                |> Seq.length)
+                                                > 0
+                                        else false
+                                        
+                                    let (anyChanged,anyMissed) = 
+                                        if op &&& WriteGroupsOperation.FixPointers = WriteGroupsOperation.FixPointers then
+                                            UpdateMemoryPointers toFix
+                                        else (false, false)    
+                                    
+                                    if ((anyChanged || linksChanged) && toFix.CalculateSize() |> uint64 <> nid.Length) then
+                                        raise (new Exception(sprintf "Updating MemoryPointer changed Node Size - before: %A after: %A" nid.Length (toFix.CalculateSize() |> uint64)))
+                                    
+                                    if (anyChanged || linksChanged) then    
+                                        // !!!!do the writing later in a batch..
+                                        writeback.Add (nid, toFix)
+                                | _ when int64 nid.Offset < stream.Position -> 
+                                    // this should be because its a duplicate request for the previous item
+                                    ()
+                                | _ when int64 nid.Offset > stream.Position ->
+                                    // this should not happen
+                                    raise (new InvalidOperationException("The block of FixPointers was not contigious"))
+                                | _ -> 
+                                    raise (new InvalidOperationException("How did this happen?"))          
+                            // do all the writing
+                            if (writeback.Count > 0) then 
                                 stream.Position <- int64 g.start
-                            stream.Write(flatArray,0,flatArray.Length)    
-                            stream.Flush() 
-                           
-                        true
-                    else 
-                        false}
-        |> Seq.contains true            
+                                let flatArray = Array.zeroCreate<byte>(int g.length)
+                                let oout = new CodedOutputStream(flatArray) 
+                                for wb in writeback do
+                                    let req,n = wb
+                                    n.WriteTo oout
+                                
+                                oout.Flush()
+                                if (stream.Position <> (int64 g.start)) then
+                                    stream.Position <- int64 g.start
+                                stream.Write(flatArray,0,flatArray.Length)   
+                                writeBytes <- writeBytes + uint64 flatArray.LongLength 
+                                stream.Flush() 
+                               
+                            true
+                        else 
+                            false}
+            |> Seq.contains true   
+        flushOrMoved, { IOStat.readbytes=readBytes; IOStat.writebytes=writeBytes }             
                     
     let IOThread =  
         let t = new ThreadStart((fun () -> 
@@ -307,17 +313,15 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let mutable lastOpIsWrite = false
             let mutable lastPosition = 0L 
             let FLUSHWRITES () =   
-                // TODO: ?? maybe only flush if out.pos > stream.pos ?? Flushing may make Out no longer usable, and further flushes might corupt the underlying stream?
                 if (out.Position > stream.Position) then
                     out.Flush()
                     stream.Flush()
             try
                 for nio in bc.GetConsumingEnumerable() do
                     match nio with
-                    | Write(tcs,items) -> 
+                    | Add(tcs,items) -> 
                         try
-                            use writeTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.WriteTimer, tags)
-                            config.Metrics.Measure.Meter.Mark( Metrics.PartitionMetrics.WriteMeter, tags, 1L)
+                            use writeTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.AddTimer, tags)
 
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
@@ -327,14 +331,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             for item in items do
                                 count <- count + 1L   
                                 
-                                let offset = out.Position
                                 let id = item.Id.Nodeid
                                 let mp = id.Pointer
                                 mp.Partitionkey <- uint32 i
                                 mp.Filename <- uint32 fileNameid
-                                mp.Offset <- uint64 offset
+                                mp.Offset <- uint64 out.Position
                                 mp.Length <- (item.CalculateSize() |> uint64)
-
 
                                 item.WriteTo out
                                 if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
@@ -344,29 +346,33 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 IndexMaintainer.Post (Index(id))
 
                             lastPosition <- out.Position
-                            config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.WriteFragmentMeter, tags, count)
-                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.WriteSize, tags, lastPosition - startPos)
+                            config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
                             tcs.SetResult()
+                            
                         with 
                         | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex)
                     | Read (tcs,request) ->  
-                        FLUSHWRITES()                          
-                        lastOpIsWrite <- false
-                        stream.Position <- int64 request.Offset
-                        
-                        let nnnnnnnn = new Node()
-                        let buffer = Array.zeroCreate<byte> (int request.Length)
-                        
-                        let readResult = stream.Read(buffer,0,int request.Length)
-                        if(readResult <> int request.Length ) then
-                            raise (new Exception("wtf"))
-                        if(buffer.[0] = byte 0) then
-                            raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName request buffer))    
-                        try     
-                            MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
+                        try 
+                            use ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
                             
+                            FLUSHWRITES()                          
+                            lastOpIsWrite <- false
+                            stream.Position <- int64 request.Offset
+                            
+                            let nnnnnnnn = new Node()
+                            let buffer = Array.zeroCreate<byte> (int request.Length)
+                            
+                            let readResult = stream.Read(buffer,0,int request.Length)
+                            if(readResult <> int request.Length ) then
+                                raise (new Exception("wtf"))
+                            if(buffer.[0] = byte 0) then
+                                raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName request buffer))    
+                            
+                            MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, int64 request.Length)
                             tcs.SetResult(nnnnnnnn)
                         with 
                         | ex -> 
@@ -374,22 +380,29 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             tcs.SetException(ex)
                     | FlushFixPointers (tcs) ->
                         try
+                            use FlushFixPointersTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.FlushFixPointersTimer, tags)
+                            
                             FLUSHWRITES()    
                             let groups = BuildGroups FixPointersWriteBuffer        
                             FixPointersWriteBuffer.Clear()
-                            //config.log (sprintf "####Flushing Index Maintainer for partion: %A" i)
+                            
                             let reply = IndexMaintainer.PostAndReply(Flush)
-                            //config.log (sprintf "####Flushed Index Maintainer for partition: %A = %A" i reply )
+                            
                             let anySize = float 0
-                            if( writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments)) then
+                            let movedOrFlushed, iostat =writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments) 
+                            if movedOrFlushed then
                                 lastOpIsWrite <- false
+                            
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.FlushFixPointersWriteSize, tags, int64 iostat.writebytes)
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.FlushFixPointersReadSize, tags, int64 iostat.readbytes)    
                             tcs.SetResult()  
                         with 
                         | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex)        
-                    | FlushWrites (tcs) ->
+                    | FlushAdds (tcs) ->
                         try 
+                            use FlushAddsTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.FlushAddsTimer, tags)
                             FLUSHWRITES()
                             tcs.SetResult()
                         with 
@@ -398,6 +411,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             tcs.SetException(ex)      
                     | FlushFragmentLinks (tcs) ->
                         try 
+                            use FlushFragmentLinksTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.FlushFragmentLinksTimer, tags)
                             FLUSHWRITES()
                             // And read, and update each of those fragments calling LinkFragments.
                             
@@ -430,8 +444,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let groups = BuildGroups groupsInput    
                             
                             let anySize = float 0
-                            if( writeGroups groups anySize stream WriteGroupsOperation.LinkFragments) then
-                                lastOpIsWrite <- false
+                            let movedOrFlushed, iostat = writeGroups groups anySize stream WriteGroupsOperation.LinkFragments
+                            if movedOrFlushed then
+                                lastOpIsWrite <- false  
+                            
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.FlushFragmentLinksWriteSize, tags, int64 iostat.writebytes)
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.FlushFragmentLinksReadSize, tags, int64 iostat.readbytes)
                                 
                             tcs.SetResult()  
                         with 
@@ -450,7 +468,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         thread.Start()          
         thread        
         
+    // TODO: don't expose this    
     member __.Thread() = IOThread
+    // TODO: don't directly expose the blocking collection. Replace with functions they can use, that way we can replace the implementation without affecting the caller
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
     member __.Index() = ``Index of NodeID -> MemoryPointer``

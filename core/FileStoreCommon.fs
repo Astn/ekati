@@ -19,12 +19,13 @@ type Config = {
     Metrics: IMetrics
     }
 
+type IOStat = { readbytes: uint64; writebytes: uint64 }
 
 type NodeIO =
-    | Write of TaskCompletionSource<unit> * seq<Node>
+    | Add of TaskCompletionSource<unit> * seq<Node>
     | Read  of TaskCompletionSource<Node> * MemoryPointer
     | FlushFixPointers of TaskCompletionSource<unit>
-    | FlushWrites of TaskCompletionSource<unit>
+    | FlushAdds of TaskCompletionSource<unit>
     | FlushFragmentLinks of TaskCompletionSource<unit>
 
 type IndexMessage =

@@ -12,35 +12,120 @@ module Metrics =
     [<AbstractClass; Sealed>]
     type PartitionMetrics private () =
         static let ContextName = "Partition"
-        static member WriteMeter = 
+
+        // Adds
+        static member AddFragmentMeter = 
             new MeterOptions(
                 Context=ContextName,
-                Name="Writes",
-                MeasurementUnit=Unit.Calls 
-            )
-    
-        static member WriteFragmentMeter = 
-            new MeterOptions(
-                Context=ContextName,
-                Name="WriteFragments",
+                Name="AddFragments",
                 MeasurementUnit=Unit.Items
                 )
             
-        static member WriteTimer = 
+        static member AddTimer = 
             new TimerOptions(
                 Context=ContextName,
-                Name="WriteTimer",
+                Name="AddTimer",
                 MeasurementUnit=Unit.Calls,
                 DurationUnit=TimeUnit.Milliseconds,
-                RateUnit=TimeUnit.Milliseconds
+                RateUnit=TimeUnit.Seconds
                 ) 
         
-        static member WriteSize =
+        static member AddSize =
             new HistogramOptions(
                 Context=ContextName,
-                Name="WriteSize", 
+                Name="AddSize", 
                 MeasurementUnit=Unit.Bytes,
                 Reservoir=(fun () -> 
                                 let res = new DefaultSlidingWindowReservoir(1028) 
                                 res :> IReservoir)   
-                )                          
+                )    
+        
+        // Reads
+        static member ReadTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="ReadTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )   
+
+        static member ReadSize =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="ReadSize", 
+                MeasurementUnit=Unit.Bytes,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                )        
+                
+        // FlushFixPointers
+        static member FlushFixPointersTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="FlushFixPointersTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )   
+
+        static member FlushFixPointersWriteSize =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="FlushFixPointersWriteSize", 
+                MeasurementUnit=Unit.Bytes,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                )
+        
+        static member FlushFixPointersReadSize =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="FlushFixPointersReadSize", 
+                MeasurementUnit=Unit.Bytes,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                ) 
+                        
+        // FlushAdds
+        static member FlushAddsTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="FlushAddsTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )    
+                
+        // FlushFragmentLinks
+        static member FlushFragmentLinksTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="FlushFragmentLinksTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )   
+
+        static member FlushFragmentLinksWriteSize =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="FlushFragmentLinksWriteSize", 
+                MeasurementUnit=Unit.Bytes,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                )
+        
+        static member FlushFragmentLinksReadSize =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="FlushFragmentLinksReadSize", 
+                MeasurementUnit=Unit.Bytes,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                )                                                                                     

@@ -68,7 +68,7 @@ type GrpcFileStore(config:Config) =
             let allDone =
                 seq {for (bc,t,_) in PartitionWriters do
                         let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        bc.Add( FlushWrites(fwtcs))
+                        bc.Add( FlushAdds(fwtcs))
                         let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
                         bc.Add( FlushFixPointers(tcs))
                         let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
@@ -123,7 +123,7 @@ type GrpcFileStore(config:Config) =
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
                             let (bc,t,_) = PartitionWriters.[i]
-                            bc.Add (Write(tcs,list))
+                            bc.Add (Add(tcs,list))
                         )
                 timer2.Stop()
                 config.log(sprintf "grouping: %A tasking: %A" timer.Elapsed timer2.Elapsed)
