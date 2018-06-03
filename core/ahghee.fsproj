@@ -3,6 +3,7 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Metrics.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="MemoryStore.fs" />
     <Compile Include="FileStoreCommon.fs" />
@@ -12,6 +13,7 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="2.1.0" />
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta3" />
     <PackageReference Include="System.Data.HashFunction.MurmurHash" Version="2.0.0" />
   </ItemGroup>

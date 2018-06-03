@@ -10,11 +10,13 @@ open System.IO
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
+open App.Metrics
 
 type Config = {
     ParitionCount:int
     log: string -> unit
     CreateTestingDataDirectory:bool
+    Metrics: IMetrics
     }
 
 

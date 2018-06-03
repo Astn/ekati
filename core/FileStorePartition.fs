@@ -10,8 +10,13 @@ open System.Linq
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
+open App.Metrics
 
 type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
+    let tags = MetricTags([| "parition_id" |],
+                          [| i.ToString() |]) 
+        
+
     // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
     // The idea behind this index is to know which connections we do not need to make as they are already made
     let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
@@ -311,19 +316,17 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     match nio with
                     | Write(tcs,items) -> 
                         try
-                            
-                            let FixPointersWriteBufferTime = new Stopwatch()
-                            let CreatePointerTime = new Stopwatch()
-                            let WriteTime = new Stopwatch()
-                            let IndexMaintainerPostTime = new Stopwatch()
-                            let StopWatchTime = Stopwatch.StartNew()
+                            use writeTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.WriteTimer, tags)
+                            config.Metrics.Measure.Meter.Mark( Metrics.PartitionMetrics.WriteMeter, tags, 1L)
+
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
                                 lastOpIsWrite <- true
                             let startPos = out.Position
+                            let mutable count = 0L
                             for item in items do
+                                count <- count + 1L   
                                 
-                                CreatePointerTime.Start()
                                 let offset = out.Position
                                 let id = item.Id.Nodeid
                                 let mp = id.Pointer
@@ -332,25 +335,17 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 mp.Offset <- uint64 offset
                                 mp.Length <- (item.CalculateSize() |> uint64)
 
-                                CreatePointerTime.Stop()
 
-                                WriteTime.Start()
                                 item.WriteTo out
-                                WriteTime.Stop()
-                                FixPointersWriteBufferTime.Start()
                                 if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
                                     FixPointersWriteBuffer.Add(id.Pointer.Offset,id.Pointer)
                                 else
-                                    ()    
-                                FixPointersWriteBufferTime.Stop()
-                                IndexMaintainerPostTime.Start()                                                                                
+                                    ()                                                                                 
                                 IndexMaintainer.Post (Index(id))
-                                IndexMaintainerPostTime.Stop()
 
                             lastPosition <- out.Position
-                            StopWatchTime.Stop()
-                            let swtime = StopWatchTime.Elapsed -  CreatePointerTime.Elapsed -  FixPointersWriteBufferTime.Elapsed - WriteTime.Elapsed - IndexMaintainerPostTime.Elapsed      
-                            config.log <| sprintf "--->\nCreatePointerTime: %A\nFixPointersWriteBufferTime: %A\nWriteTime: %A\nIndexMaintainerPostTime: %A\nStopWatchTime: %A\nTotalTime:%A\nbytesWritten:%A\n<---" CreatePointerTime.Elapsed FixPointersWriteBufferTime.Elapsed WriteTime.Elapsed IndexMaintainerPostTime.Elapsed swtime StopWatchTime.Elapsed (lastPosition - startPos)   
+                            config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.WriteFragmentMeter, tags, count)
+                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.WriteSize, tags, lastPosition - startPos)
                             tcs.SetResult()
                         with 
                         | ex -> 
