@@ -17,7 +17,7 @@ I'm looking for other contributors to help.
 - [Lucene](https://pdfs.semanticscholar.org/2795/d9d165607b5ad6d8b9718373b82e55f41606.pdf)
 - [Neo4j](https://neo4j.com/whitepapers/graph-algorithms-optimized-neo4j/)
 - [YCSB](https://github.com/brianfrankcooper/YCSB/wiki) 
-
+- [SeaStar](http://docs.seastar.io/master/md_doc_tutorial.html)
 
 ## Design goals
 
