@@ -328,21 +328,30 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 lastOpIsWrite <- true
                             let startPos = out.Position
                             let mutable count = 0L
+                            
+                            let mutable ownOffset = uint64 startPos
+                            
                             for item in items do
-                                count <- count + 1L   
-                                
-                                let id = item.Id.Nodeid
-                                let mp = id.Pointer
+                                let mp = item.Id.Nodeid.Pointer
                                 mp.Partitionkey <- uint32 i
                                 mp.Filename <- uint32 fileNameid
-                                mp.Offset <- uint64 out.Position
+                                mp.Offset <- ownOffset
                                 mp.Length <- (item.CalculateSize() |> uint64)
+                                ownOffset <- ownOffset + mp.Length
+                                count <- count + 1L                                   
 
+                            for item in items do        
                                 item.WriteTo out
+                                
+                            for item in items do    
+                                let id = item.Id.Nodeid
                                 if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
                                     FixPointersWriteBuffer.Add(id.Pointer.Offset,id.Pointer)
                                 else
-                                    ()                                                                                 
+                                    ()
+                             
+                            for item in items do
+                                let id = item.Id.Nodeid                                                                                           
                                 IndexMaintainer.Post (Index(id))
 
                             lastPosition <- out.Position

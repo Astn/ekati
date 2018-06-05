@@ -10,6 +10,64 @@ module Metrics =
     open App.Metrics.ReservoirSampling.SlidingWindow
 
     [<AbstractClass; Sealed>]
+    type FileStoreMetrics private () =
+        static let ContextName = "FileStore"
+        
+        // Adds
+        static member AddFragmentMeter = 
+            new MeterOptions(
+                Context=ContextName,
+                Name="AddFragmentsMeter",
+                MeasurementUnit=Unit.Items,
+                RateUnit=TimeUnit.Seconds
+                )
+            
+        static member AddTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="AddTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                ) 
+        
+        static member AddGroupingTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="AddGroupingTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )
+                
+        static member AddTaskingTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="AddTaskingTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )        
+        
+        // Items
+        static member ItemFragmentMeter = 
+            new MeterOptions(
+                Context=ContextName,
+                Name="ItemFragmentMeter",
+                MeasurementUnit=Unit.Items,
+                RateUnit=TimeUnit.Seconds
+                )  
+        
+        static member ItemTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="ItemTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )              
+        
+    [<AbstractClass; Sealed>]
     type PartitionMetrics private () =
         static let ContextName = "Partition"
 
@@ -17,8 +75,9 @@ module Metrics =
         static member AddFragmentMeter = 
             new MeterOptions(
                 Context=ContextName,
-                Name="AddFragments",
-                MeasurementUnit=Unit.Items
+                Name="AddFragmentsMeter",
+                MeasurementUnit=Unit.Items,
+                RateUnit=TimeUnit.Seconds
                 )
             
         static member AddTimer = 

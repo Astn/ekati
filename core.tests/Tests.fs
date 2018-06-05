@@ -331,11 +331,12 @@ type MyTests(output:ITestOutputHelper) =
             let snap = config.Metrics.Snapshot.Get()
             let root = config.Metrics :?> IMetricsRoot 
             for formatter in  root.OutputMetricsFormatters do
-                
-                use mem = new MemoryStream()
-                formatter.WriteAsync(mem,snap).Wait()
-                let result = Encoding.UTF8.GetString(mem.ToArray())
-                output.WriteLine(result)
+                if formatter.MediaType.Type = "text" then 
+                    output.WriteLine(sprintf "formatter.MediaTime: %A ... type:%A .. subtype: %A" formatter.MediaType formatter.MediaType.Type formatter.MediaType.SubType)
+                    use mem = new MemoryStream()
+                    formatter.WriteAsync(mem,snap).Wait()
+                    let result = Encoding.UTF8.GetString(mem.ToArray())
+                    output.WriteLine(result)
                 
         let g:Graph = 
           match storeType with 
@@ -354,7 +355,8 @@ type MyTests(output:ITestOutputHelper) =
             let stopFlush = startFlush.Stop()
             output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
             output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
-            report()
+        
+        report()
             //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
     [<Theory>]
