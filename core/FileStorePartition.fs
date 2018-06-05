@@ -369,7 +369,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             
                             FLUSHWRITES()                          
                             lastOpIsWrite <- false
-                            stream.Position <- int64 request.Offset
+                            stream.Position <- int64 request.Offset //TODO: make sure the offset is less than the end of the file
                             
                             let nnnnnnnn = new Node()
                             let buffer = Array.zeroCreate<byte> (int request.Length)

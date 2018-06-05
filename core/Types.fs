@@ -22,7 +22,7 @@ type IStorage =
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
 
-
+//TODO: Delete this
 type Graph(storage:IStorage) =  
     member x.Nodes = storage.Nodes
     member x.Flush () = storage.Flush()
