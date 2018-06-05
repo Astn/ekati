@@ -6,6 +6,11 @@ This project is still in it's early early stages, so click that *Watch* button.
 
 I'm looking for other contributors to help.
 
+#### Slack
+
+  ahghee.slack.com
+
+
 ## References
 
 - [BigTable](https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf)
