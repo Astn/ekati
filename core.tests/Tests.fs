@@ -7,6 +7,7 @@ open Ahghee
 open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
+open App.Metrics
 open System
 open System.Collections
 open System.Diagnostics
@@ -28,15 +29,23 @@ let dbtype str =
 
 type MyTests(output:ITestOutputHelper) =
     
+    let testConfig () = 
+        {
+        Config.ParitionCount=4; 
+        log = (fun msg -> output.WriteLine msg)
+        CreateTestingDataDirectory=true
+        Metrics = AppMetrics
+                      .CreateDefaultBuilder()
+                      //.OutputMetrics.AsPlainText()
+                      //.OutputMetrics.AsJson()
+                      .Build()
+        }
+        
     member __.buildGraph (storageType:StorageType): Graph =
         let g:Graph = 
             match storageType with 
             | Memory ->   new Graph(new MemoryStore())
-            | GrpcFile -> new Graph(new GrpcFileStore({
-                                                        Config.ParitionCount=4; 
-                                                        log = (fun msg -> output.WriteLine msg)
-                                                        CreateTestingDataDirectory=true
-                                                        }))
+            | GrpcFile -> new Graph(new GrpcFileStore(testConfig()))
         
         let nodes = __.buildNodes
         let task = g.Add nodes
@@ -51,11 +60,7 @@ type MyTests(output:ITestOutputHelper) =
         let g:Graph = 
             match storageType with 
             | Memory ->   new Graph(new MemoryStore())
-            | GrpcFile -> new Graph(new GrpcFileStore({
-                                                        Config.ParitionCount=4; 
-                                                        log = (fun msg -> output.WriteLine msg)
-                                                        CreateTestingDataDirectory=true
-                                                        }))
+            | GrpcFile -> new Graph(new GrpcFileStore(testConfig()))
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
         match task.Status with
@@ -151,11 +156,7 @@ type MyTests(output:ITestOutputHelper) =
         let g:Graph = 
             match storeType with 
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                    Config.ParitionCount=4; 
-                                                                    log = (fun msg -> output.WriteLine msg)
-                                                                    CreateTestingDataDirectory=true
-                                                                    }))
+            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
             | _ -> raise <| new NotImplementedException()                                                                    
             
         let nodes = buildNodesTheCrew
@@ -198,11 +199,7 @@ type MyTests(output:ITestOutputHelper) =
         let g:Graph = 
             match storeType with 
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                    Config.ParitionCount=4; 
-                                                                    log = (fun msg -> output.WriteLine msg)
-                                                                    CreateTestingDataDirectory=true
-                                                                    }))
+            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
             | _ -> raise <| new NotImplementedException() 
             
         let nodes = buildNodesTheCrew
@@ -232,11 +229,7 @@ type MyTests(output:ITestOutputHelper) =
          let g:Graph = 
              match storeType with 
              | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=4; 
-                                                                     log = (fun msg -> output.WriteLine msg)
-                                                                     CreateTestingDataDirectory=true
-                                                                     }))
+             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
              | _ -> raise <| new NotImplementedException() 
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
@@ -275,11 +268,7 @@ type MyTests(output:ITestOutputHelper) =
          let g:Graph = 
              match storeType with 
              | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                     Config.ParitionCount=4; 
-                                                                     log = (fun msg -> output.WriteLine msg)
-                                                                     CreateTestingDataDirectory=true
-                                                                     }))
+             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
              | _ -> raise <| new NotImplementedException() 
                   
          
@@ -300,11 +289,7 @@ type MyTests(output:ITestOutputHelper) =
       let g:Graph = 
           match storeType with 
           | "StorageType.Memory" ->   new Graph(new MemoryStore())
-          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                  Config.ParitionCount=4; 
-                                                                  log = (fun msg -> output.WriteLine msg)
-                                                                  CreateTestingDataDirectory=true
-                                                                  }))
+          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
           | _ -> raise <| new NotImplementedException() 
                
       let task = g.Add buildNodesTheCrew 
@@ -341,14 +326,22 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.GrpcFile", 10000, 10)>]
     [<InlineData("StorageType.GrpcFile", 100000, 10)>]  
     member __.``We can nodes in 30 seconds`` storeType count followsCount=
+        let config = testConfig()
+        let report() =
+            let snap = config.Metrics.Snapshot.Get()
+            let root = config.Metrics :?> IMetricsRoot 
+            for formatter in  root.OutputMetricsFormatters do
+                if formatter.MediaType.Type = "text" then 
+                    output.WriteLine(sprintf "formatter.MediaTime: %A ... type:%A .. subtype: %A" formatter.MediaType formatter.MediaType.Type formatter.MediaType.SubType)
+                    use mem = new MemoryStream()
+                    formatter.WriteAsync(mem,snap).Wait()
+                    let result = Encoding.UTF8.GetString(mem.ToArray())
+                    output.WriteLine(result)
+                
         let g:Graph = 
           match storeType with 
           | "StorageType.Memory" ->   new Graph(new MemoryStore())
-          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                  Config.ParitionCount=4; 
-                                                                  log = (fun msg -> output.WriteLine msg)
-                                                                  CreateTestingDataDirectory=true
-                                                                  }))
+          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(config))
           | _ -> raise <| new NotImplementedException() 
         let staticNodes = (__.buildLotsNodes count followsCount) |> List.ofSeq
         for iter in  0 .. 5 do 
@@ -362,6 +355,8 @@ type MyTests(output:ITestOutputHelper) =
             let stopFlush = startFlush.Stop()
             output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
             output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
+        
+        report()
             //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
     [<Theory>]
@@ -378,11 +373,7 @@ type MyTests(output:ITestOutputHelper) =
         let g:Graph = 
             match storeType with 
             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore({
-                                                                      Config.ParitionCount=4; 
-                                                                      log = (fun msg -> output.WriteLine msg)
-                                                                      CreateTestingDataDirectory=true
-                                                                      }))
+            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
             | _ -> raise <| new NotImplementedException() 
         
         

@@ -68,7 +68,7 @@ type GrpcFileStore(config:Config) =
             let allDone =
                 seq {for (bc,t,_) in PartitionWriters do
                         let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        bc.Add( FlushWrites(fwtcs))
+                        bc.Add( FlushAdds(fwtcs))
                         let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
                         bc.Add( FlushFixPointers(tcs))
                         let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
@@ -102,6 +102,7 @@ type GrpcFileStore(config:Config) =
             
         member this.Add (nodes:seq<Node>) = 
             Task.Factory.StartNew(fun () -> 
+                use addTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.AddTimer)
                 // TODO: Might need to have multiple add functions so the caller can specify a time for the operation
                 // Add time here so it's the same for all TMDs
                 let nowInt = DateTime.UtcNow.ToBinary()
@@ -110,22 +111,27 @@ type GrpcFileStore(config:Config) =
                     seq {for i in 0 .. (config.ParitionCount - 1) do 
                          yield new System.Collections.Generic.List<Node>()}
                     |> Array.ofSeq
-                    
+                
+                let mutable count = 0L    
+                
                 for node in nodes do 
+                    count <- count + 1L
                     setTimestamps node nowInt
                     let nodeHash = Utils.GetAddressBlockHash node.Id
                     partitionLists.[Utils.GetPartitionFromHash config.ParitionCount nodeHash].Add node
                     
                 timer.Stop()
+                
                 let timer2 = Stopwatch.StartNew()
                 partitionLists
                     |> Seq.iteri (fun i list ->
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
                             let (bc,t,_) = PartitionWriters.[i]
-                            bc.Add (Write(tcs,list))
+                            bc.Add (Add(tcs,list))
                         )
                 timer2.Stop()
+                config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.AddFragmentMeter, count)
                 config.log(sprintf "grouping: %A tasking: %A" timer.Elapsed timer2.Elapsed)
                 )
                 
@@ -160,6 +166,7 @@ type GrpcFileStore(config:Config) =
                             
                     let res = t.ContinueWith(fun (isdone:Task<Node>) ->
                                 if (isdone.IsCompletedSuccessfully) then
+                                    config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
                                     ab,Left(isdone.Result)
                                 else 
                                     ab,Right(isdone.Exception :> Exception)
@@ -169,7 +176,8 @@ type GrpcFileStore(config:Config) =
                     res)
             
             Task.FromResult 
-                (seq { for t in requestsMade do 
+                (seq { use itemTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.ItemTimer)
+                       for t in requestsMade do 
                        yield t.Result 
                 })  
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
