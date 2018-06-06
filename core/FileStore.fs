@@ -106,7 +106,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: Might need to have multiple add functions so the caller can specify a time for the operation
                 // Add time here so it's the same for all TMDs
                 let nowInt = DateTime.UtcNow.ToBinary()
-                let timer = Stopwatch.StartNew()
+                    
                 let partitionLists = 
                     seq {for i in 0 .. (config.ParitionCount - 1) do 
                          yield new System.Collections.Generic.List<Node>()}
@@ -119,10 +119,8 @@ type GrpcFileStore(config:Config) =
                     setTimestamps node nowInt
                     let nodeHash = Utils.GetAddressBlockHash node.Id
                     partitionLists.[Utils.GetPartitionFromHash config.ParitionCount nodeHash].Add node
-                    
-                timer.Stop()
+                                   
                 
-                let timer2 = Stopwatch.StartNew()
                 partitionLists
                     |> Seq.iteri (fun i list ->
                         if (list.Count > 0) then
@@ -130,9 +128,9 @@ type GrpcFileStore(config:Config) =
                             let (bc,t,_) = PartitionWriters.[i]
                             bc.Add (Add(tcs,list))
                         )
-                timer2.Stop()
+                
                 config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.AddFragmentMeter, count)
-                config.log(sprintf "grouping: %A tasking: %A" timer.Elapsed timer2.Elapsed)
+                
                 )
                 
                         

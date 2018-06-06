@@ -31,13 +31,11 @@ type MyTests(output:ITestOutputHelper) =
     
     let testConfig () = 
         {
-        Config.ParitionCount=4; 
+        Config.ParitionCount=3; 
         log = (fun msg -> output.WriteLine msg)
         CreateTestingDataDirectory=true
         Metrics = AppMetrics
                       .CreateDefaultBuilder()
-                      //.OutputMetrics.AsPlainText()
-                      //.OutputMetrics.AsJson()
                       .Build()
         }
         
@@ -329,14 +327,12 @@ type MyTests(output:ITestOutputHelper) =
         let config = testConfig()
         let report() =
             let snap = config.Metrics.Snapshot.Get()
-            let root = config.Metrics :?> IMetricsRoot 
+            let root = config.Metrics :?> IMetricsRoot
             for formatter in  root.OutputMetricsFormatters do
-                if formatter.MediaType.Type = "text" then 
-                    output.WriteLine(sprintf "formatter.MediaTime: %A ... type:%A .. subtype: %A" formatter.MediaType formatter.MediaType.Type formatter.MediaType.SubType)
-                    use mem = new MemoryStream()
+                if formatter.MediaType.Type = "application" then 
+                    use mem = new IO.FileStream((sprintf "./report-%s-%A-%A.%A.json" storeType count followsCount (DateTime.Now.ToFileTime()) ) ,IO.FileMode.Create)
                     formatter.WriteAsync(mem,snap).Wait()
-                    let result = Encoding.UTF8.GetString(mem.ToArray())
-                    output.WriteLine(result)
+                    mem.Flush(true)
                 
         let g:Graph = 
           match storeType with 
