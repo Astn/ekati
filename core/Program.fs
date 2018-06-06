@@ -12,6 +12,7 @@ open Ahghee.TinkerPop
 open Ahghee.Utils
 
 module Program =
+    open Grpc.Core
     open System.Threading
     open System.Collections.Concurrent
     open System.Runtime.InteropServices
@@ -21,7 +22,6 @@ module Program =
     open System.Diagnostics
 
     let exitCode = 0
-
 
     let testConfig () = 
         {

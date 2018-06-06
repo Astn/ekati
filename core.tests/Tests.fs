@@ -331,8 +331,11 @@ type MyTests(output:ITestOutputHelper) =
             for formatter in  root.OutputMetricsFormatters do
                 if formatter.MediaType.Type = "application" then 
                     use mem = new IO.FileStream((sprintf "./report-%s-%A-%A.%A.json" storeType count followsCount (DateTime.Now.ToFileTime()) ) ,IO.FileMode.Create)
-                    formatter.WriteAsync(mem,snap).Wait()
-                    mem.Flush(true)
+                    use ms = new MemoryStream()
+                    formatter.WriteAsync(ms,snap).Wait()
+                    let arr = ms.ToArray()
+                    mem.Write( arr, 0, arr.Length)
+                    mem.Flush()
                 
         let g:Graph = 
           match storeType with 

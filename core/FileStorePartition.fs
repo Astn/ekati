@@ -219,6 +219,8 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let writeGroups groups ofSize (stream:FileStream) (op:WriteGroupsOperation) : bool * IOStat = 
         let mutable readBytes = 0UL
         let mutable writeBytes = 0UL
+        let arraypool = System.Buffers.ArrayPool<byte>.Shared
+        
         let flushOrMoved =
             seq {for g in groups do
                     // Any group over size we will write out.
@@ -237,13 +239,14 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 | _ when int64 nid.Offset = stream.Position -> 
                                     lastex <- null
                                     let toFix = new Node()
-                                    let buffer = Array.zeroCreate<byte> (int nid.Length)
+                                    let buffer = arraypool.Rent(int nid.Length)
         
                                     let readResult = stream.Read(buffer,0,int nid.Length)
                                     readBytes <- readBytes + nid.Length
                                     if(readResult <> int nid.Length || buffer.[0] = byte 0) then
                                         raise (new Exception("wtf"))
                                     MessageExtensions.MergeFrom(toFix,buffer,0,int nid.Length)
+                                    arraypool.Return(buffer, true) // todo: does this need to be put in a finally block?
                                     // now fix it.
                                     
                                     let linksChanged = 
@@ -274,8 +277,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                     raise (new InvalidOperationException("How did this happen?"))          
                             // do all the writing
                             if (writeback.Count > 0) then 
+                                
                                 stream.Position <- int64 g.start
-                                let flatArray = Array.zeroCreate<byte>(int g.length)
+                                let flatArray = arraypool.Rent(int g.length)
                                 let oout = new CodedOutputStream(flatArray) 
                                 for wb in writeback do
                                     let req,n = wb
@@ -284,8 +288,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 oout.Flush()
                                 if (stream.Position <> (int64 g.start)) then
                                     stream.Position <- int64 g.start
-                                stream.Write(flatArray,0,flatArray.Length)   
-                                writeBytes <- writeBytes + uint64 flatArray.LongLength 
+                                stream.Write(flatArray,0, int g.length)   
+                                writeBytes <- writeBytes + g.length
+                                arraypool.Return(flatArray, true) // todo: does this need to be in a finally block? 
                                 stream.Flush() 
                                
                             true
@@ -310,6 +315,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             stream.SetLength(PreAllocSize)
             let out = new CodedOutputStream(stream)
             let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
+            let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
             let mutable lastOpIsWrite = false
             let mutable lastPosition = 0L 
             let FLUSHWRITES () =   
@@ -372,7 +378,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             stream.Position <- int64 request.Offset //TODO: make sure the offset is less than the end of the file
                             
                             let nnnnnnnn = new Node()
-                            let buffer = Array.zeroCreate<byte> (int request.Length)
+                            let buffer = arraybuffer.Rent(int request.Length)
                             
                             let readResult = stream.Read(buffer,0,int request.Length)
                             if(readResult <> int request.Length ) then
@@ -381,6 +387,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName request buffer))    
                             
                             MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
+                            arraybuffer.Return(buffer, true) // todo: does this need to be in a finally block?
                             config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, int64 request.Length)
                             tcs.SetResult(nnnnnnnn)
                         with 
