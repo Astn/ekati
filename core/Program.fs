@@ -41,9 +41,9 @@ module Program =
             [|
                 PropString "firstName" [|"Austin"|]
                 PropString "lastName"  [|"Harris"|]
-                PropString "age"       [|"36"|]
-                PropString "city"      [|"Boulder"|]
-                PropString "state"     [|"Colorado"|]
+//                PropString "age"       [|"36"|]
+//                PropString "city"      [|"Boulder"|]
+//                PropString "state"     [|"Colorado"|]
              |]
              
         let mkNode i =
