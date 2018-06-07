@@ -33,10 +33,10 @@ module Program =
                       .Build()
         }
 
-    let buildLotsNodes perNodeFollowsCount : seq<Node> =
+    let buildLotsNodes perNodeFollowsCount =
         // static seed, keeps runs comparable
         let seededRandom = new Random(1337)
-        let mutable seenIds = 0               
+            
         let simpleProps = 
             [|
                 PropString "firstName" [|"Austin"|]
@@ -50,14 +50,18 @@ module Program =
                 Node (ABtoyId (i.ToString()) )
                              (simpleProps
                               |> Seq.append (seq {for j in 0 .. perNodeFollowsCount do 
-                                                    yield PropData "follows" [| DABtoyId (seededRandom.Next(seenIds).ToString()) |]                                                    
+                                                    yield PropData "follows" [| DABtoyId (seededRandom.Next(i).ToString()) |]                                                    
                                                     })
                              
                              )   
              
         seq {
-            for ii in 0 .. Int32.MaxValue do 
-            yield (mkNode ii)
+            for ii in 0 .. 2000 .. Int32.MaxValue do 
+                let output = Array.zeroCreate 2000
+                Parallel.For(ii,ii+2000,(fun i -> 
+                        output.[i % 2000] <- mkNode i
+                    )) |> ignore
+                yield output
             } 
         
 
@@ -84,7 +88,6 @@ module Program =
           
         let streamingNodes = 
             (buildLotsNodes followsCount)
-            |> Seq.chunkBySize 2000
         
         let enu =
             streamingNodes.GetEnumerator()
