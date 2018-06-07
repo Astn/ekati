@@ -27,6 +27,7 @@ type NodeIO =
     | FlushFixPointers of TaskCompletionSource<unit>
     | FlushAdds of TaskCompletionSource<unit>
     | FlushFragmentLinks of TaskCompletionSource<unit>
+    | None of unit
 
 type IndexMessage =
     | Index of Grpc.NodeID

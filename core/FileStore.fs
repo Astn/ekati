@@ -68,11 +68,11 @@ type GrpcFileStore(config:Config) =
             let allDone =
                 seq {for (bc,t,_) in PartitionWriters do
                         let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        bc.Add( FlushAdds(fwtcs))
+                        while bc.Writer.TryWrite ( FlushAdds(fwtcs)) = false do ()
                         let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        bc.Add( FlushFixPointers(tcs))
+                        while bc.Writer.TryWrite ( FlushFixPointers(tcs)) = false do ()
                         let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        bc.Add( FlushFragmentLinks(ffltcs))
+                        while bc.Writer.TryWrite ( FlushFragmentLinks(ffltcs)) = false do ()
                         yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
                 |> Seq.collect (fun x -> x)
                 |> List.ofSeq // force it to run
@@ -93,7 +93,7 @@ type GrpcFileStore(config:Config) =
                   for kv in part.Index() do
                   for fragment in kv.Value do
                       let tcs = new TaskCompletionSource<Node>()
-                      bc.Add (Read( tcs, fragment)) 
+                      while bc.Writer.TryWrite ( Read( tcs, fragment)) = false do ()
                       yield tcs.Task.Result
                 }
             // todo return remote nodes
@@ -106,6 +106,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: Might need to have multiple add functions so the caller can specify a time for the operation
                 // Add time here so it's the same for all TMDs
                 let nowInt = DateTime.UtcNow.ToBinary()
+                
                     
                 let partitionLists = 
                     seq {for i in 0 .. (config.ParitionCount - 1) do 
@@ -126,7 +127,7 @@ type GrpcFileStore(config:Config) =
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
                             let (bc,t,_) = PartitionWriters.[i]
-                            bc.Add (Add(tcs,list))
+                            while bc.Writer.TryWrite ( Add(tcs,list)) = false do ()
                         )
                 
                 config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.AddFragmentMeter, count)
@@ -153,13 +154,13 @@ type GrpcFileStore(config:Config) =
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
                             let mutable mp = Seq.empty<MemoryPointer>
                             if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
-                                bc.Add (Read(tcs, mp |> Seq.head))
+                                while bc.Writer.TryWrite (Read(tcs, mp |> Seq.head)) = false do ()
                                 tcs.Task
                             else 
                                 tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
                                 tcs.Task   
                         else 
-                            bc.Add(Read(tcs,nid.Pointer))
+                            while bc.Writer.TryWrite (Read(tcs,nid.Pointer)) = false do ()
                             tcs.Task
                             
                     let res = t.ContinueWith(fun (isdone:Task<Node>) ->
@@ -182,5 +183,5 @@ type GrpcFileStore(config:Config) =
         member x.Stop () =  
             Flush()
             for (bc,t,part) in PartitionWriters do
-                bc.CompleteAdding()
+                bc.Writer.Complete()
                 t.Join()    

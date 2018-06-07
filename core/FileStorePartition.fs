@@ -24,7 +24,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let FragmentLinksRequested = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
     
     // TODO: rename to IORequests
-    let bc = new System.Collections.Concurrent.BlockingCollection<NodeIO>()
+    let bc = System.Threading.Channels.Channel.CreateBounded<NodeIO>(1000)
         
     let NodeIdFromAddress (addr:AddressBlock) =
         match addr.AddressCase with 
@@ -323,7 +323,14 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     out.Flush()
                     stream.Flush()
             try
-                for nio in bc.GetConsumingEnumerable() do
+                let reader = bc.Reader
+                let alldone = reader.Completion
+                while alldone.IsCompleted = false do
+                    let mutable nio: NodeIO = NodeIO.None() 
+                    while reader.TryRead(&nio) = false do
+                        // sleep for now. later we will want do do compaction tasks
+                        //printf "Waited."
+                        System.Threading.Thread.Sleep(1)
                     match nio with
                     | Add(tcs,items) -> 
                         try
@@ -336,6 +343,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let mutable count = 0L
                             
                             let mutable ownOffset = uint64 startPos
+                            let x = System.IO.Pipelines.Pipe()
                             
                             for item in items do
                                 let mp = item.Id.Nodeid.Pointer
@@ -471,7 +479,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                         with 
                         | ex ->
                             config.log <| sprintf "ERROR[%A]: %A" i ex
-                            tcs.SetException(ex)                                           
+                            tcs.SetException(ex) 
+                    | None(u) -> u
+                                                                      
             finally
                 config.log <| sprintf "Shutting down partition writer[%A]" i 
                 config.log <| sprintf "Flushing partition writer[%A]" i
