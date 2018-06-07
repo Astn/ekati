@@ -124,6 +124,49 @@ module Program =
             |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
             |> Chart.WithXTitle (data |> metricTitle (fun d -> d.RateUnit) )
             |> Chart.WithYTitle (data |> metricTitle (fun d -> d.Unit) )                  
+
+        let partitionTimerNIOWaitDurationMean = 
+            let measure = "Mean Duration"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "NIOWaitTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Histogram.Mean)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.DurationUnit) )
+
+        let partitionTimerAddDurationMean = 
+            let measure = "Mean Duration"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "AddTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Histogram.Mean)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.DurationUnit) )
+            
+        let partitionTimerAddCallRateMean = 
+            let measure = "Mean Call Rate"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "AddTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Rate.MeanRate)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.RateUnit) )            
+
               
         let partitionMeterAddFragmentsMean = 
             let measure = "Mean"
@@ -223,34 +266,6 @@ module Program =
             |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
             |> Chart.WithYTitle (data |> metricTitle (fun d -> d.Unit) )
 
-        let partitionTimerAddDurationMean = 
-            let measure = "Mean Duration"
-            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "AddTimer") input
-            let o = Options()
-            o.isStacked <- true
-            data
-            |> metricMeasure (fun meter -> decimal meter.Histogram.Mean)
-            |> Chart.SteppedArea
-            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
-            |> Chart.WithOptions o
-            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
-            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
-            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.DurationUnit) )
-            
-        let partitionTimerAddCallRateMean = 
-            let measure = "Mean Call Rate"
-            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "AddTimer") input
-            let o = Options()
-            o.isStacked <- true
-            data
-            |> metricMeasure (fun meter -> decimal meter.Rate.MeanRate)
-            |> Chart.SteppedArea
-            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
-            |> Chart.WithOptions o
-            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
-            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
-            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.RateUnit) )            
-
         let partitionTimerFlushAddsDurationMean = 
             let measure = "Mean Duration"
             let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "FlushAddsTimer") input
@@ -341,6 +356,9 @@ module Program =
                 filestoreTimerAddTimerCallRateMean
                 filestoreMeterAddFragmentsMeanRate
                 filestoreMeterAddFragmentsOneMinRate
+                partitionTimerNIOWaitDurationMean
+                partitionTimerAddDurationMean
+                partitionTimerAddCallRateMean
                 partitionMeterAddFragmentsMean
                 partitionHistAddSizeMean
                 partitionHistAddSizeSum
@@ -348,8 +366,6 @@ module Program =
                 partitionHistFFPWriteSizeMean
                 partitionHistFFLReadSizeMean
                 partitionHistFFLWriteSizeMean
-                partitionTimerAddDurationMean
-                partitionTimerAddCallRateMean
                 partitionTimerFlushAddsDurationMean
                 partitionTimerFlushAddsCallRateMean
                 partitionTimerFlushFixPointersDurationMean

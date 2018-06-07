@@ -107,26 +107,31 @@ type GrpcFileStore(config:Config) =
                 // Add time here so it's the same for all TMDs
                 let nowInt = DateTime.UtcNow.ToBinary()
                 
-                    
                 let partitionLists = 
                     seq {for i in 0 .. (config.ParitionCount - 1) do 
                          yield new System.Collections.Generic.List<Node>()}
                     |> Array.ofSeq
                 
-                let mutable count = 0L    
                 
-                for node in nodes do 
-                    count <- count + 1L
+                let lstNodes = nodes |> List.ofSeq
+                let count = int64 lstNodes.Length  
+                let withpartition = Array.zeroCreate<int * Node> lstNodes.Length
+                Parallel.For(0,lstNodes.Length,(fun i ->
+                    let node = lstNodes.[i]
                     setTimestamps node nowInt
                     let nodeHash = Utils.GetAddressBlockHash node.Id
-                    partitionLists.[Utils.GetPartitionFromHash config.ParitionCount nodeHash].Add node
-                                   
+                    let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
+                    withpartition.[i] <- partition, node
+                )) |> ignore
+                
+                for i, node in withpartition do 
+                    partitionLists.[i].Add node                   
                 
                 partitionLists
                     |> Seq.iteri (fun i list ->
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                            let (bc,t,_) = PartitionWriters.[i]
+                            let (bc,_,_) = PartitionWriters.[i]
                             while bc.Writer.TryWrite ( Add(tcs,list)) = false do ()
                         )
                 

@@ -41,10 +41,10 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 async{
                     let! message = inbox.Receive()
                     match message with 
-                    | Index(nid) ->
-                            let id = nid
-                            let seqId = [id.Pointer] |> Seq.ofList
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash id, [nid.Pointer], 
+                    | Index(nids) ->
+                        for nid in nids do 
+                            let seqId = [nid.Pointer] 
+                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid, seqId, 
                                 (fun x y -> 
                                     let appended = y |> Seq.append seqId
                                     appended
@@ -326,11 +326,13 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 let reader = bc.Reader
                 let alldone = reader.Completion
                 while alldone.IsCompleted = false do
-                    let mutable nio: NodeIO = NodeIO.None() 
+                    let mutable nio: NodeIO = NodeIO.NoOP() 
+                    let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.NIOWaitTimer, tags)
                     while reader.TryRead(&nio) = false do
                         // sleep for now. later we will want do do compaction tasks
                         //printf "Waited."
                         System.Threading.Thread.Sleep(1)
+                    nioWaitTimer.Dispose()    
                     match nio with
                     | Add(tcs,items) -> 
                         try
@@ -364,9 +366,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 else
                                     ()
                              
-                            for item in items do
-                                let id = item.Id.Nodeid                                                                                           
-                                IndexMaintainer.Post (Index(id))
+                            items 
+                                |> Seq.map (fun x -> x.Id.Nodeid) 
+                                |> Array.ofSeq
+                                |> Seq.ofArray
+                                |> Index
+                                |> IndexMaintainer.Post 
 
                             lastPosition <- out.Position
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
@@ -480,7 +485,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                         | ex ->
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex) 
-                    | None(u) -> u
+                    | NoOP(u) -> u
                                                                       
             finally
                 config.log <| sprintf "Shutting down partition writer[%A]" i 

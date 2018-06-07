@@ -112,7 +112,7 @@ module Program =
             ct <- ct + 1
             enu.MoveNext() |> ignore
             t1.Wait()
-            if ct % 4 = 0 then
+            if ct % 6 = 2 then
                 g.Flush()
             t1 <- t2
             t2 <- g.Add enu.Current
