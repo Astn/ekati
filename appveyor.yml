@@ -6,7 +6,7 @@ build_script:
     
     dotnet core\bin\Debug\netcoreapp2.1\ahghee.dll
 
-    dotnet report\bin\Debug\netcoreapp2.1\report.dll @(gci report-*.json)[0] > benchreport.html
+    dotnet report\bin\Debug\netcoreapp2.1\report.dll @(gci report-*.json)[0] | Set-Content -Encoding utf8  benchreport.html
 test_script:
 - ps: dotnet test core.tests
 artifacts:
