@@ -1,13 +1,13 @@
 version: 1.0.{build}
 image: Visual Studio 2017
 build_script:
-- ps: dotnet build
+- ps: >-
+    dotnet build
+    
+    dotnet core\bin\Debug\netcoreapp2.1\ahghee.dll
+
+    dotnet report\bin\Debug\netcoreapp2.1\report.dll report-*.json > benchreport.html
 test_script:
 - ps: dotnet test core.tests
 artifacts:
 - path: benchreport.html
-on_success:
-- ps: >-
-    dotnet core\bin\Debug\netcoreapp2.1\ahghee.dll
-
-    dotnet report\bin\Debug\netcoreapp2.1\report.dll report-*.json > benchreport.html
