@@ -97,7 +97,7 @@ module Program =
         let bytesOpen = Encoding.UTF8.GetBytes("[")
         f.Write(bytesOpen,0,bytesOpen.Length)
         
-        let duration = TimeSpan.FromMinutes(0.25)
+        let duration = TimeSpan.FromMinutes(2.5)
         
         let start = Stopwatch.StartNew()
         let reporter = 
