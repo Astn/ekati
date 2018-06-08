@@ -325,13 +325,15 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             try
                 let reader = bc.Reader
                 let alldone = reader.Completion
+                let myNoOp = NoOP()
                 while alldone.IsCompleted = false do
                     let mutable nio: NodeIO = NodeIO.NoOP() 
                     let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.NIOWaitTimer, tags)
-                    while reader.TryRead(&nio) = false do
+                    if reader.TryRead(&nio) = false then
                         // sleep for now. later we will want do do compaction tasks
                         //printf "Waited."
-                        System.Threading.Thread.Sleep(1)
+                        System.Threading.Thread.Sleep(1) // sleep to save cpu
+                        nio <- myNoOp // set NoOp so we can loop and check alldone.IsCompleted again.
                     nioWaitTimer.Dispose()    
                     match nio with
                     | Add(tcs,items) -> 

@@ -189,4 +189,4 @@ type GrpcFileStore(config:Config) =
             Flush()
             for (bc,t,part) in PartitionWriters do
                 bc.Writer.Complete()
-                t.Join()    
+                t.Join() // wait for shard threads to stop    

@@ -25,8 +25,8 @@ module Program =
 
     let testConfig () = 
         {
-        Config.ParitionCount=5; 
-        log = (fun msg -> printf "%s" msg)
+        Config.ParitionCount=Environment.ProcessorCount; 
+        log = (fun msg -> printf "%s\n" msg)
         CreateTestingDataDirectory=true
         Metrics = AppMetrics
                       .CreateDefaultBuilder()
@@ -91,12 +91,13 @@ module Program =
         
         let enu =
             streamingNodes.GetEnumerator()
-        let f = new IO.FileStream((sprintf "./report-%A-%A.%A.json" count followsCount (DateTime.Now.ToFileTime()) ) ,IO.FileMode.Create)
+        let reportFile = sprintf "./report-%A-%A.%A.json" count followsCount (DateTime.Now.ToFileTime()) 
+        let f = new IO.FileStream(reportFile ,IO.FileMode.Create)
 
         let bytesOpen = Encoding.UTF8.GetBytes("[")
         f.Write(bytesOpen,0,bytesOpen.Length)
         
-        let duration = TimeSpan.FromMinutes(2.5)
+        let duration = TimeSpan.FromMinutes(0.25)
         
         let start = Stopwatch.StartNew()
         let reporter = 
@@ -129,11 +130,14 @@ module Program =
         f.Write(bytesOpen,0,bytesOpen.Length)
         f.Flush()
         f.Dispose()
+        reportFile
+        
 
 
     [<EntryPoint>]
     let main args =
-        printf "starting benchmark"
-        benchmark 1000 2
-        printf "benchmark finished, run report against report-*.json"
+        printf "starting benchmark\n"
+        let reportFile = benchmark 1000 2
+        printf "benchmark finished, run report against\n"
+        printf "%s" reportFile
         exitCode

@@ -30,7 +30,7 @@ type Graph(storage:IStorage) =
     member x.Remove (nodes:seq<AddressBlock>) = storage.Remove nodes
     member x.Items (addressBlock:seq<AddressBlock>) = storage.Items addressBlock
     member x.First (predicate: (Node -> bool)) : System.Threading.Tasks.Task<Option<Node>> = storage.First predicate
-    member x.Stop () = ()
+    member x.Stop () = storage.Stop()
 
 module Utils =
     open Google.Protobuf
