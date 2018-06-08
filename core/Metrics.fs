@@ -87,7 +87,16 @@ module Metrics =
                 MeasurementUnit=Unit.Calls,
                 DurationUnit=TimeUnit.Milliseconds,
                 RateUnit=TimeUnit.Seconds
-                ) 
+                )
+                
+        static member NIOWaitTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="NIOWaitTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )          
         
         static member AddSize =
             new HistogramOptions(

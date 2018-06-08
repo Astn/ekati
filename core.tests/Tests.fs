@@ -31,13 +31,11 @@ type MyTests(output:ITestOutputHelper) =
     
     let testConfig () = 
         {
-        Config.ParitionCount=4; 
+        Config.ParitionCount=3; 
         log = (fun msg -> output.WriteLine msg)
         CreateTestingDataDirectory=true
         Metrics = AppMetrics
                       .CreateDefaultBuilder()
-                      //.OutputMetrics.AsPlainText()
-                      //.OutputMetrics.AsJson()
                       .Build()
         }
         
@@ -317,46 +315,48 @@ type MyTests(output:ITestOutputHelper) =
       Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
             Assert.All<NodeID>(mps, (fun mp -> Assert.NotEqual(mp.Pointer, NullMemoryPointer())))
         ))
-        
-    [<Theory>]
-    [<InlineData("StorageType.GrpcFile", 1000, 1)>]
-    [<InlineData("StorageType.GrpcFile", 10000, 1)>]
-    [<InlineData("StorageType.GrpcFile", 100000, 1)>]
-    [<InlineData("StorageType.GrpcFile", 1000, 10)>]
-    [<InlineData("StorageType.GrpcFile", 10000, 10)>]
-    [<InlineData("StorageType.GrpcFile", 100000, 10)>]  
-    member __.``We can nodes in 30 seconds`` storeType count followsCount=
-        let config = testConfig()
-        let report() =
-            let snap = config.Metrics.Snapshot.Get()
-            let root = config.Metrics :?> IMetricsRoot 
-            for formatter in  root.OutputMetricsFormatters do
-                if formatter.MediaType.Type = "text" then 
-                    output.WriteLine(sprintf "formatter.MediaTime: %A ... type:%A .. subtype: %A" formatter.MediaType formatter.MediaType.Type formatter.MediaType.SubType)
-                    use mem = new MemoryStream()
-                    formatter.WriteAsync(mem,snap).Wait()
-                    let result = Encoding.UTF8.GetString(mem.ToArray())
-                    output.WriteLine(result)
-                
-        let g:Graph = 
-          match storeType with 
-          | "StorageType.Memory" ->   new Graph(new MemoryStore())
-          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(config))
-          | _ -> raise <| new NotImplementedException() 
-        let staticNodes = (__.buildLotsNodes count followsCount) |> List.ofSeq
-        for iter in  0 .. 5 do 
-        
-            let startTime = Stopwatch.StartNew()
-            let task = g.Add staticNodes
-            task.Wait()
-            let stopTime = startTime.Stop()
-            let startFlush = Stopwatch.StartNew()
-            g.Flush()
-            let stopFlush = startFlush.Stop()
-            output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
-            output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
-        
-        report()
+
+// TODO: Put all benchmarking somewhere else, so unit tests are fast.        
+//    [<Theory>]
+//    [<InlineData("StorageType.GrpcFile", 1000, 1)>]
+//    [<InlineData("StorageType.GrpcFile", 10000, 1)>]
+//    [<InlineData("StorageType.GrpcFile", 100000, 1)>]
+//    [<InlineData("StorageType.GrpcFile", 1000, 10)>]
+//    [<InlineData("StorageType.GrpcFile", 10000, 10)>]
+//    [<InlineData("StorageType.GrpcFile", 100000, 10)>]  
+//    member __.``We can nodes in 30 seconds`` storeType count followsCount=
+//        let config = testConfig()
+//        let report() =
+//            let snap = config.Metrics.Snapshot.Get()
+//            let root = config.Metrics :?> IMetricsRoot
+//            for formatter in  root.OutputMetricsFormatters do
+//                if formatter.MediaType.Type = "application" then 
+//                    use mem = new IO.FileStream((sprintf "./report-%s-%A-%A.%A.json" storeType count followsCount (DateTime.Now.ToFileTime()) ) ,IO.FileMode.Create)
+//                    use ms = new MemoryStream()
+//                    formatter.WriteAsync(ms,snap).Wait()
+//                    let arr = ms.ToArray()
+//                    mem.Write( arr, 0, arr.Length)
+//                    mem.Flush()
+//                
+//        let g:Graph = 
+//          match storeType with 
+//          | "StorageType.Memory" ->   new Graph(new MemoryStore())
+//          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(config))
+//          | _ -> raise <| new NotImplementedException() 
+//        let staticNodes = (__.buildLotsNodes count followsCount) |> List.ofSeq
+//        for iter in  0 .. 5 do 
+//        
+//            let startTime = Stopwatch.StartNew()
+//            let task = g.Add staticNodes
+//            task.Wait()
+//            let stopTime = startTime.Stop()
+//            let startFlush = Stopwatch.StartNew()
+//            g.Flush()
+//            let stopFlush = startFlush.Stop()
+//            output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
+//            output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
+//        
+//        report()
             //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
  
     [<Theory>]

@@ -27,9 +27,10 @@ type NodeIO =
     | FlushFixPointers of TaskCompletionSource<unit>
     | FlushAdds of TaskCompletionSource<unit>
     | FlushFragmentLinks of TaskCompletionSource<unit>
+    | NoOP of unit
 
 type IndexMessage =
-    | Index of Grpc.NodeID
+    | Index of seq<Grpc.NodeID>
     | Flush of AsyncReplyChannel<bool>
 
 [<System.FlagsAttribute>]

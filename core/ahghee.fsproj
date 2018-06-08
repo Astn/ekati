@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Metrics.fs" />
@@ -15,7 +15,11 @@
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="2.1.0" />
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta3" />
+    <PackageReference Include="System.Buffers" Version="4.5.0" />
     <PackageReference Include="System.Data.HashFunction.MurmurHash" Version="2.0.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.0" />
+    <PackageReference Include="System.Memory" Version="4.5.0" />
+    <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
