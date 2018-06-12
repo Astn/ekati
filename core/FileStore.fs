@@ -20,7 +20,7 @@ type ClusterServices() =
         member this.RemoteLookup (partition:int) (hash:NodeIdHash) : bool * MemoryPointer = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
-                let mutable refPointers = Seq.empty<MemoryPointer>
+                let mutable refPointers :List<MemoryPointer> = null
                 if remote.Index().TryGetValue(hash, & refPointers) then
                     true, refPointers |> Seq.head
                 else
@@ -115,18 +115,16 @@ type GrpcFileStore(config:Config) =
                 
                 let lstNodes = nodes |> List.ofSeq
                 let count = int64 lstNodes.Length  
-                let withpartition = Array.zeroCreate<int * Node> lstNodes.Length
+
                 Parallel.For(0,lstNodes.Length,(fun i ->
                     let node = lstNodes.[i]
                     setTimestamps node nowInt
                     let nodeHash = Utils.GetAddressBlockHash node.Id
                     let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
-                    withpartition.[i] <- partition, node
+                    let plist = partitionLists.[partition] 
+                    lock (plist) (fun () -> plist.Add node) 
                 )) |> ignore
-                
-                for i, node in withpartition do 
-                    partitionLists.[i].Add node                   
-                
+               
                 partitionLists
                     |> Seq.iteri (fun i list ->
                         if (list.Count > 0) then
@@ -157,7 +155,7 @@ type GrpcFileStore(config:Config) =
                     // TODO: Read all the fragments, not just the first one.
                     let t = 
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
-                            let mutable mp = Seq.empty<MemoryPointer>
+                            let mutable mp:List<MemoryPointer> = null
                             if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
                                 while bc.Writer.TryWrite (Read(tcs, mp |> Seq.head)) = false do ()
                                 tcs.Task

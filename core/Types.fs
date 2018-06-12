@@ -11,7 +11,8 @@ type Either<'L, 'R> =
     | Left of 'L
     | Right of 'R
 
-type NodeIdHash = { hash:int; graph:string; nodeid:string }
+[<Struct>]
+type NodeIdHash = { hash:int }
 
 type IStorage =
     abstract member Nodes: seq<Node>
@@ -35,7 +36,7 @@ type Graph(storage:IStorage) =
 module Utils =
     open Google.Protobuf
 
-    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash = { hash= nodeid.GetHashCode(); graph=nodeid.Graph; nodeid=nodeid.Nodeid }
+    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash = { hash= nodeid.GetHashCode() }
     let GetAddressBlockHash (ab:AddressBlock) : NodeIdHash =
         let nid = 
             match ab.AddressCase with 
@@ -115,10 +116,11 @@ module Utils =
     let PropInt (key:string) (values:seq<int>) = Prop (DBBString key) (values |> Seq.map(fun x -> DBBInt x))
     let PropDouble (key:string) (values:seq<double>) = Prop (DBBString key) (values |> Seq.map(fun x -> DBBDouble x))
     let PropData (key:string) (values:seq<DataBlock>) = Prop (DBBString key) values
+    let blanks = [|(NullMemoryPointer());(NullMemoryPointer()); (NullMemoryPointer())|]
     let Node key values = 
         let node = new Node()
         // TODO: let the number of reserved fragments be configurable
-        let fragments = [|(NullMemoryPointer());(NullMemoryPointer()); (NullMemoryPointer())|]
+        let fragments = blanks
         node.Id <- key
         node.Fragments.AddRange fragments
         node.Attributes.AddRange values

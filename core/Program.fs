@@ -12,6 +12,7 @@ open Ahghee.TinkerPop
 open Ahghee.Utils
 
 module Program =
+    open Google.Protobuf
     open Grpc.Core
     open System.Threading
     open System.Collections.Concurrent
@@ -36,24 +37,25 @@ module Program =
     let buildLotsNodes perNodeFollowsCount =
         // static seed, keeps runs comparable
         let seededRandom = new Random(1337)
-            
-        let simpleProps = 
-            [|
-                PropString "firstName" [|"Austin"|]
-                PropString "lastName"  [|"Harris"|]
-//                PropString "age"       [|"36"|]
-//                PropString "city"      [|"Boulder"|]
-//                PropString "state"     [|"Colorado"|]
-             |]
+        let fn = PropString "firstName" [|"Austin"|]
+        let ln = PropString "lastName"  [|"Harris"|]
+        let follo i = PropData "follows" [| DABtoyId (seededRandom.Next(i).ToString()) |]
+        
+        let pregenStuff =
+            seq { for i in 1 .. 2000 do 
+                    yield [|
+                              fn
+                              ln
+                              follo i
+                              follo i
+                              follo i
+                           |]
+                }
+            |> Array.ofSeq    
              
         let mkNode i =
                 Node (ABtoyId (i.ToString()) )
-                             (simpleProps
-                              |> Seq.append (seq {for j in 0 .. perNodeFollowsCount do 
-                                                    yield PropData "follows" [| DABtoyId (seededRandom.Next(i).ToString()) |]                                                    
-                                                    })
-                             
-                             )   
+                      pregenStuff.[seededRandom.Next(2000)]          
              
         seq {
             for ii in 0 .. 2000 .. Int32.MaxValue do 
@@ -63,11 +65,35 @@ module Program =
                     )) |> ignore
                 yield output
             } 
-        
+    
+    let proc = Process.GetCurrentProcess()    
 
     let benchmark count followsCount=
         let config = testConfig()
         let mutable firstWritten = false 
+        
+        // gather some process info.
+        let handleCount = proc.HandleCount
+        
+        let nonpagedSystemMemorySize64 = proc.NonpagedSystemMemorySize64
+        
+        let pagedSystemMemorySize64 = proc.PagedSystemMemorySize64
+        let pagedMemorySize64 = proc.PagedMemorySize64
+        let peakPagedMemorySize64 = proc.PeakPagedMemorySize64
+        
+        let privateMemorySize64 = proc.PrivateMemorySize64
+        
+        let virtualMemorySize64 = proc.VirtualMemorySize64
+        let peakVirtualMemorySize64 = proc.PeakVirtualMemorySize64
+        
+        let peakWorkingSet64 = proc.PeakWorkingSet64
+        let workingSet64 = proc.WorkingSet64
+        
+        let totalProcessorTime = proc.TotalProcessorTime
+        let privilegedProcessorTime = proc.PrivilegedProcessorTime
+        let userProcessorTime = proc.UserProcessorTime
+        
+       
         let report (file:FileStream) =
             let snap = config.Metrics.Snapshot.Get()
             let root = config.Metrics :?> IMetricsRoot
@@ -91,6 +117,31 @@ module Program =
         
         let enu =
             streamingNodes.GetEnumerator()
+        
+        // print out env info.
+        let envFile = sprintf "./env.info"
+        use ef = new IO.FileStream(envFile, IO.FileMode.Create)
+        let envms1 = new MemoryStream()
+        let root = (config.Metrics :?> IMetricsRoot)
+        root.DefaultOutputEnvFormatter.WriteAsync(envms1,root.EnvironmentInfo).Wait()
+        let envms2 = new MemoryStream()
+        // add some extra goodies.
+        // Processor Count
+        let emitMore name (data:'a) = 
+            let bytes = 
+                sprintf "%s = %A\n" name data 
+                |> Encoding.UTF8.GetBytes
+            envms2.Write(bytes,0,bytes.Length)
+        emitMore "Processor Count" Environment.ProcessorCount
+        emitMore "System Page Size" Environment.SystemPageSize
+        
+        let a = envms1.ToArray()
+        ef.Write(a, 0, a.Length)
+        let b = envms2.ToArray()
+        ef.Write(b, 0, b.Length)
+        
+        ef.Flush()    
+            
         let reportFile = sprintf "./report-%A-%A.%A.json" count followsCount (DateTime.Now.ToFileTime()) 
         let f = new IO.FileStream(reportFile ,IO.FileMode.Create)
 
@@ -115,7 +166,8 @@ module Program =
         while start.Elapsed < duration do
             ct <- ct + 1
             enu.MoveNext() |> ignore
-            t1.Wait()
+            if t1.IsCompleted = false then
+                t1.Wait()
             if ct % 6 = 2 then
                 g.Flush()
             t1 <- t2

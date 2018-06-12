@@ -6,6 +6,7 @@ open XPlot.GoogleCharts
 type JsonReport = JsonProvider<"report-example.json">
 
 module Program =
+    open System.IO
     open System
     open XPlot.GoogleCharts
     open XPlot.GoogleCharts.Configuration
@@ -65,8 +66,11 @@ module Program =
 
     [<EntryPoint>]
     let main args =
-           
-        let input = JsonReport.Load(IO.Path.Combine( Environment.CurrentDirectory,  args |> Seq.head))
+        
+        let inFile = args |> Seq.head
+        let inEnvFile = IO.Path.Combine(Path.GetDirectoryName(inFile),"env.info")   
+        let envInfo = File.ReadAllText(IO.Path.Combine( Environment.CurrentDirectory,  inEnvFile))   
+        let input = JsonReport.Load(IO.Path.Combine( Environment.CurrentDirectory,  inFile))
               
               
         let filestoreTimerAddTimerDurationMean = 
@@ -240,7 +244,7 @@ module Program =
 
         let partitionHistFFLReadSizeMean = 
             let measure = "Mean"
-            let data = metricGroups "Partition" (fun c -> c.Histograms) (fun m -> m.Name) (fun m -> m.Name.StartsWith "FlushFixPointersReadSize") input
+            let data = metricGroups "Partition" (fun c -> c.Histograms) (fun m -> m.Name) (fun m -> m.Name.StartsWith "FlushFragmentLinksReadSize") input
             let o = Options()
             o.isStacked <- true
             data
@@ -254,7 +258,7 @@ module Program =
             
         let partitionHistFFLWriteSizeMean = 
             let measure = "Mean"
-            let data = metricGroups "Partition" (fun c -> c.Histograms) (fun m -> m.Name) (fun m -> m.Name.StartsWith "FlushFixPointersWriteSize") input
+            let data = metricGroups "Partition" (fun c -> c.Histograms) (fun m -> m.Name) (fun m -> m.Name.StartsWith "FlushFragmentLinksWriteSize") input
             let o = Options()
             o.isStacked <- true
             data
@@ -374,7 +378,10 @@ module Program =
                 partitionTimerFlushFragmentLinksCallRateMean
             ]
 
+        
         printf "%s" htmlHead
+        
+        printf "<pre>%s</pre>" envInfo
         for chart in charts do
             printf "%s" (chart.GetInlineHtml())
         printf "%s" htmlFoot

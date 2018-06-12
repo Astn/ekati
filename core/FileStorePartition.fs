@@ -19,9 +19,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
 
     // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
     // The idea behind this index is to know which connections we do not need to make as they are already made
-    let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
+    let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, List<Grpc.MemoryPointer>>()
     // The idea behind this index is to know which connections we know we need to make that we have not yet made
-    let FragmentLinksRequested = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, seq<Grpc.MemoryPointer>>()
+    let FragmentLinksRequested = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, List<Grpc.MemoryPointer>>()
     
     // TODO: rename to IORequests
     let bc = System.Threading.Channels.Channel.CreateBounded<NodeIO>(1000)
@@ -33,7 +33,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
 
     // TODO: Switch to PebblesDB when index gets to big
-    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, seq<Grpc.MemoryPointer>>()
+    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
         MailboxProcessor<IndexMessage>.Start(fun inbox ->
@@ -43,11 +43,14 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     match message with 
                     | Index(nids) ->
                         for nid in nids do 
-                            let seqId = [nid.Pointer] 
+                            let seqId =
+                               let newlst = new System.Collections.Generic.List<MemoryPointer>()
+                               newlst.Add nid.Pointer
+                               newlst 
                             ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid, seqId, 
                                 (fun x y -> 
-                                    let appended = y |> Seq.append seqId
-                                    appended
+                                    y.Add nid.Pointer
+                                    y
                                     )) |> ignore
                     | Flush(replyChannel)->
                         replyChannel.Reply(true)
@@ -77,27 +80,41 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     else false
                 
                 attached <- 
-                    if n.Fragments.Item(i) = Utils.NullMemoryPointer() then 
+                    if n.Fragments.Item(i).Length = 0UL then 
                         n.Fragments.Item(i) <- mp
 
                         // Track that we have linked these fragments
                         if FragmentLinksConnected.ContainsKey(n.Id.Nodeid.Pointer) = false then 
-                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- [mp]
+                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- 
+                                let lst = new System.Collections.Generic.List<MemoryPointer>()
+                                lst.Add mp
+                                lst
                         else
-                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) |> Seq.append [mp]   
+                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- 
+                                let lst = FragmentLinksConnected.Item(n.Id.Nodeid.Pointer)
+                                lst.Add(mp)
+                                lst   
 
                         // If this was a requested link, remove it from the requests
-                        if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) && FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) |> Seq.length > 1 then
-                            FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) <- FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) |> Seq.except [mp]
+                        if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) && FragmentLinksRequested.Item(n.Id.Nodeid.Pointer).Count > 1 then
+                            FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) <- 
+                                let lst = FragmentLinksRequested.Item(n.Id.Nodeid.Pointer)
+                                lst.Remove mp |> ignore
+                                lst
                         else if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) then  
                             FragmentLinksRequested.Remove(n.Id.Nodeid.Pointer) |> ignore
                             
                                                    
                         // Track that we want to link it from the other direction, but only if that hasn't already been done
-                        if FragmentLinksConnected.ContainsKey(mp) = false && FragmentLinksRequested.ContainsKey(mp) = false then 
-                            FragmentLinksRequested.Add(mp, [n.Id.Nodeid.Pointer]) 
+                        if FragmentLinksConnected.ContainsKey(mp) = false && FragmentLinksRequested.ContainsKey(mp) = false then
+                            let lst = new System.Collections.Generic.List<MemoryPointer>()
+                            lst.Add n.Id.Nodeid.Pointer 
+                            FragmentLinksRequested.Add(mp, lst) 
                         else if FragmentLinksRequested.ContainsKey(mp) && FragmentLinksRequested.Item(mp) |> Seq.contains n.Id.Nodeid.Pointer = false then
-                            FragmentLinksRequested.Item(mp) <- FragmentLinksRequested.Item(mp) |> Seq.append [n.Id.Nodeid.Pointer] 
+                            FragmentLinksRequested.Item(mp) <- 
+                                let lst = FragmentLinksRequested.Item(mp)
+                                lst.Add n.Id.Nodeid.Pointer
+                                lst 
 
                         true
                     else 
@@ -114,7 +131,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         try
             let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
             // If this node has links requested, then make those and exit
-            let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
+            let mutable outMp:List<MemoryPointer> = null //System.Collections.Generic.List
             if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMp) && outMp |> Seq.length > 0 then 
                 seq {
                     for mp in outMp do
@@ -123,16 +140,16 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     }
             // otherwise link it to something at the end of the NodeIdToPointers index
             else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) &&
-                not (n.Fragments |> Seq.exists(fun frag -> frag <> Utils.NullMemoryPointer())) then
+                not (n.Fragments |> Seq.exists(fun frag -> frag.Length <> 0UL)) then
                 // we want to create a basic linked list. 
-                let pointers = outMp |> List.ofSeq
+                let pointers = outMp
                 let mutable linked = false 
-                let mutable i = 0
-                let mutable mp = Utils.NullMemoryPointer()
-                while pointers.Length > 1 && not linked && i < pointers.Length do
+                let mutable i = pointers.Count - 1
+                let mutable mp: MemoryPointer = null
+                while not linked && i >= 0 do
                     mp <- pointers.Item(i)
                     linked <- LinkFragmentTo n mp
-                    i <- i + 1
+                    i <- i - 1
                 if linked then 
                     [mp] |> Seq.ofList
                 else Seq.empty
@@ -148,7 +165,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 let hash = Utils.GetNodeIdHash nodeid
                 let partition = Utils.GetPartitionFromHash config.ParitionCount hash
                 if partition = i then // we have the info local
-                    let mutable outMp:seq<MemoryPointer> = Seq.empty<MemoryPointer>
+                    let mutable outMp:List<MemoryPointer> = null
                     if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
                         nodeid.Pointer <- outMp |> Seq.head
                         true,true
@@ -313,14 +330,13 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             // PRE-ALLOCATE the file to reduce fragmentation https://arxiv.org/pdf/cs/0502012.pdf
             let PreAllocSize = int64 (1024 * 100000 )
             stream.SetLength(PreAllocSize)
-            let out = new CodedOutputStream(stream)
+            
             let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
             let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
             let mutable lastOpIsWrite = false
             let mutable lastPosition = 0L 
             let FLUSHWRITES () =   
-                if (out.Position > stream.Position) then
-                    out.Flush()
+                if lastOpIsWrite then 
                     stream.Flush()
             try
                 let reader = bc.Reader
@@ -343,9 +359,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
                                 lastOpIsWrite <- true
-                            let startPos = out.Position
+                            let startPos = lastPosition
                             let mutable count = 0L
-                            
+                            let mutable batchLen = 0L
                             let mutable ownOffset = uint64 startPos
                             let x = System.IO.Pipelines.Pipe()
                             
@@ -355,11 +371,16 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 mp.Filename <- uint32 fileNameid
                                 mp.Offset <- ownOffset
                                 mp.Length <- (item.CalculateSize() |> uint64)
+                                batchLen <- batchLen + int64 mp.Length
                                 ownOffset <- ownOffset + mp.Length
-                                count <- count + 1L                                   
-
+                                count <- count + 1L                         
+                                
+                            let rentedBuffer = arraybuffer.Rent(int batchLen) 
+                            let out = new CodedOutputStream(rentedBuffer)
                             for item in items do        
                                 item.WriteTo out
+                            
+                            let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
                                 
                             for item in items do    
                                 let id = item.Id.Nodeid
@@ -375,9 +396,11 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 |> Index
                                 |> IndexMaintainer.Post 
 
-                            lastPosition <- out.Position
+                            lastPosition <- int64 ownOffset
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
                             config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
+                            copyTask.Wait()
+                            arraybuffer.Return rentedBuffer
                             tcs.SetResult()
                             
                         with 
@@ -463,9 +486,14 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             
                             for k,v in toAdd do
                                 if FragmentLinksRequested.ContainsKey(k) = false then
-                                    FragmentLinksRequested.Add(k,[v])
+                                    let lst = new List<MemoryPointer>()
+                                    lst.Add v
+                                    FragmentLinksRequested.Add(k,lst)
                                 else if FragmentLinksRequested.Item(k).Contains(v) = false then
-                                    FragmentLinksRequested.Item(k) <- FragmentLinksRequested.Item(k).Concat [v] 
+                                    FragmentLinksRequested.Item(k) <- 
+                                        let lst = FragmentLinksRequested.Item(k)
+                                        lst.Add v
+                                        lst 
                             
                             let groupsInput = new SortedList<uint64,MemoryPointer>() 
                             for mp in (FragmentLinksRequested.Keys 
@@ -492,8 +520,8 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             finally
                 config.log <| sprintf "Shutting down partition writer[%A]" i 
                 config.log <| sprintf "Flushing partition writer[%A]" i
-                out.Flush()
-                out.Dispose()
+                FLUSHWRITES()
+                stream.Dispose()
                 config.log <| sprintf "Shutting down partition writer[%A] :: Success" i                     
             ()))
         
