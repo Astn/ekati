@@ -120,7 +120,7 @@ module Program =
                     file.Write(a, 0, a.Length)
                     file.Flush()
                 
-        let g:Graph = new Graph(new GrpcFileStore(config)) 
+        let g:IStorage = new GrpcFileStore(config) :> IStorage 
           
         let streamingNodes = 
             (buildLotsNodes followsCount)

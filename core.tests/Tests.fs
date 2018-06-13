@@ -39,11 +39,11 @@ type MyTests(output:ITestOutputHelper) =
                       .Build()
         }
         
-    member __.buildGraph (storageType:StorageType): Graph =
-        let g:Graph = 
+    member __.buildGraph (storageType:StorageType): IStorage =
+        let g:IStorage = 
             match storageType with 
-            | Memory ->   new Graph(new MemoryStore())
-            | GrpcFile -> new Graph(new GrpcFileStore(testConfig()))
+            | Memory ->   new MemoryStore() :> IStorage
+            | GrpcFile -> new GrpcFileStore(testConfig()) :> IStorage
         
         let nodes = __.buildNodes
         let task = g.Add nodes
@@ -54,11 +54,11 @@ type MyTests(output:ITestOutputHelper) =
         g.Flush()
         g
         
-    member __.toyGraph (storageType:StorageType): Graph =
-        let g:Graph = 
+    member __.toyGraph (storageType:StorageType): IStorage =
+        let g = 
             match storageType with 
-            | Memory ->   new Graph(new MemoryStore())
-            | GrpcFile -> new Graph(new GrpcFileStore(testConfig()))
+            | Memory ->   new MemoryStore() :> IStorage
+            | GrpcFile -> new GrpcFileStore(testConfig()) :> IStorage
         let nodes = buildNodesTheCrew
         let task = g.Add nodes
         match task.Status with
@@ -151,10 +151,10 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>]
     member __.``Can Add nodes to graph`` (storeType) =
-        let g:Graph = 
+        let g = 
             match storeType with 
-            | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+            | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+            | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
             | _ -> raise <| new NotImplementedException()                                                                    
             
         let nodes = buildNodesTheCrew
@@ -172,7 +172,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     //[<InlineData("file")>] 
     member __.``Can Remove nodes from graph`` db =
-        let g:Graph = __.buildGraph (dbtype db)
+        let g = __.buildGraph (dbtype db)
 
         let n1 = g.Nodes
         let len1 = n1 |> Seq.length
@@ -194,10 +194,10 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>]
     member __.``Can traverse local graph index`` storeType=
-        let g:Graph = 
+        let g = 
             match storeType with 
-            | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+            | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+            | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
             | _ -> raise <| new NotImplementedException() 
             
         let nodes = buildNodesTheCrew
@@ -224,10 +224,10 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
     member __.``Can get IDs after load tinkerpop-crew.xml into graph`` storeType =
-         let g:Graph = 
+         let g = 
              match storeType with 
-             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+             | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+             | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
              | _ -> raise <| new NotImplementedException() 
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
@@ -263,10 +263,10 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
     member __.``When I put a node in I can get the same out`` storeType =
-         let g:Graph = 
+         let g = 
              match storeType with 
-             | "StorageType.Memory" ->   new Graph(new MemoryStore())
-             | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+             | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+             | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
              | _ -> raise <| new NotImplementedException() 
                   
          
@@ -284,10 +284,10 @@ type MyTests(output:ITestOutputHelper) =
     //[<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
     member __.``When I put a nodes in their values have MemoryPointers when I get them out`` storeType =
-      let g:Graph = 
+      let g = 
           match storeType with 
-          | "StorageType.Memory" ->   new Graph(new MemoryStore())
-          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+          | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+          | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
           | _ -> raise <| new NotImplementedException() 
                
       let task = g.Add buildNodesTheCrew 
@@ -370,10 +370,10 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("StorageType.GrpcFile", 9)>]
     [<InlineData("StorageType.GrpcFile", 10)>]
     member __.``Multiple calls to add for the same nodeId results in all the fragments being linked`` storeType fragments =
-        let g:Graph = 
+        let g = 
             match storeType with 
-            | "StorageType.Memory" ->   new Graph(new MemoryStore())
-            | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(testConfig()))
+            | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+            | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
             | _ -> raise <| new NotImplementedException() 
         
         
@@ -427,7 +427,7 @@ type MyTests(output:ITestOutputHelper) =
             Assert.NotEqual(frag.Fragments.Item(0), NullMemoryPointer())
             Assert.Contains(frag, connectedFragments)))
  
-    member __.CollectValues key (graph:Graph) =
+    member __.CollectValues key (graph:IStorage) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
                                       |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with 
@@ -454,7 +454,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>]
     member __.``Can get labelV after load tinkerpop-crew.xml into graph`` db =
-         let g:Graph = __.toyGraph (dbtype db)
+         let g = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          
@@ -480,7 +480,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` db =
-         let g:Graph = __.toyGraph (dbtype db)
+         let g = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
          let attrName = "age"
@@ -505,7 +505,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("file", 1)>]
     [<InlineData("file", 2)>]
     member __.``After load tinkerpop-crew.xml multiple flush do not destroy data`` db flushes =
-         let g:Graph = __.toyGraph (dbtype db)
+         let g = __.toyGraph (dbtype db)
          
          for i in 0 .. flushes do
             g.Flush()
@@ -533,7 +533,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("file", 1)>]
     [<InlineData("file", 2)>]
     member __.``After load tinkerpop-crew.xml multiple adds do not destroy data`` db flushes =
-         let g:Graph = __.toyGraph (dbtype db)
+         let g = __.toyGraph (dbtype db)
          
          for i in 0 .. flushes do
             g.Flush()
@@ -557,7 +557,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>]  
     member __.``After load tinkerpop-crew.xml Nodes have 'out.knows' Edges`` db =
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
               
         let attrName = "out.knows"
         let actual = __.CollectValues attrName g                                         
@@ -575,7 +575,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'out.created' Edges`` db =        
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
         let attrName = "out.created"
         let actual = __.CollectValues attrName g                                         
         let (_,_,one) = actual |> Seq.head 
@@ -595,7 +595,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'in.knows' Edges`` db =
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
               
         let attrName = "in.knows"
         let actual = __.CollectValues attrName g                                         
@@ -623,7 +623,7 @@ type MyTests(output:ITestOutputHelper) =
                                     | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Globalnodeid ->
                                                                             h1.Data.Address.Globalnodeid.Nodeid.Nodeid                                        
                                     | _ ->  "")
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
         let attrName = "in.created"
         let actual = __.CollectValues attrName g
                     |> sortedByNodeIdEdgeId                                         
@@ -647,7 +647,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml has Edge-nodes`` db =        
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
         let attrName = "labelE"
         let actual = __.CollectValues attrName g                                       
         let (_,_,one) = actual |> Seq.head 
@@ -669,7 +669,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml has node data`` db =        
-        let g:Graph = __.toyGraph (dbtype db)
+        let g = __.toyGraph (dbtype db)
         output.WriteLine(sprintf "%A" g.Nodes)
         Assert.NotEmpty(g.Nodes)
 
