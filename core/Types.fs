@@ -23,16 +23,6 @@ type IStorage =
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
 
-//TODO: Delete this
-type Graph(storage:IStorage) =  
-    member x.Nodes = storage.Nodes
-    member x.Flush () = storage.Flush()
-    member x.Add (nodes:seq<Node>) = storage.Add nodes
-    member x.Remove (nodes:seq<AddressBlock>) = storage.Remove nodes
-    member x.Items (addressBlock:seq<AddressBlock>) = storage.Items addressBlock
-    member x.First (predicate: (Node -> bool)) : System.Threading.Tasks.Task<Option<Node>> = storage.First predicate
-    member x.Stop () = storage.Stop()
-
 module Utils =
     open Google.Protobuf
 
