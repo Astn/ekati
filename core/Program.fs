@@ -73,28 +73,38 @@ module Program =
         let mutable firstWritten = false 
         
         // gather some process info.
-        let handleCount = proc.HandleCount
         
-        let nonpagedSystemMemorySize64 = proc.NonpagedSystemMemorySize64
-        
-        let pagedSystemMemorySize64 = proc.PagedSystemMemorySize64
-        let pagedMemorySize64 = proc.PagedMemorySize64
-        let peakPagedMemorySize64 = proc.PeakPagedMemorySize64
-        
-        let privateMemorySize64 = proc.PrivateMemorySize64
-        
-        let virtualMemorySize64 = proc.VirtualMemorySize64
-        let peakVirtualMemorySize64 = proc.PeakVirtualMemorySize64
-        
-        let peakWorkingSet64 = proc.PeakWorkingSet64
-        let workingSet64 = proc.WorkingSet64
-        
-        let totalProcessorTime = proc.TotalProcessorTime
-        let privilegedProcessorTime = proc.PrivilegedProcessorTime
-        let userProcessorTime = proc.UserProcessorTime
-        
+        let collectSystemMetrics() =
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.HandleCountGauge, float proc.HandleCount)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.NonPagedSystemMemorySizeGauge, float proc.NonpagedSystemMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PagedSystemMemorySizeGauge, float proc.PagedSystemMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PagedMemorySizeGauge, float proc.PagedMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PeakPagedMemorySizeGauge, float proc.PeakPagedMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PrivateMemorySizeGauge, float proc.PrivateMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.VirtualMemorySizeGauge, float proc.VirtualMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PeakVirtualMemorySizeGauge, float proc.PeakVirtualMemorySize64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PeakWorkingSetGauge, float proc.PeakWorkingSet64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.WorkingSetGauge, float proc.WorkingSet64)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.TotalProcessorTimeGauge, float proc.TotalProcessorTime.TotalMilliseconds)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.PrivilegedProcessorTimeGauge, float proc.PrivilegedProcessorTime.TotalMilliseconds)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.UserProcessorTimeGauge, float proc.UserProcessorTime.TotalMilliseconds)
+            config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcEstimatedMemorySizeGauge, float (GC.GetTotalMemory(false)))
+            let maxGen = GC.MaxGeneration
+            if (0 <= maxGen) then
+                config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcGenCount0Gauge, float (GC.CollectionCount(0)))
+            if (1 <= maxGen) then
+                config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcGenCount1Gauge, float (GC.CollectionCount(1)))
+            if (2 <= maxGen) then
+                config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcGenCount2Gauge, float (GC.CollectionCount(2)))
+            if (3 <= maxGen) then
+                config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcGenCount3Gauge, float (GC.CollectionCount(3)))
+            if (4 <= maxGen) then
+                config.Metrics.Measure.Gauge.SetValue(Metrics.ProcessMetrics.GcGenCount4Gauge, float (GC.CollectionCount(4)))        
+
+            ()        
        
         let report (file:FileStream) =
+            collectSystemMetrics()
             let snap = config.Metrics.Snapshot.Get()
             let root = config.Metrics :?> IMetricsRoot
             for formatter in  root.OutputMetricsFormatters do
