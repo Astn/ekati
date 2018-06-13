@@ -10,6 +10,142 @@ module Metrics =
     open App.Metrics.ReservoirSampling.SlidingWindow
 
     [<AbstractClass; Sealed>]
+    type ProcessMetrics private () =
+        static let ContextName = "Process"
+        
+        static member HandleCountGauge = 
+            new GaugeOptions(
+                Context=ContextName,
+                Name="HandleCount",
+                MeasurementUnit=Unit.Items
+                   )        
+        static member NonPagedSystemMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="NonPagedSystemMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )
+
+        static member PagedSystemMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PagedSystemMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )
+                        
+        static member PagedMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PagedMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )                        
+
+        static member PeakPagedMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PeakPagedMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )          
+                        
+        static member PrivateMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PrivateMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        ) 
+                        
+        static member VirtualMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="VirtualMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )    
+                        
+        static member PeakVirtualMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PeakVirtualMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )      
+                        
+        static member PeakWorkingSetGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PeakWorkingSet",
+                        MeasurementUnit=Unit.Bytes
+                        )
+
+        static member WorkingSetGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="WorkingSet",
+                        MeasurementUnit=Unit.Bytes
+                        )
+
+        static member TotalProcessorTimeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="TotalProcessorTime",
+                        MeasurementUnit=Unit.None
+                        )
+
+        static member PrivilegedProcessorTimeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="PrivilegedProcessorTime",
+                        MeasurementUnit=Unit.None
+                        )
+
+        static member UserProcessorTimeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="UserProcessorTime",
+                        MeasurementUnit=Unit.None
+                        )  
+                        
+        static member GcEstimatedMemorySizeGauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcEstimatedMemorySize",
+                        MeasurementUnit=Unit.Bytes
+                        )    
+
+        static member GcGenCount0Gauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcGenCount0",
+                        MeasurementUnit=Unit.Calls
+                        )
+
+        static member GcGenCount1Gauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcGenCount1",
+                        MeasurementUnit=Unit.Calls
+                        )
+
+        static member GcGenCount2Gauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcGenCount2",
+                        MeasurementUnit=Unit.Calls
+                        )
+
+        static member GcGenCount3Gauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcGenCount3",
+                        MeasurementUnit=Unit.Calls
+                        )
+
+        static member GcGenCount4Gauge = 
+                    new GaugeOptions(
+                        Context=ContextName,
+                        Name="GcGenCount4",
+                        MeasurementUnit=Unit.Calls
+                        )                                                                        
+                                                                                                                                                                                    
+    [<AbstractClass; Sealed>]
     type FileStoreMetrics private () =
         static let ContextName = "FileStore"
         
