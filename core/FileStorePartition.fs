@@ -106,15 +106,16 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             
                                                    
                         // Track that we want to link it from the other direction, but only if that hasn't already been done
-                        if FragmentLinksConnected.ContainsKey(mp) = false && FragmentLinksRequested.ContainsKey(mp) = false then
-                            let lst = new System.Collections.Generic.List<MemoryPointer>()
-                            lst.Add n.Id.Nodeid.Pointer 
-                            FragmentLinksRequested.Add(mp, lst) 
-                        else if FragmentLinksRequested.ContainsKey(mp) && FragmentLinksRequested.Item(mp) |> Seq.contains n.Id.Nodeid.Pointer = false then
-                            FragmentLinksRequested.Item(mp) <- 
-                                let lst = FragmentLinksRequested.Item(mp)
-                                lst.Add n.Id.Nodeid.Pointer
-                                lst 
+                        if (FragmentLinksConnected.ContainsKey(mp) = false || FragmentLinksConnected.Item(mp).Contains(n.Id.Nodeid.Pointer) = false) then
+                            if FragmentLinksRequested.ContainsKey(mp) = false then
+                                let lst = new System.Collections.Generic.List<MemoryPointer>()
+                                lst.Add n.Id.Nodeid.Pointer 
+                                FragmentLinksRequested.Add(mp, lst) 
+                            else if FragmentLinksRequested.Item(mp).Contains(n.Id.Nodeid.Pointer) = false then
+                                FragmentLinksRequested.Item(mp) <- 
+                                    let lst = FragmentLinksRequested.Item(mp)
+                                    lst.Add n.Id.Nodeid.Pointer
+                                    lst 
 
                         true
                     else 

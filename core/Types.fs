@@ -11,8 +11,8 @@ type Either<'L, 'R> =
     | Left of 'L
     | Right of 'R
 
-[<Struct>]
-type NodeIdHash = { hash:int }
+
+type NodeIdHash = int //{ hash:int }
 
 type IStorage =
     abstract member Nodes: seq<Node>
@@ -36,7 +36,7 @@ type Graph(storage:IStorage) =
 module Utils =
     open Google.Protobuf
 
-    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash = { hash= nodeid.GetHashCode() }
+    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash =  nodeid.GetHashCode() 
     let GetAddressBlockHash (ab:AddressBlock) : NodeIdHash =
         let nid = 
             match ab.AddressCase with 
@@ -45,7 +45,7 @@ module Utils =
             | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
         GetNodeIdHash nid    
     let GetPartitionFromHash (partitionCount:int) (nodeHash:NodeIdHash) =
-        int ((uint32 nodeHash.hash) % uint32 partitionCount)
+        int ((uint32 nodeHash) % uint32 partitionCount)
 
     let metaPlainTextUtf8 = "xs:string"
     let metaXmlInt = "xs:int"
