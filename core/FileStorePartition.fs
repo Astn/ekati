@@ -33,16 +33,29 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
 
     // TODO: Switch to PebblesDB when index gets to big
+    // TODO: Are these per file, with bloom filters, or aross files in the same shard?
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
+    let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
         MailboxProcessor<IndexMessage>.Start(fun inbox ->
+            let mutable scanIndexChunk = new List<Grpc.MemoryPointer>(1000)
+            scanIndex.AddLast(scanIndexChunk) |> ignore
+            
             let rec messageLoop() = 
                 async{
                     let! message = inbox.Receive()
                     match message with 
                     | Index(nids) ->
                         for nid in nids do 
+                            // Assumption: Index messages and their nids always come in sequential order
+                            if scanIndexChunk.Count = scanIndexChunk.Capacity then
+                                // make a new chunk
+                                scanIndexChunk <- new List<Grpc.MemoryPointer>(1000)
+                                scanIndex.AddLast(scanIndexChunk) |> ignore
+                            else
+                                scanIndexChunk.Add (nid.Pointer)
+                                 
                             let seqId =
                                let newlst = new System.Collections.Generic.List<MemoryPointer>()
                                newlst.Add nid.Pointer
@@ -410,7 +423,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             tcs.SetException(ex)
                     | Read (tcs,request) ->  
                         try 
-                            use ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
+                            let ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
                             
                             FLUSHWRITES()                          
                             lastOpIsWrite <- false
@@ -429,6 +442,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             arraybuffer.Return(buffer, true) // todo: does this need to be in a finally block?
                             config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, int64 request.Length)
                             tcs.SetResult(nnnnnnnn)
+                            ReadTimer.Dispose()
                         with 
                         | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
@@ -536,3 +550,4 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
     member __.Index() = ``Index of NodeID -> MemoryPointer``
+    member __.ScanIndex() = scanIndex

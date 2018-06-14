@@ -159,21 +159,22 @@ module Program =
         f.Write(bytesOpen,0,bytesOpen.Length)
         
         let duration = TimeSpan.FromMinutes(2.5)
-        
-        let start = Stopwatch.StartNew()
+        let timer = Stopwatch.StartNew()
+        let mutable stop = false 
         let reporter = 
             async{
-                while  start.Elapsed < duration do 
+                while not stop do 
                     report f
-                    do! Async.Sleep 5000
+                    do! Async.Sleep 2000
+                 
             }
-            
+                    
         Async.Start reporter        
 
         let mutable t1 : Task = Task.CompletedTask
         let mutable t2 : Task = Task.CompletedTask
         let mutable ct = 0
-        while start.Elapsed < duration do
+        while timer.Elapsed < duration do
             ct <- ct + 1
             enu.MoveNext() |> ignore
             if t1.IsCompleted = false then
@@ -185,9 +186,23 @@ module Program =
             
         
         g.Flush()
-        g.Stop()
-        System.Threading.Thread.Sleep(1000)
+        
+        System.Threading.Thread.Sleep(60000)
+        
+        // now for the read test
+        let readTimer = Stopwatch.StartNew()
+        
+        let mutable count = 0
+        let readEnu = g.Nodes.GetEnumerator()
+        
+        while readTimer.Elapsed < duration do
+            if readEnu.MoveNext() then
+                count <- count + 1
+            else
+                ()
+        stop <- true        
         Async.RunSynchronously reporter
+        g.Stop()
         let bytesOpen = Encoding.UTF8.GetBytes("]")
         f.Write(bytesOpen,0,bytesOpen.Length)
         f.Flush()

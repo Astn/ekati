@@ -36,15 +36,12 @@ module Program =
 
 
     let metricGroups (context) (metric: JsonReport.Context -> 'a[]) (metricName: 'a -> string) (filter: 'a -> bool) (input: JsonReport.Root[])= 
-                seq {
-                    for foo in input do
-                        let partition = foo.Contexts |> Seq.tryFind (fun x -> x.Context = context) 
-                        if partition.IsSome then
-                            for meter in metric partition.Value do
-                                if filter meter then 
-                                    yield foo.Timestamp, meter
-                } 
-                |> Seq.groupBy (fun (time,meter) -> metricName meter)
+        input
+        |> Seq.collect( fun x ->  x.Contexts |> Seq.map (fun y -> x.Timestamp, y))
+        |> Seq.filter (fun (t, x) -> x.Context = context)
+        |> Seq.collect (fun (t, x) -> metric x |> Seq.map (fun y -> t, y))
+        |> Seq.filter (fun (t, x) -> filter x)
+        |> Seq.groupBy (fun (time,meter) -> metricName meter)
     
     let metricMeasure (measure: 'd -> decimal) data = 
         data
@@ -592,6 +589,65 @@ module Program =
             |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
             |> Chart.WithYTitle (data |> metricTitle (fun d -> d.RateUnit) )
 
+        let partitionTimerReadCallRateMean = 
+            let measure = "Mean ms Duration"
+            let saw = new System.Collections.Generic.List<string>()
+            let data = 
+                metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> saw.Add(m.Name); m.Name.StartsWith "ReadTimer") input
+                |> List.ofSeq
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Histogram.Mean)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.RateUnit) )
+        
+        let partitionTimerReadCallRate99th = 
+            let measure = "99th ms Duration"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "ReadTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Histogram.Percentile99)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> d.RateUnit) )
+
+        let partitionTimerReadCallCount = 
+            let measure = "Total Call Count"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "ReadTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Count)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> "Calls Total") )
+
+        let partitionTimerReadCallCountOneMinuteRate = 
+            let measure = "One Minute Rate"
+            let data = metricGroups "Partition" (fun c -> c.Timers) (fun m -> m.Name) (fun m -> m.Name.StartsWith "ReadTimer") input
+            let o = Options()
+            o.isStacked <- true
+            data
+            |> metricMeasure (fun meter -> decimal meter.Rate.OneMinuteRate)
+            |> Chart.SteppedArea
+            |> Chart.WithLabels (data |> metricLabels (fun data -> sprintf "%A" data.Tags.PartitionId))
+            |> Chart.WithOptions o
+            |> Chart.WithTitle (data |> metricTitle (fun d -> sprintf "%s - %s" (d.Name.Split('|') |> Seq.head) measure ))
+            |> Chart.WithXTitle (data |> metricTitle (fun d -> "Time") )
+            |> Chart.WithYTitle (data |> metricTitle (fun d -> "Calls - One Minute Rate") )                                
+
         let charts = 
             [
                 processGuageHandleCount
@@ -611,10 +667,17 @@ module Program =
                 processGuageGcGenCount0
                 processGuageGcGenCount1
                 processGuageGcGenCount2
+                
                 filestoreTimerAddTimerDurationMean
                 filestoreTimerAddTimerCallRateMean
                 filestoreMeterAddFragmentsMeanRate
                 filestoreMeterAddFragmentsTotal
+                
+                partitionTimerReadCallRateMean
+                partitionTimerReadCallRate99th
+                partitionTimerReadCallCount
+                partitionTimerReadCallCountOneMinuteRate
+                
                 partitionTimerNIOWaitDurationMean
                 partitionTimerAddDurationMean
                 partitionTimerAddCallRateMean

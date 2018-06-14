@@ -85,17 +85,55 @@ type GrpcFileStore(config:Config) =
         member x.Nodes = 
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
-            
-            // todo: this could be a lot smarter and fetch from more than one partition reader at a time
-            // todo: additionally, Using the index likely results in Random file access, we could instead
-            // todo: just read from the file sequentially
-            seq { for bc,t,part in PartitionWriters do
-                  for kv in part.Index() do
-                  for fragment in kv.Value do
-                      let tcs = new TaskCompletionSource<Node>()
-                      while bc.Writer.TryWrite ( Read( tcs, fragment)) = false do ()
-                      yield tcs.Task.Result
-                }
+            let numWriters = PartitionWriters.Length
+            let scanners = 
+                seq {
+                    for bc,t,part in PartitionWriters do
+                        yield part.ScanIndex()
+                } |> Array.ofSeq
+            let currentChunks = 
+                scanners 
+                |> Array.map (fun scanner -> scanner.First)
+
+            let currentPositions = Array.zeroCreate<int> numWriters 
+                
+
+            // todo: We could improve throughput by quite a bit if we requested batches of contigious nodes
+            let requests () = 
+                seq { 
+                  for i in 0 .. numWriters - 1 do
+                    if currentChunks.[i] <> null && currentPositions.[i] = currentChunks.[i].Value.Count then
+                        // reset currentPosition
+                        currentPositions.[i] <- 0
+                        // move CurrentChunk to next chunk
+                        currentChunks.[i] <- currentChunks.[i].Next   
+                    
+                    // if we still have data.    
+                    if currentChunks.[i] <> null && currentPositions.[i] < currentChunks.[i].Value.Count then 
+                        let mp = currentChunks.[i].Value.Item(currentPositions.[i])
+                        let tcs = new TaskCompletionSource<Node>()
+                        let bc,_,_ = PartitionWriters.[i]
+                        while bc.Writer.TryWrite ( Read( tcs, mp)) = false do 
+                          ()
+                        yield tcs.Task
+                        
+                    currentPositions.[i] <- currentPositions.[i] + 1    
+                } |> Array.ofSeq
+             
+            seq {
+                let mutable finished = false
+                while not finished do
+                    let req = 
+                        seq { for i in 0 .. 5 do yield requests() }
+                        |> Seq.collect (fun  x -> x ) 
+                        |> Array.ofSeq
+                    if req.Length = 0 then
+                        finished <- true
+                    else
+                        for r in req do
+                            yield r.Result
+                
+            }
             // todo return remote nodes
             
         member x.Flush () = Flush()
