@@ -6,10 +6,15 @@ This project is still in it's early early stages, so click that *Watch* button.
 
 I'm looking for other contributors to help.
 
+
+
 #### Slack
 
   ahghee.slack.com
 
+#### Contributors 
+
+  Start [here](https://github.com/Astn/ahghee/wiki/Getting-Started---Contributors)
 
 ## References
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
