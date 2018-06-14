@@ -225,10 +225,10 @@ module Metrics =
                 RateUnit=TimeUnit.Seconds
                 )
                 
-        static member NIOWaitTimer = 
+        static member QueueEmptyWaitTime = 
             new TimerOptions(
                 Context=ContextName,
-                Name="NIOWaitTimer",
+                Name="QueueEmptyWaitTime",
                 MeasurementUnit=Unit.Calls,
                 DurationUnit=TimeUnit.Milliseconds,
                 RateUnit=TimeUnit.Seconds
@@ -253,6 +253,15 @@ module Metrics =
                 DurationUnit=TimeUnit.Milliseconds,
                 RateUnit=TimeUnit.Seconds
                 )   
+        
+        static member ReadIOTimer = 
+            new TimerOptions(
+                Context=ContextName,
+                Name="ReadIOTimer",
+                MeasurementUnit=Unit.Calls,
+                DurationUnit=TimeUnit.Milliseconds,
+                RateUnit=TimeUnit.Seconds
+                )           
 
         static member ReadSize =
             new HistogramOptions(
@@ -262,7 +271,17 @@ module Metrics =
                 Reservoir=(fun () -> 
                                 let res = new DefaultSlidingWindowReservoir(1028) 
                                 res :> IReservoir)   
-                )        
+                ) 
+        
+        static member ReadNodeFragmentCount =
+            new HistogramOptions(
+                Context=ContextName,
+                Name="NodeFragmentCount", 
+                MeasurementUnit=Unit.Items,
+                Reservoir=(fun () -> 
+                                let res = new DefaultSlidingWindowReservoir(1028) 
+                                res :> IReservoir)   
+                )                       
                 
         // FlushFixPointers
         static member FlushFixPointersTimer = 

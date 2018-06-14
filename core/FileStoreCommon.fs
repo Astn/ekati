@@ -23,7 +23,7 @@ type IOStat = { readbytes: uint64; writebytes: uint64 }
 
 type NodeIO =
     | Add of TaskCompletionSource<unit> * seq<Node>
-    | Read  of TaskCompletionSource<Node> * MemoryPointer
+    | Read  of TaskCompletionSource<array<Node>> * array<MemoryPointer>
     | FlushFixPointers of TaskCompletionSource<unit>
     | FlushAdds of TaskCompletionSource<unit>
     | FlushFragmentLinks of TaskCompletionSource<unit>
