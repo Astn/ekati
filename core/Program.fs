@@ -165,7 +165,7 @@ module Program =
             async{
                 while not stop do 
                     report f
-                    do! Async.Sleep 2000
+                    do! Async.Sleep 10000
                  
             }
                     
