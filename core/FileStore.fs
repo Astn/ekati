@@ -85,17 +85,63 @@ type GrpcFileStore(config:Config) =
         member x.Nodes = 
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
-            
-            // todo: this could be a lot smarter and fetch from more than one partition reader at a time
-            // todo: additionally, Using the index likely results in Random file access, we could instead
-            // todo: just read from the file sequentially
-            seq { for bc,t,part in PartitionWriters do
-                  for kv in part.Index() do
-                  for fragment in kv.Value do
-                      let tcs = new TaskCompletionSource<Node>()
-                      while bc.Writer.TryWrite ( Read( tcs, fragment)) = false do ()
-                      yield tcs.Task.Result
-                }
+            let numWriters = PartitionWriters.Length
+            let scanners = 
+                seq {
+                    for bc,t,part in PartitionWriters do
+                        yield part.ScanIndex()
+                } |> Array.ofSeq
+            let currentChunks = 
+                scanners 
+                |> Array.map (fun scanner -> scanner.First)
+
+            let currentPositions = Array.zeroCreate<int> numWriters 
+                
+
+            // todo: We could improve throughput by quite a bit if we requested batches of contigious nodes
+            let requests () = 
+                seq { 
+                  for i in 0 .. numWriters - 1 do
+                    if currentChunks.[i] <> null && currentPositions.[i] = currentChunks.[i].Value.Count then
+                        // reset currentPosition
+                        currentPositions.[i] <- 0
+                        // move CurrentChunk to next chunk
+                        currentChunks.[i] <- currentChunks.[i].Next   
+                    
+                    // if we still have data.    
+                    if currentChunks.[i] <> null && currentPositions.[i] < currentChunks.[i].Value.Count then 
+                        yield  i,  currentChunks.[i].Value.Item(currentPositions.[i])
+                        
+                    currentPositions.[i] <- currentPositions.[i] + 1    
+                } 
+             
+            seq {
+                let mutable finished = false
+                while not finished do
+                    let req = 
+                        seq { for i in 0 .. 64 do yield requests() }
+                        |> Seq.collect (fun x -> x ) 
+                        |> Seq.map (fun x -> x )
+                        |> Seq.groupBy ( fun (i,x) -> i)
+                        |> Seq.map(fun (i,xs) -> 
+                            let tcs = new TaskCompletionSource<Node[]>()
+                            let bc,_,_ = PartitionWriters.[i]
+                            let written = bc.Writer.WriteAsync(Read(tcs,xs |> Seq.map(fun (i,x)->x) |> Array.ofSeq))
+                            written, tcs.Task)
+                        |> Array.ofSeq
+                            
+                    if req.Length = 0 then
+                        finished <- true
+                    else
+                        for (written, result) in req do
+                            if written.IsCompletedSuccessfully then 
+                                yield result.Result
+                            else 
+                                written.AsTask().Wait()
+                                yield result.Result    
+                
+            }
+            |> Seq.collect(fun x->x)
             // todo return remote nodes
             
         member x.Flush () = Flush()
@@ -143,7 +189,7 @@ type GrpcFileStore(config:Config) =
             let requestsMade =
                 addressBlock
                 |> Seq.map (fun ab ->
-                    let tcs = new TaskCompletionSource<Node>()
+                    let tcs = new TaskCompletionSource<Node[]>()
                     let nid = 
                         match ab.AddressCase with 
                         | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
@@ -157,30 +203,32 @@ type GrpcFileStore(config:Config) =
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
                             let mutable mp:List<MemoryPointer> = null
                             if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
-                                while bc.Writer.TryWrite (Read(tcs, mp |> Seq.head)) = false do ()
+                                while bc.Writer.TryWrite (Read(tcs, mp |> Seq.take 1 |> Array.ofSeq)) = false do ()
                                 tcs.Task
                             else 
                                 tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
                                 tcs.Task   
                         else 
-                            while bc.Writer.TryWrite (Read(tcs,nid.Pointer)) = false do ()
+                            while bc.Writer.TryWrite (Read(tcs, [|nid.Pointer|])) = false do ()
                             tcs.Task
                             
-                    let res = t.ContinueWith(fun (isdone:Task<Node>) ->
+                    let res = t.ContinueWith(fun (isdone:Task<Node[]>) ->
                                 if (isdone.IsCompletedSuccessfully) then
                                     config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
                                     ab,Left(isdone.Result)
                                 else 
                                     ab,Right(isdone.Exception :> Exception)
                                 )
-                                
-                    
                     res)
             
             Task.FromResult 
                 (seq { use itemTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.ItemTimer)
-                       for t in requestsMade do 
-                       yield t.Result 
+                       for ts in requestsMade do
+                        let (ab,eith) = ts.Result
+                        yield 
+                            match eith with 
+                            | Left(nodes) -> (ab,Left(nodes.[0])) // TODO: Fix: Currently ignoring everything after first result.
+                            | Right(err) -> (ab,Right(err))
                 })  
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  

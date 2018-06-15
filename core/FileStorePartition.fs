@@ -11,6 +11,7 @@ open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
 open App.Metrics
+open Metrics
 
 type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
     let tags = MetricTags([| "partition_id" |],
@@ -33,16 +34,29 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
 
     // TODO: Switch to PebblesDB when index gets to big
+    // TODO: Are these per file, with bloom filters, or aross files in the same shard?
     let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
+    let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
         MailboxProcessor<IndexMessage>.Start(fun inbox ->
+            let mutable scanIndexChunk = new List<Grpc.MemoryPointer>(1000)
+            scanIndex.AddLast(scanIndexChunk) |> ignore
+            
             let rec messageLoop() = 
                 async{
                     let! message = inbox.Receive()
                     match message with 
                     | Index(nids) ->
                         for nid in nids do 
+                            // Assumption: Index messages and their nids always come in sequential order
+                            if scanIndexChunk.Count = scanIndexChunk.Capacity then
+                                // make a new chunk
+                                scanIndexChunk <- new List<Grpc.MemoryPointer>(1000)
+                                scanIndex.AddLast(scanIndexChunk) |> ignore
+                            else
+                                scanIndexChunk.Add (nid.Pointer)
+                                 
                             let seqId =
                                let newlst = new System.Collections.Generic.List<MemoryPointer>()
                                newlst.Add nid.Pointer
@@ -345,13 +359,13 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 let myNoOp = NoOP()
                 while alldone.IsCompleted = false do
                     let mutable nio: NodeIO = NodeIO.NoOP() 
-                    let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.NIOWaitTimer, tags)
                     if reader.TryRead(&nio) = false then
+                        let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.QueueEmptyWaitTime, tags)
                         // sleep for now. later we will want do do compaction tasks
                         //printf "Waited."
                         System.Threading.Thread.Sleep(1) // sleep to save cpu
                         nio <- myNoOp // set NoOp so we can loop and check alldone.IsCompleted again.
-                    nioWaitTimer.Dispose()    
+                        nioWaitTimer.Dispose()    
                     match nio with
                     | Add(tcs,items) -> 
                         try
@@ -408,27 +422,44 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                         | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex)
-                    | Read (tcs,request) ->  
+                    | Read (tcs,requests) ->  
                         try 
-                            use ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
+                            let ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
                             
                             FLUSHWRITES()                          
                             lastOpIsWrite <- false
-                            stream.Position <- int64 request.Offset //TODO: make sure the offset is less than the end of the file
-                            
-                            let nnnnnnnn = new Node()
-                            let buffer = arraybuffer.Rent(int request.Length)
-                            
-                            let readResult = stream.Read(buffer,0,int request.Length)
-                            if(readResult <> int request.Length ) then
-                                raise (new Exception("wtf"))
-                            if(buffer.[0] = byte 0) then
-                                raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName request buffer))    
-                            
-                            MessageExtensions.MergeFrom(nnnnnnnn,buffer,0,int request.Length)
-                            arraybuffer.Return(buffer, true) // todo: does this need to be in a finally block?
-                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, int64 request.Length)
-                            tcs.SetResult(nnnnnnnn)
+                            if requests.Length > 0 then
+                                let batchStart = requests.[0].Offset
+                                let batchEnd = requests.[requests.Length - 1].Offset + requests.[requests.Length - 1].Length 
+                                let bufferLen = (batchEnd - batchStart)
+                                let buffer = arraybuffer.Rent(int bufferLen)
+                                
+                                let readIOTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadIOTimer, tags)
+                                if stream.Position <> int64 batchStart then
+                                    stream.Position <- int64 batchStart //TODO: make sure the offset is less than the end of the file
+                                let readResult = stream.Read(buffer,0,int bufferLen)
+                                readIOTimer.Dispose()
+                                
+                                if(readResult <> int bufferLen ) then
+                                    raise (new Exception("wtf"))
+                                if(buffer.[0] = byte 0) then
+                                    raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName requests buffer))    
+                                let outNodes = 
+                                    requests
+                                    |> Array.map(fun req ->
+                                        let node = new Node()
+                                        MessageExtensions.MergeFrom(node,buffer,int (req.Offset - requests.[0].Offset),int req.Length) 
+                                        node
+                                    )
+                                
+                                arraybuffer.Return(buffer, true) // todo: does this need to be in a finally block?
+                                config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.ReadSize, tags, int64 bufferLen)
+                                config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.ReadNodeFragmentCount, tags, int64 outNodes.Length)
+                                tcs.SetResult(outNodes)
+                                
+                            else
+                                tcs.SetResult(array.Empty<Node>())    
+                            ReadTimer.Dispose()
                         with 
                         | ex -> 
                             config.log <| sprintf "ERROR[%A]: %A" i ex
@@ -536,3 +567,4 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
     member __.Index() = ``Index of NodeID -> MemoryPointer``
+    member __.ScanIndex() = scanIndex
