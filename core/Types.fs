@@ -40,12 +40,15 @@ module Utils =
     let metaPlainTextUtf8 = "xs:string"
     let metaXmlInt = "xs:int"
     let metaXmlDouble = "xs:double"
-    let MetaBytes typ bytes = 
+    let MetaBytesNoCopy typ bytes = 
         let bb = new BinaryBlock()
         bb.Metabytes <- new TypeBytes()
         bb.Metabytes.Type <- typ
-        bb.Metabytes.Bytes <- Google.Protobuf.ByteString.CopyFrom(bytes)
+        bb.Metabytes.Bytes <- bytes
         bb
+    
+    let MetaBytes typ bytes = 
+        MetaBytesNoCopy typ (Google.Protobuf.ByteString.CopyFrom(bytes))
     
     let NullMemoryPointer() = 
         let p = new Grpc.MemoryPointer()
@@ -68,8 +71,8 @@ module Utils =
             ()    
         ab       
         
-    let BBString (text:string) =  MetaBytes metaPlainTextUtf8 (Text.UTF8Encoding.UTF8.GetBytes(text))
-    let BBInt (value:int) =       MetaBytes metaXmlInt (BitConverter.GetBytes value)
+    let BBString (text:string) =  MetaBytesNoCopy metaPlainTextUtf8 (ByteString.CopyFromUtf8 text)
+    let BBInt (value:int) =       MetaBytes metaXmlInt ( BitConverter.GetBytes value)
     let BBDouble (value:double) = MetaBytes metaXmlDouble (BitConverter.GetBytes value)
     let DBA address =
         let data = new DataBlock()
@@ -94,24 +97,25 @@ module Utils =
         tmd.Timestamp <- time
         tmd 
              
-    let Prop (key:DataBlock) (values:seq<DataBlock>) =
+    let Prop (key:DataBlock) (value:DataBlock) =
         let kv = new KeyValue()
         kv.Key <- TMDAuto key
-        values
-        |> Seq.map (fun x ->  TMDAuto x )   
-        |> kv.Value.AddRange                        
+        kv.Value <- TMDAuto value
         kv  
         
-    let PropString (key:string) (values:seq<string>) = Prop (DBBString key) (values |> Seq.map(fun x -> DBBString x))  
-    let PropInt (key:string) (values:seq<int>) = Prop (DBBString key) (values |> Seq.map(fun x -> DBBInt x))
-    let PropDouble (key:string) (values:seq<double>) = Prop (DBBString key) (values |> Seq.map(fun x -> DBBDouble x))
-    let PropData (key:string) (values:seq<DataBlock>) = Prop (DBBString key) values
-    let blanks = [|(NullMemoryPointer());(NullMemoryPointer()); (NullMemoryPointer())|]
-    let Node key values = 
+    let PropString (key:string) (value:string) = Prop (DBBString key) (value |> DBBString )  
+    let PropInt (key:string) (value:int) = Prop (DBBString key) (value |> DBBInt )
+    let PropDouble (key:string) (value:double) = Prop (DBBString key) (value |> DBBDouble )
+    let PropData (key:string) (value:DataBlock) = Prop (DBBString key) value
+        
+    let Node key (values:seq<KeyValue>) = 
         let node = new Node()
         // TODO: let the number of reserved fragments be configurable
-        let fragments = blanks
         node.Id <- key
-        node.Fragments.AddRange fragments
-        node.Attributes.AddRange values
-        node
+        node.Fragments.Add (NullMemoryPointer())
+        node.Fragments.Add (NullMemoryPointer())
+        node.Fragments.Add (NullMemoryPointer())
+        
+        for v in values do
+            node.Attributes.Add v
+        node        

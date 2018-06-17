@@ -243,6 +243,13 @@ module Metrics =
                                 let res = new DefaultSlidingWindowReservoir(1028) 
                                 res :> IReservoir)   
                 )    
+
+        static member AddSizeBytes =
+            new MeterOptions(
+                Context=ContextName,
+                Name="AddSizeBytes", 
+                MeasurementUnit=Unit.Bytes
+                ) 
         
         // Reads
         static member ReadTimer = 
@@ -264,13 +271,10 @@ module Metrics =
                 )           
 
         static member ReadSize =
-            new HistogramOptions(
+            new MeterOptions(
                 Context=ContextName,
                 Name="ReadSize", 
-                MeasurementUnit=Unit.Bytes,
-                Reservoir=(fun () -> 
-                                let res = new DefaultSlidingWindowReservoir(1028) 
-                                res :> IReservoir)   
+                MeasurementUnit=Unit.Bytes 
                 ) 
         
         static member ReadNodeFragmentCount =

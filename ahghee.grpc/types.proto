@@ -57,7 +57,7 @@ message TMD {
 
 message KeyValue {
     TMD key = 1;
-    repeated TMD value = 2;
+    TMD value = 2;
 }
 
 message Node {
