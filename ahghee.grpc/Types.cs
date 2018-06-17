@@ -40,7 +40,7 @@ namespace Ahghee.Grpc {
             "CgRkYXRhImgKA1RNRBIRCglUaW1lc3RhbXAYASABKAMSKAoITWV0YURhdGEY",
             "AiABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSJAoERGF0YRgDIAEoCzIW",
             "LmFoZ2hlZS5ncnBjLkRhdGFCbG9jayJKCghLZXlWYWx1ZRIdCgNrZXkYASAB",
-            "KAsyEC5haGdoZWUuZ3JwYy5UTUQSHwoFdmFsdWUYAiADKAsyEC5haGdoZWUu",
+            "KAsyEC5haGdoZWUuZ3JwYy5UTUQSHwoFdmFsdWUYAiABKAsyEC5haGdoZWUu",
             "Z3JwYy5UTUQihwEKBE5vZGUSJQoCaWQYASABKAsyGS5haGdoZWUuZ3JwYy5B",
             "ZGRyZXNzQmxvY2sSLQoJZnJhZ21lbnRzGAIgAygLMhouYWhnaGVlLmdycGMu",
             "TWVtb3J5UG9pbnRlchIpCgphdHRyaWJ1dGVzGAMgAygLMhUuYWhnaGVlLmdy",
@@ -1535,7 +1535,7 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public KeyValue(KeyValue other) : this() {
       Key = other.key_ != null ? other.Key.Clone() : null;
-      value_ = other.value_.Clone();
+      Value = other.value_ != null ? other.Value.Clone() : null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1556,12 +1556,13 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "value" field.</summary>
     public const int ValueFieldNumber = 2;
-    private static readonly pb::FieldCodec<global::Ahghee.Grpc.TMD> _repeated_value_codec
-        = pb::FieldCodec.ForMessage(18, global::Ahghee.Grpc.TMD.Parser);
-    private readonly pbc::RepeatedField<global::Ahghee.Grpc.TMD> value_ = new pbc::RepeatedField<global::Ahghee.Grpc.TMD>();
+    private global::Ahghee.Grpc.TMD value_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Ahghee.Grpc.TMD> Value {
+    public global::Ahghee.Grpc.TMD Value {
       get { return value_; }
+      set {
+        value_ = value;
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1578,7 +1579,7 @@ namespace Ahghee.Grpc {
         return true;
       }
       if (!object.Equals(Key, other.Key)) return false;
-      if(!value_.Equals(other.value_)) return false;
+      if (!object.Equals(Value, other.Value)) return false;
       return true;
     }
 
@@ -1586,7 +1587,7 @@ namespace Ahghee.Grpc {
     public override int GetHashCode() {
       int hash = 1;
       if (key_ != null) hash ^= Key.GetHashCode();
-      hash ^= value_.GetHashCode();
+      if (value_ != null) hash ^= Value.GetHashCode();
       return hash;
     }
 
@@ -1601,7 +1602,10 @@ namespace Ahghee.Grpc {
         output.WriteRawTag(10);
         output.WriteMessage(Key);
       }
-      value_.WriteTo(output, _repeated_value_codec);
+      if (value_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Value);
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1610,7 +1614,9 @@ namespace Ahghee.Grpc {
       if (key_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Key);
       }
-      size += value_.CalculateSize(_repeated_value_codec);
+      if (value_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Value);
+      }
       return size;
     }
 
@@ -1625,7 +1631,12 @@ namespace Ahghee.Grpc {
         }
         Key.MergeFrom(other.Key);
       }
-      value_.Add(other.value_);
+      if (other.value_ != null) {
+        if (value_ == null) {
+          value_ = new global::Ahghee.Grpc.TMD();
+        }
+        Value.MergeFrom(other.Value);
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1644,7 +1655,10 @@ namespace Ahghee.Grpc {
             break;
           }
           case 18: {
-            value_.AddEntriesFrom(input, _repeated_value_codec);
+            if (value_ == null) {
+              value_ = new global::Ahghee.Grpc.TMD();
+            }
+            input.ReadMessage(value_);
             break;
           }
         }

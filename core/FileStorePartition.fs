@@ -199,8 +199,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         let updated = 
             node.Attributes
             |> Seq.collect (fun attr -> 
-                attr.Value
-                |> Seq.append [|attr.Key|])
+                [attr.Value; attr.Key])
             |> Seq.map (fun tmd ->
                             match  tmd.Data.DataCase with
                             | DataBlock.DataOneofCase.Address ->
@@ -414,6 +413,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             lastPosition <- int64 ownOffset
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
                             config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
+                            config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddSizeBytes, tags, lastPosition - startPos)
                             copyTask.Wait()
                             arraybuffer.Return rentedBuffer
                             tcs.SetResult()
@@ -453,7 +453,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                     )
                                 
                                 arraybuffer.Return(buffer, true) // todo: does this need to be in a finally block?
-                                config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.ReadSize, tags, int64 bufferLen)
+                                config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.ReadSize, tags, int64 bufferLen)
                                 config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.ReadNodeFragmentCount, tags, int64 outNodes.Length)
                                 tcs.SetResult(outNodes)
                                 

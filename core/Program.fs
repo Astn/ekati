@@ -37,9 +37,9 @@ module Program =
     let buildLotsNodes perNodeFollowsCount =
         // static seed, keeps runs comparable
         let seededRandom = new Random(1337)
-        let fn = PropString "firstName" [|"Austin"|]
-        let ln = PropString "lastName"  [|"Harris"|]
-        let follo i = PropData "follows" [| DABtoyId (seededRandom.Next(i).ToString()) |]
+        let fn = PropString "firstName" "Austin"
+        let ln = PropString "lastName"  "Harris"
+        let follo i = PropData "follows" ( DABtoyId (seededRandom.Next(i).ToString()) )
         
         let pregenStuff =
             seq { for i in 1 .. 2000 do 

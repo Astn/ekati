@@ -60,8 +60,7 @@ type GrpcFileStore(config:Config) =
     let setTimestamps (node:Node) (nowInt:Int64) =
         for kv in node.Attributes do
             kv.Key.Timestamp <- nowInt
-            for v in kv.Value do
-            v.Timestamp <- nowInt
+            kv.Value.Timestamp <- nowInt
     
     let Flush () =
         let parentTask = Task.Factory.StartNew((fun () ->
@@ -119,7 +118,7 @@ type GrpcFileStore(config:Config) =
                 let mutable finished = false
                 while not finished do
                     let req = 
-                        seq { for i in 0 .. 64 do yield requests() }
+                        seq { for i in 0 .. 256 do yield requests() }
                         |> Seq.collect (fun x -> x ) 
                         |> Seq.map (fun x -> x )
                         |> Seq.groupBy ( fun (i,x) -> i)

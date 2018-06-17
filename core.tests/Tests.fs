@@ -88,7 +88,7 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can create a Pair`` () =
-        let pair = PropString "firstName" [|"Richard"; "Dick"|]
+        let pair = PropString "firstName" "Richard"
         let md = pair.Key.Data
         let success = match md.DataCase with
                         | DataBlock.DataOneofCase.Binary when md.Binary.Metabytes.Type = metaPlainTextUtf8 -> true 
@@ -98,7 +98,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Fact>]
     member __.``Can create a Node`` () =
         let node = Node (ABtoyId "1") 
-                        [| PropString "firstName" [|"Richard"; "Dick"|] |]
+                        [| PropString "firstName" "Richard" |]
     
         let empty = node.Attributes |> Seq.isEmpty
         Assert.True (not empty)
@@ -108,20 +108,21 @@ type MyTests(output:ITestOutputHelper) =
     member __.buildNodes : seq<Node> = 
         let node1 = Node (ABtoyId "1" ) 
                          [|
-                            PropString "firstName" [|"Richard"; "Dick"|] 
-                            PropData "follows" [| DABtoyId "2" |] 
+                            PropString "firstName" "Richard" 
+                            PropData "follows" (DABtoyId "2")
                          |]
                    
         let node2 = Node (ABtoyId "2") 
                          [|
-                            PropString "firstName" [|"Sam"; "Sammy"|] 
-                            PropData "follows" [| DABtoyId "1" |]
+                            PropString "firstName" "Sam"
+                            PropData "follows" (DABtoyId "1" )
                          |]
                    
         let node3 = Node (ABtoyId "3") 
                          [|
-                            PropString "firstName" [|"Jim"|]
-                            PropData "follows" [| DABtoyId "1"; DABtoyId "2" |] 
+                            PropString "firstName" "Jim"
+                            PropData "follows" (DABtoyId "1")
+                            PropData "follows" (DABtoyId "2") 
                          |]
                                       
         [| node1; node2; node3 |]      
@@ -135,13 +136,13 @@ type MyTests(output:ITestOutputHelper) =
         seq { for i in 1 .. nodeCount do 
               yield Node (ABtoyId (i.ToString()) )
                          ([|
-                            PropString "firstName" [|"Austin"|]
-                            PropString "lastName"  [|"Harris"|]
-                            PropString "age"       [|"36"|]
-                            PropString "city"      [|"Boulder"|]
-                            PropString "state"     [|"Colorado"|]
+                            PropString "firstName" ("Austin")
+                            PropString "lastName"  ("Harris")
+                            PropString "age"       ("36")
+                            PropString "city"      ("Boulder")
+                            PropString "state"     ("Colorado")
                          |] |> Seq.append (seq {for j in 0 .. perNodeFollowsCount do 
-                                                yield PropData "follows" [| DABtoyId (seededRandom.Next(nodeCount).ToString()) |]                                                    
+                                                yield PropData "follows" (DABtoyId (seededRandom.Next(nodeCount).ToString()))                                                    
                                                 })
                          
                          )    
@@ -206,11 +207,10 @@ type MyTests(output:ITestOutputHelper) =
         g.Flush() 
         let nodesWithIncomingEdges = g.Nodes 
                                          |> Seq.collect (fun n -> n.Attributes) 
-                                         |> Seq.collect (fun y -> y.Value 
-                                                                  |> Seq.map (fun x -> match x.Data.DataCase with  
-                                                                                        | DataBlock.DataOneofCase.Address -> 
-                                                                                            Some(x.Data.Address) 
-                                                                                        | _ -> None))   
+                                         |> Seq.map (fun y -> 
+                                                            match y.Value.Data.DataCase with  
+                                                            | DataBlock.DataOneofCase.Address -> Some(y.Value.Data.Address) 
+                                                            | _ -> None)   
                                          |> Seq.filter (fun x -> match x with 
                                                                  | Some id -> true 
                                                                  | _ -> false)
@@ -299,7 +299,7 @@ type MyTests(output:ITestOutputHelper) =
                 |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
                 |> Seq.map (fun n -> 
                             let valuePointers = n.Attributes
-                                                |> Seq.collect (fun attr -> attr.Value)
+                                                |> Seq.map (fun attr -> attr.Value)
                                                 |> Seq.filter (fun tmd ->
                                                                 match  tmd.Data.DataCase with
                                                                 | DataBlock.DataOneofCase.Address -> true
@@ -380,7 +380,7 @@ type MyTests(output:ITestOutputHelper) =
         for i in 1 .. fragments do
             let fragment = Node (ABtoyId ("TESTID") )
                                                     ([|
-                                                       PropString (sprintf "property-%A" i) [|sprintf "%A" i|]
+                                                       PropString (sprintf "property-%A" i) (sprintf "%A" i)
                                                     |]) 
             let adding = g.Add [fragment]
             adding.Wait()
@@ -444,7 +444,7 @@ type MyTests(output:ITestOutputHelper) =
                                                                               | _ -> String.Empty
                                                                               )  
                                                                                                           
-                                                    _id,key,attr.Value |> List.ofSeq
+                                                    _id,key,attr.Value
                                                  )                                                           
                              )
              |> Seq.sortBy (fun (x,_,_) -> x)
@@ -461,20 +461,20 @@ type MyTests(output:ITestOutputHelper) =
          let attrName = "labelV"
          let actual = __.CollectValues attrName g
          let (_,_,one) = actual |> Seq.head 
-         let time = one.Head.Timestamp                    
+         let time = one.Timestamp                    
          
          let expected = [ 
-                                "1",attrName ,[TMDTime (DBBString "person") time]
-                                "2",attrName ,[TMDTime (DBBString "person") time]
-                                "3",attrName ,[TMDTime (DBBString "software") time]
-                                "4",attrName ,[TMDTime (DBBString "person") time]
-                                "5",attrName ,[TMDTime (DBBString "software") time]
-                                "6",attrName ,[TMDTime (DBBString "person") time] 
+                                "1",attrName ,(TMDTime (DBBString "person") time)
+                                "2",attrName ,(TMDTime (DBBString "person") time)
+                                "3",attrName ,(TMDTime (DBBString "software") time)
+                                "4",attrName ,(TMDTime (DBBString "person") time)
+                                "5",attrName ,(TMDTime (DBBString "software") time)
+                                "6",attrName ,(TMDTime (DBBString "person") time) 
                            ]
                            
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)                           
-         Assert.Equal<string * string * list<TMD>>(expected,actual) 
+         Assert.Equal<string * string * TMD>(expected,actual) 
          
     [<Theory>]
     [<InlineData("mem")>]
@@ -486,16 +486,16 @@ type MyTests(output:ITestOutputHelper) =
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
-         let time = one.Head.Timestamp
+         let time = one.Timestamp
          let expected = [ 
-                        "1",attrName, [TMDTime (DBBInt 29) time]
-                        "2",attrName, [TMDTime (DBBInt 27) time]
-                        "4",attrName, [TMDTime (DBBInt 32) time]
-                        "6",attrName, [TMDTime (DBBInt 35) time]
+                        "1",attrName, TMDTime (DBBInt 29) time
+                        "2",attrName, TMDTime (DBBInt 27) time
+                        "4",attrName, TMDTime (DBBInt 32) time
+                        "6",attrName, TMDTime (DBBInt 35) time
                         ]
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)
-         Assert.Equal<string * string * list<TMD>>(expected,actual)  
+         Assert.Equal<string * string * TMD>(expected,actual)  
          
     [<Theory>]
     [<InlineData("mem", 0)>]
@@ -514,16 +514,16 @@ type MyTests(output:ITestOutputHelper) =
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
-         let time = one.Head.Timestamp
+         let time = one.Timestamp
          let expected = [ 
-                        "1",attrName, [TMDTime (DBBInt 29) time]
-                        "2",attrName, [TMDTime (DBBInt 27) time]
-                        "4",attrName, [TMDTime (DBBInt 32) time]
-                        "6",attrName, [TMDTime (DBBInt 35) time]
+                        "1",attrName, TMDTime (DBBInt 29) time
+                        "2",attrName, TMDTime (DBBInt 27) time
+                        "4",attrName, TMDTime (DBBInt 32) time
+                        "6",attrName, TMDTime (DBBInt 35) time
                         ]
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)
-         Assert.Equal<string * string * list<TMD>>(expected,actual)                   
+         Assert.Equal<string * string * TMD>(expected,actual)                   
 
     [<Theory>]
     [<InlineData("mem", 0)>]
@@ -542,16 +542,16 @@ type MyTests(output:ITestOutputHelper) =
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
-         let time = one.Head.Timestamp
+         let time = one.Timestamp
          let expected = [ 
-                        "1",attrName, [TMDTime (DBBInt 29) time]
-                        "2",attrName, [TMDTime (DBBInt 27) time]
-                        "4",attrName, [TMDTime (DBBInt 32) time]
-                        "6",attrName, [TMDTime (DBBInt 35) time]
+                        "1",attrName, TMDTime (DBBInt 29) time
+                        "2",attrName, TMDTime (DBBInt 27) time
+                        "4",attrName, TMDTime (DBBInt 32) time
+                        "6",attrName, TMDTime (DBBInt 35) time
                         ]
          output.WriteLine(sprintf "foundData: %A" actual)
          output.WriteLine(sprintf "expectedData: %A" expected)
-         Assert.Equal<string * string * list<TMD>>(expected,actual) 
+         Assert.Equal<string * string * TMD>(expected,actual) 
 
     [<Theory>]
     [<InlineData("mem")>]
@@ -562,14 +562,14 @@ type MyTests(output:ITestOutputHelper) =
         let attrName = "out.knows"
         let actual = __.CollectValues attrName g                                         
         let (_,_,one) = actual |> Seq.head 
-        let time = one.Head.Timestamp
+        let time = one.Timestamp
         let expected = [ 
-                    "1",attrName, [TMDTime (DABtoyId "7") time]
-                    "1",attrName, [TMDTime (DABtoyId "8") time]
+                    "1",attrName, TMDTime (DABtoyId "7") time
+                    "1",attrName, TMDTime (DABtoyId "8") time
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<TMD>>(expected,actual)
+        Assert.Equal<string * string * TMD>(expected,actual)
         
     [<Theory>]
     [<InlineData("mem")>]
@@ -579,16 +579,16 @@ type MyTests(output:ITestOutputHelper) =
         let attrName = "out.created"
         let actual = __.CollectValues attrName g                                         
         let (_,_,one) = actual |> Seq.head 
-        let time = one.Head.Timestamp        
+        let time = one.Timestamp        
         let expected = [ 
-                     "1",attrName, [TMDTime (DABtoyId "9") time]
-                     "4",attrName, [TMDTime (DABtoyId "10") time]
-                     "4",attrName, [TMDTime (DABtoyId "11") time]
-                     "6",attrName, [TMDTime (DABtoyId "12") time]
+                     "1",attrName, TMDTime (DABtoyId "9") time
+                     "4",attrName, TMDTime (DABtoyId "10") time
+                     "4",attrName, TMDTime (DABtoyId "11") time
+                     "6",attrName, TMDTime (DABtoyId "12") time
                      ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<TMD>>(expected,actual)
+        Assert.Equal<string * string * TMD>(expected,actual)
     
 
     [<Theory>]
@@ -600,23 +600,23 @@ type MyTests(output:ITestOutputHelper) =
         let attrName = "in.knows"
         let actual = __.CollectValues attrName g                                         
         let (_,_,one) = actual |> Seq.head 
-        let time = one.Head.Timestamp
+        let time = one.Timestamp
         let expected = [ 
-                    "2",attrName, [TMDTime (DABtoyId "7") time]
-                    "4",attrName, [TMDTime (DABtoyId "8") time]
+                    "2",attrName, TMDTime (DABtoyId "7") time
+                    "4",attrName, TMDTime (DABtoyId "8") time
                     ]
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<TMD>>(expected,actual)
+        Assert.Equal<string * string * TMD>(expected,actual)
         
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml Nodes have 'in.created' Edges`` db =        
-        let sortedByNodeIdEdgeId (data: list<string * string * list<TMD>>) = 
+        let sortedByNodeIdEdgeId (data: list<string * string * TMD>) = 
             data 
             |> List.sortBy (fun (a,b,c) -> 
-                                let h1 = c |> List.head
+                                let h1 = c 
                                 a , match h1.Data.DataCase with 
                                     | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Nodeid ->
                                         h1.Data.Address.Nodeid.Nodeid
@@ -629,19 +629,19 @@ type MyTests(output:ITestOutputHelper) =
                     |> sortedByNodeIdEdgeId                                         
         
         let (_,_,one) = actual |> Seq.head 
-        let time = one.Head.Timestamp
+        let time = one.Timestamp
         
         let expected = [ 
-                         "3",attrName, [TMDTime (DABtoyId "9") time]
-                         "5",attrName, [TMDTime (DABtoyId "10") time]
-                         "3",attrName, [TMDTime (DABtoyId "11") time]
-                         "3",attrName, [TMDTime (DABtoyId "12") time]
+                         "3",attrName, TMDTime (DABtoyId "9") time
+                         "5",attrName, TMDTime (DABtoyId "10") time
+                         "3",attrName, TMDTime (DABtoyId "11") time
+                         "3",attrName, TMDTime (DABtoyId "12") time
                        ] 
                        |> sortedByNodeIdEdgeId
                      
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<TMD>>(expected,actual)
+        Assert.Equal<string * string * TMD>(expected,actual)
          
     [<Theory>]
     [<InlineData("mem")>]
@@ -651,19 +651,19 @@ type MyTests(output:ITestOutputHelper) =
         let attrName = "labelE"
         let actual = __.CollectValues attrName g                                       
         let (_,_,one) = actual |> Seq.head 
-        let time = one.Head.Timestamp        
+        let time = one.Timestamp        
         let expected = [ 
-                         "7",attrName, [TMDTime (DBBString "knows") time]
-                         "8",attrName, [TMDTime (DBBString "knows") time]
-                         "9",attrName, [TMDTime (DBBString "created") time]
-                         "10",attrName, [TMDTime (DBBString "created") time]
-                         "11",attrName, [TMDTime (DBBString "created") time]
-                         "12",attrName, [TMDTime (DBBString "created") time]
+                         "7",attrName, TMDTime (DBBString "knows") time
+                         "8",attrName, TMDTime (DBBString "knows") time
+                         "9",attrName, TMDTime (DBBString "created") time
+                         "10",attrName, TMDTime (DBBString "created") time
+                         "11",attrName, TMDTime (DBBString "created") time
+                         "12",attrName, TMDTime (DBBString "created") time
                        ] |> List.sortBy (fun (x,_,_) -> x)
                      
         output.WriteLine(sprintf "foundData: %A" actual)
         output.WriteLine(sprintf "expectedData: %A" expected)
-        Assert.Equal<string * string * list<TMD>>(expected,actual)         
+        Assert.Equal<string * string * TMD>(expected,actual)         
          
     [<Theory>]
     [<InlineData("mem")>]

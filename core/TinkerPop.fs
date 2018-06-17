@@ -74,7 +74,7 @@ module TinkerPop =
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value.AddRange [ TMDAuto (DBB (MetaBytes valueMeta valueBytes))]
+                                kv1.Value <- TMDAuto (DBB (MetaBytes valueMeta valueBytes))
                                 kv1
                             )
                             |> Seq.append (edges
@@ -84,7 +84,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "out." + d.String.Value)
                                                                                          ))
-                                                                 [DABtoyId (e.Id.ToString())]                     
+                                                                 (DABtoyId (e.Id.ToString()))                     
                                                          )
                                              ) 
                             |> Seq.append (edges
@@ -94,7 +94,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "in." + d.String.Value)
                                                                                          ))
-                                                                 [DABtoyId (e.Id.ToString())]                     
+                                                                 (DABtoyId (e.Id.ToString()))                     
                                                          )
                                              )                  
                         |> z.Attributes.AddRange
@@ -127,7 +127,7 @@ module TinkerPop =
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value.AddRange [ TMDAuto (DBB (MetaBytes valueMeta valueBytes))]
+                                kv1.Value <- (MetaBytes valueMeta valueBytes) |> DBB |> TMDAuto
                                 kv1
                             )
                             |> Seq.append (edges
@@ -137,7 +137,7 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "out." + d.String.Value)
                                                                                          ))
-                                                                [DABtoyId (e.Id.ToString())]                      
+                                                                (DABtoyId (e.Id.ToString()))                  
                                                          )
                                              ) 
                             |> Seq.append (edges
@@ -147,12 +147,12 @@ module TinkerPop =
                                                                                          |> Seq.find (fun d -> d.Key = "labelE")
                                                                                          |> (fun d -> "in." + d.String.Value)
                                                                                          ))
-                                                                [DABtoyId (e.Id.ToString())]
+                                                                (DABtoyId (e.Id.ToString()))
                                                          )
                                              )
                             |> Seq.append ( [ 
-                                                Prop (DBBString "source") [DABtoyId (n.Source.ToString())]
-                                                Prop (DBBString "target") [DABtoyId (n.Target.ToString())]
+                                                Prop (DBBString "source") (DABtoyId (n.Source.ToString()))
+                                                Prop (DBBString "target") (DABtoyId (n.Target.ToString()))
                                             ] ) 
                         |> z.Attributes.AddRange
                         z)
