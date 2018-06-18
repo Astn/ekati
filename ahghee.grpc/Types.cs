@@ -44,7 +44,8 @@ namespace Ahghee.Grpc {
             "Z3JwYy5UTUQihwEKBE5vZGUSJQoCaWQYASABKAsyGS5haGdoZWUuZ3JwYy5B",
             "ZGRyZXNzQmxvY2sSLQoJZnJhZ21lbnRzGAIgAygLMhouYWhnaGVlLmdycGMu",
             "TWVtb3J5UG9pbnRlchIpCgphdHRyaWJ1dGVzGAMgAygLMhUuYWhnaGVlLmdy",
-            "cGMuS2V5VmFsdWViBnByb3RvMw=="));
+            "cGMuS2V5VmFsdWUiOAoIUG9pbnRlcnMSLAoIcG9pbnRlcnMYASADKAsyGi5h",
+            "aGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVyYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
@@ -57,7 +58,8 @@ namespace Ahghee.Grpc {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.DataBlock), global::Ahghee.Grpc.DataBlock.Parser, new[]{ "Address", "Binary" }, new[]{ "Data" }, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TMD), global::Ahghee.Grpc.TMD.Parser, new[]{ "Timestamp", "MetaData", "Data" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.KeyValue), global::Ahghee.Grpc.KeyValue.Parser, new[]{ "Key", "Value" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Id", "Fragments", "Attributes" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Id", "Fragments", "Attributes" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Pointers), global::Ahghee.Grpc.Pointers.Parser, new[]{ "Pointers_" }, null, null, null)
           }));
     }
     #endregion
@@ -1822,6 +1824,115 @@ namespace Ahghee.Grpc {
           }
           case 26: {
             attributes_.AddEntriesFrom(input, _repeated_attributes_codec);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Pointers : pb::IMessage<Pointers> {
+    private static readonly pb::MessageParser<Pointers> _parser = new pb::MessageParser<Pointers>(() => new Pointers());
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Pointers> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[10]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Pointers() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Pointers(Pointers other) : this() {
+      pointers_ = other.pointers_.Clone();
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Pointers Clone() {
+      return new Pointers(this);
+    }
+
+    /// <summary>Field number for the "pointers" field.</summary>
+    public const int Pointers_FieldNumber = 1;
+    private static readonly pb::FieldCodec<global::Ahghee.Grpc.MemoryPointer> _repeated_pointers_codec
+        = pb::FieldCodec.ForMessage(10, global::Ahghee.Grpc.MemoryPointer.Parser);
+    private readonly pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer> pointers_ = new pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<global::Ahghee.Grpc.MemoryPointer> Pointers_ {
+      get { return pointers_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Pointers);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Pointers other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!pointers_.Equals(other.pointers_)) return false;
+      return true;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= pointers_.GetHashCode();
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      pointers_.WriteTo(output, _repeated_pointers_codec);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      size += pointers_.CalculateSize(_repeated_pointers_codec);
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Pointers other) {
+      if (other == null) {
+        return;
+      }
+      pointers_.Add(other.pointers_);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            input.SkipLastField();
+            break;
+          case 10: {
+            pointers_.AddEntriesFrom(input, _repeated_pointers_codec);
             break;
           }
         }

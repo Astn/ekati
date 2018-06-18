@@ -20,9 +20,10 @@ type ClusterServices() =
         member this.RemoteLookup (partition:int) (hash:NodeIdHash) : bool * MemoryPointer = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
-                let mutable refPointers :RepeatedField<MemoryPointer> = null
-                if remote.Index().TryGetValue(hash, & refPointers) then
-                    true, refPointers |> Seq.head
+                let mutable refPointers :Pointers = null
+                let rind = remote.Index()
+                if rind.TryGetValue(hash, & refPointers) then
+                    true, refPointers.Pointers_ |> Seq.head
                 else
                     false, Utils.NullMemoryPointer()
                 
@@ -200,9 +201,9 @@ type GrpcFileStore(config:Config) =
                     // TODO: Read all the fragments, not just the first one.
                     let t = 
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
-                            let mutable mp:RepeatedField<MemoryPointer> = null
+                            let mutable mp:Pointers = null
                             if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
-                                while bc.Writer.TryWrite (Read(tcs, mp |> Seq.take 1 |> Array.ofSeq)) = false do ()
+                                while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Seq.take 1 |> Array.ofSeq)) = false do ()
                                 tcs.Task
                             else 
                                 tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 

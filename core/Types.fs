@@ -35,16 +35,15 @@ type NodeIdIndex (indexFile:string) =
     let codec = FieldCodec.ForMessage<MemoryPointer>(18u, Ahghee.Grpc.MemoryPointer.Parser)
     let cleanup() = db.Dispose()
 
-    let TryGetValueInternal (keybytes:array<byte>) (value: RepeatedField<Grpc.MemoryPointer> byref) = 
+    let TryGetValueInternal (keybytes:array<byte>) (value: Pointers byref) = 
         let valueBytes = db.Get(keybytes)
         if valueBytes = null || valueBytes.Length = 0 then 
             value <- null
             false 
         else 
-            let repeatedField = new RepeatedField<Grpc.MemoryPointer>()
+            let repeatedField = new Pointers()
             let codedinputStream = new CodedInputStream(valueBytes,0,valueBytes.Length)
-            let len = codedinputStream.ReadLength() // ?? maybe...
-            repeatedField.AddEntriesFrom(codedinputStream, codec)
+            repeatedField.MergeFrom(codedinputStream)
             value <- repeatedField 
             true 
 
@@ -56,63 +55,30 @@ type NodeIdIndex (indexFile:string) =
             cleanup()
             GC.SuppressFinalize(__);
 
-    member __.TryGetValue (key:NodeIdHash, value: RepeatedField<Grpc.MemoryPointer> byref) = 
+    member __.TryGetValue (key:NodeIdHash, value: Pointers byref) = 
         let keybytes = BitConverter.GetBytes key
         TryGetValueInternal keybytes &value 
              
-    member __.AddOrUpdate (key:NodeIdHash) (value: System.Collections.Generic.IList<Grpc.MemoryPointer>) (update: (NodeIdHash -> System.Collections.Generic.IList<Grpc.MemoryPointer> -> System.Collections.Generic.IList<Grpc.MemoryPointer>)) =
+    member __.AddOrUpdate (key:NodeIdHash) (value: Pointers) (update: (NodeIdHash -> Pointers -> Pointers)) =
         let keybytes = BitConverter.GetBytes key
-        let writeRP (rp:RepeatedField<Grpc.MemoryPointer>) = 
-            let len = (rp.CalculateSize(codec))
-            let buffer = Array.zeroCreate<byte> (len + 4) 
+        let writeRP (rp:Pointers) = 
+            let len = rp.CalculateSize()
+            let buffer = Array.zeroCreate<byte> len
             let outputStream = new CodedOutputStream(buffer)
-            //outputStream.WriteLength len
-            rp.WriteTo(outputStream, codec)
-            outputStream.WriteRawTag (byte 10) 
+            rp.WriteTo(outputStream) 
             outputStream.Flush() 
             db.Put(keybytes,buffer)
             rp
-        
-        let writeIList (lst:IList<Grpc.MemoryPointer>) =
-            match lst with 
-            | :? RepeatedField<Grpc.MemoryPointer> as rp -> writeRP rp
-            | :? IList<Grpc.MemoryPointer> as list -> 
-                let rp = new RepeatedField<Grpc.MemoryPointer>()
-                for l in list do
-                    rp.Add l
-                writeRP rp
-        
-        let mutable outValue:RepeatedField<Grpc.MemoryPointer> = null
+       
+        let mutable outValue:Pointers = null
         let success = TryGetValueInternal keybytes (& outValue)
         if success then
             let updated = update key outValue
-            writeIList updated
+            writeRP updated
         else
-            writeIList value
-    member __.AddOrUpdateCS (key:NodeIdHash) (value: System.Collections.Generic.IList<Grpc.MemoryPointer>) (update: Func<NodeIdHash,System.Collections.Generic.IList<Grpc.MemoryPointer>,System.Collections.Generic.IList<Grpc.MemoryPointer>>) =
+            writeRP value
+    member __.AddOrUpdateCS (key:NodeIdHash) (value: Pointers) (update: Func<NodeIdHash,Pointers,Pointers>) =
         __.AddOrUpdate key value (fun a b -> update.Invoke(a,b))
-//    public TValue AddOrUpdate(TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
-//    {
-//      if ((object) key == null)
-//        ConcurrentDictionary<TKey, TValue>.ThrowKeyNullException();
-//      if (updateValueFactory == null)
-//        throw new ArgumentNullException(nameof (updateValueFactory));
-//      int hashCode = this._comparer.GetHashCode(key);
-//      TValue comparisonValue;
-//      TValue newValue;
-//      do
-//      {
-//        while (!this.TryGetValueInternal(key, hashCode, out comparisonValue))
-//        {
-//          TValue resultingValue;
-//          if (this.TryAddInternal(key, hashCode, addValue, false, true, out resultingValue))
-//            return resultingValue;
-//        }
-//        newValue = updateValueFactory(key, comparisonValue);
-//      }
-//      while (!this.TryUpdateInternal(key, hashCode, newValue, comparisonValue));
-//      return newValue;
-//    }    
 
 module Utils =
     open Google.Protobuf

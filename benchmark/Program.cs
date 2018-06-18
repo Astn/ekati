@@ -24,8 +24,8 @@ namespace benchmark
         private readonly NodeIdIndex nodeIndex;
         private int ctr;
         private readonly MemoryPointer mp;
-        private readonly RepeatedField<MemoryPointer> rp;
-        private readonly ConcurrentDictionary<int,RepeatedField<MemoryPointer>> cd= new ConcurrentDictionary<int,RepeatedField<MemoryPointer>>();
+        private readonly Pointers rp;
+        private readonly ConcurrentDictionary<int,Pointers> cd= new ConcurrentDictionary<int,Pointers>();
         private int idHash;
         private NodeID Nodeid;
         public RocksDbSinglePut()
@@ -41,11 +41,11 @@ namespace benchmark
             Nodeid.Graph = "graph";
             Nodeid.Nodeid = "1";
             
-            rp = new RepeatedField<MemoryPointer>();
+            rp = new Pointers();
             mp = Utils.NullMemoryPointer();
             mp.Offset = 100UL;
             mp.Length = 200UL;
-            rp.Add(mp);
+            rp.Pointers_.Add(mp);
            
 
         }

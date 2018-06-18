@@ -58,11 +58,11 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 scanIndexChunk.Add (nid.Pointer)
                                  
                             let seqId =
-                               let newlst = new System.Collections.Generic.List<MemoryPointer>()
-                               newlst.Add nid.Pointer
+                               let newlst = new Pointers()
+                               newlst.Pointers_.Add nid.Pointer
                                newlst 
                             ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid) seqId  (fun x y -> 
-                                                                                                                    y.Add nid.Pointer
+                                                                                                                    y.Pointers_.Add nid.Pointer
                                                                                                                     y
                                                                                                                     ) |> ignore
                     | Flush(replyChannel)->
@@ -146,7 +146,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
             // If this node has links requested, then make those and exit
             let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
-            let mutable outMpB:RepeatedField<MemoryPointer> = null 
+            let mutable outMpB:Pointers = null 
             if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMpA) && outMpA |> Seq.length > 0 then 
                 seq {
                     for mp in outMpA do
@@ -159,10 +159,10 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 // we want to create a basic linked list. 
                 let pointers = outMpB
                 let mutable linked = false 
-                let mutable i = pointers.Count - 1
+                let mutable i = pointers.Pointers_.Count - 1
                 let mutable mp: MemoryPointer = null
                 while not linked && i >= 0 do
-                    mp <- pointers.Item(i)
+                    mp <- pointers.Pointers_.Item(i)
                     linked <- LinkFragmentTo n mp
                     i <- i - 1
                 if linked then 
@@ -180,9 +180,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 let hash = Utils.GetNodeIdHash nodeid
                 let partition = Utils.GetPartitionFromHash config.ParitionCount hash
                 if partition = i then // we have the info local
-                    let mutable outMp:RepeatedField<MemoryPointer> = null
+                    let mutable outMp:Pointers = null
                     if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
-                        nodeid.Pointer <- outMp |> Seq.head
+                        nodeid.Pointer <- outMp.Pointers_ |> Seq.head
                         true,true
                     else
                         true,false
