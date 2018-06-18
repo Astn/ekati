@@ -4,6 +4,7 @@ open System
 open Xunit
 open Xunit.Abstractions
 open Ahghee
+open Ahghee
 open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
@@ -15,7 +16,8 @@ open System.IO
 open System.Text
 open System.Threading.Tasks
 open FSharp.Data
-
+open Google.Protobuf.Collections
+open RocksDbSharp
 
 type StorageType =
     | Memory
@@ -672,6 +674,43 @@ type MyTests(output:ITestOutputHelper) =
         let g = __.toyGraph (dbtype db)
         output.WriteLine(sprintf "%A" g.Nodes)
         Assert.NotEmpty(g.Nodes)
+    
+    [<Fact>]
+    member __.RocksDBCanWriteAndReadKeyValue () = 
+        let temp = Path.GetTempPath()
+        
+        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
+        let options = (new DbOptions()).SetCreateIfMissing(true).EnableStatistics()
+        use db = RocksDb.Open(options,path)
+        let value1 = db.Get("key")
+        db.Put("key","value")
+        let value2 = db.Get("key")
+        let nullstr = db.Get("NotThere")
+        db.Remove("key")
+        Assert.Equal("value",value2)
+        ()
+
+    [<Fact>]
+    member __.NodeIndexCanWriteAndReadKeyValue () = 
+        let temp = Path.GetTempPath()
+        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
+        use nodeIndex = new NodeIdIndex(path) 
+        let id = ABtoyId "1"
+        let idHash = GetAddressBlockHash id
+        let fp = new RepeatedField<MemoryPointer>()
+        let mp = Utils.NullMemoryPointer()
+        mp.Offset <- 100UL
+        mp.Length <- 200UL
+        fp.Add(mp)
+        
+        let value = nodeIndex.AddOrUpdate idHash fp (fun id rp -> rp.Add mp; rp)
+        let mutable outvalue : RepeatedField<MemoryPointer> = (new RepeatedField<MemoryPointer>())
+        let success = nodeIndex.TryGetValue (idHash, &outvalue)
+        Assert.True success
+        Assert.Equal<MemoryPointer>(fp,value)
+        Assert.Equal<MemoryPointer>(fp,outvalue)
+        ()
+
 
 //    [<Fact>]
 //    member __.``I can use the file api`` () =

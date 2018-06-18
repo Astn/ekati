@@ -35,7 +35,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
 
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
-    let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
+    let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(Path.GetTempPath(),Path.GetRandomFileName()))
     let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
@@ -61,11 +61,10 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                let newlst = new System.Collections.Generic.List<MemoryPointer>()
                                newlst.Add nid.Pointer
                                newlst 
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid, seqId, 
-                                (fun x y -> 
-                                    y.Add nid.Pointer
-                                    y
-                                    )) |> ignore
+                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid) seqId  (fun x y -> 
+                                                                                                                    y.Add nid.Pointer
+                                                                                                                    y
+                                                                                                                    ) |> ignore
                     | Flush(replyChannel)->
                         replyChannel.Reply(true)
                         
@@ -146,18 +145,19 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         try
             let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
             // If this node has links requested, then make those and exit
-            let mutable outMp:List<MemoryPointer> = null //System.Collections.Generic.List
-            if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMp) && outMp |> Seq.length > 0 then 
+            let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
+            let mutable outMpB:RepeatedField<MemoryPointer> = null 
+            if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMpA) && outMpA |> Seq.length > 0 then 
                 seq {
-                    for mp in outMp do
+                    for mp in outMpA do
                         if LinkFragmentTo n mp then  
                             yield mp 
                     }
             // otherwise link it to something at the end of the NodeIdToPointers index
-            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMp)) &&
+            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMpB)) &&
                 not (n.Fragments |> Seq.exists(fun frag -> frag.Length <> 0UL)) then
                 // we want to create a basic linked list. 
-                let pointers = outMp
+                let pointers = outMpB
                 let mutable linked = false 
                 let mutable i = pointers.Count - 1
                 let mutable mp: MemoryPointer = null
@@ -180,7 +180,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 let hash = Utils.GetNodeIdHash nodeid
                 let partition = Utils.GetPartitionFromHash config.ParitionCount hash
                 if partition = i then // we have the info local
-                    let mutable outMp:List<MemoryPointer> = null
+                    let mutable outMp:RepeatedField<MemoryPointer> = null
                     if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
                         nodeid.Pointer <- outMp |> Seq.head
                         true,true

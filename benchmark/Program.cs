@@ -1,15 +1,95 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using System.Threading;
+using Ahghee;
 using Ahghee.Grpc;
 using benchmark;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Attributes.Columns;
 using BenchmarkDotNet.Running;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
+using Microsoft.FSharp.Core;
+using RocksDbSharp;
 
 namespace benchmark
 {
+    [MinColumn, MaxColumn]
+    public class RocksDbSinglePut:IDisposable
+    {
+        private readonly RocksDb db;
+        private readonly NodeIdIndex nodeIndex;
+        private int ctr;
+        private readonly MemoryPointer mp;
+        private readonly RepeatedField<MemoryPointer> rp;
+        private readonly ConcurrentDictionary<int,RepeatedField<MemoryPointer>> cd= new ConcurrentDictionary<int,RepeatedField<MemoryPointer>>();
+        private int idHash;
+        private NodeID Nodeid;
+        public RocksDbSinglePut()
+        {
+            var temp = Path.GetTempPath();
+            var options = (new DbOptions()).SetCreateIfMissing(true).EnableStatistics();
+            db = RocksDb.Open(options, Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName())));
+
+            nodeIndex = new NodeIdIndex(Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName())));
+            
+            Nodeid = new NodeID();
+            Nodeid.Pointer = Utils.NullMemoryPointer();
+            Nodeid.Graph = "graph";
+            Nodeid.Nodeid = "1";
+            
+            rp = new RepeatedField<MemoryPointer>();
+            mp = Utils.NullMemoryPointer();
+            mp.Offset = 100UL;
+            mp.Length = 200UL;
+            rp.Add(mp);
+           
+
+        }
+        
+        [Benchmark(Baseline = true)]
+        public void PutRocksDbStrings()
+        {
+            db.Put(ctr.ToString(), "value");
+            Interlocked.Increment(ref ctr);
+        }
+        
+        [Benchmark]
+        public void PutNodeIdIndex()
+        {
+            Nodeid.Nodeid = Interlocked.Increment(ref ctr).ToString();
+            var idHash = Utils.GetNodeIdHash(Nodeid);
+            var value = nodeIndex.AddOrUpdateCS(idHash, rp, (id, rp) => rp);   
+        }
+        [Benchmark]
+        public void PutConcurrentDictionary()
+        {
+            Nodeid.Nodeid = Interlocked.Increment(ref ctr).ToString();
+            var idHash = Utils.GetNodeIdHash(Nodeid);
+            var value = cd.AddOrUpdate(idHash, rp, (id, rp) => rp);   
+        }
+
+        private void ReleaseUnmanagedResources()
+        {
+            db.Dispose();
+            (nodeIndex as IDisposable).Dispose();
+        }
+
+        public void Dispose()
+        {
+            ReleaseUnmanagedResources();
+            GC.SuppressFinalize(this);
+        }
+
+        ~RocksDbSinglePut()
+        {
+            ReleaseUnmanagedResources();
+        }
+    }
+    
     [MinColumn, MaxColumn]
     public class CreatingNodeEmpty
     {
@@ -132,7 +212,8 @@ namespace benchmark
         {
             //var summary0 = BenchmarkRunner.Run<CreatingTypes>();
             //var summary1 = BenchmarkRunner.Run<CreatingKeyValue>();
-            var summary2 = BenchmarkRunner.Run<CreatingNodeEmpty>();
+            //var summary2 = BenchmarkRunner.Run<CreatingNodeEmpty>();
+            var summary3 = BenchmarkRunner.Run<RocksDbSinglePut>();
         }
     }
 }
