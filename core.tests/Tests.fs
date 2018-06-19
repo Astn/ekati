@@ -703,7 +703,7 @@ type MyTests(output:ITestOutputHelper) =
         mp.Length <- 200UL
         fp.Pointers_.Add(mp)
         
-        let value = nodeIndex.AddOrUpdate idHash fp (fun id rp -> rp.Pointers_.Add mp; rp)
+        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
         let mutable outvalue : Pointers = (new Pointers())
         let success = nodeIndex.TryGetValue (idHash, &outvalue)
         Assert.True success
@@ -748,15 +748,15 @@ type MyTests(output:ITestOutputHelper) =
         mp5.Length <- 200UL
         fp5.Pointers_.Add(mp5)
         
-        let value = nodeIndex.AddOrUpdate idHash fp (fun id rp -> rp.Pointers_.Add mp; rp)
+        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
 
-        let value2 = nodeIndex.AddOrUpdate idHash fp2 (fun id rp -> rp.Pointers_.Add mp2; rp)
+        let value2 = nodeIndex.AddOrUpdate idHash (fun () -> fp2) (fun id rp -> rp.Pointers_.Add mp2; rp)
 
-        let value3 = nodeIndex.AddOrUpdate idHash fp3 (fun id rp -> rp.Pointers_.Add mp3; rp)
+        let value3 = nodeIndex.AddOrUpdate idHash (fun () -> fp3) (fun id rp -> rp.Pointers_.Add mp3; rp)
 
-        let value4 = nodeIndex.AddOrUpdate idHash fp4 (fun id rp -> rp.Pointers_.Add mp4; rp)
+        let value4 = nodeIndex.AddOrUpdate idHash (fun () -> fp4) (fun id rp -> rp.Pointers_.Add mp4; rp)
 
-        let value5 = nodeIndex.AddOrUpdate idHash fp5 (fun id rp -> rp.Pointers_.Add mp5; rp)
+        let value5 = nodeIndex.AddOrUpdate idHash (fun () -> fp5) (fun id rp -> rp.Pointers_.Add mp5; rp)
 
 
         let mutable outvalue : Pointers = (new Pointers())

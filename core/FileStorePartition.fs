@@ -56,15 +56,36 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 scanIndex.AddLast(scanIndexChunk) |> ignore
                             else
                                 scanIndexChunk.Add (nid.Pointer)
-                                 
-                            let seqId =
-                               let newlst = new Pointers()
-                               newlst.Pointers_.Add nid.Pointer
-                               newlst 
-                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid) seqId  (fun x y -> 
-                                                                                                                    y.Pointers_.Add nid.Pointer
-                                                                                                                    y
-                                                                                                                    ) |> ignore
+                        
+                        let lookup = 
+                            nids
+                            |> Seq.map(fun x -> Utils.GetNodeIdHash x |> BitConverter.GetBytes, x.Pointer)
+                            |> Map.ofSeq
+                             
+                        let keys =
+                            lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
+
+                        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
+                            (fun x -> 
+                                let ptr = lookup.Item(x) 
+                                let mp = new Pointers()
+                                mp.Pointers_.Add ptr
+                                mp
+                                )
+                            (fun x old ->
+                                let ptr = lookup.Item(x)
+                                old.Pointers_.Add ptr
+                                old
+                            )         
+//                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid) 
+//                                (fun () -> 
+//                                    let newlst = new Pointers()
+//                                    newlst.Pointers_.Add nid.Pointer
+//                                    newlst)  
+//                                (fun x y -> 
+//                                    y.Pointers_.Add nid.Pointer
+//                                    y
+//                                    ) |> ignore
                     | Flush(replyChannel)->
                         replyChannel.Reply(true)
                         
@@ -554,6 +575,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 config.log <| sprintf "Flushing partition writer[%A]" i
                 FLUSHWRITES()
                 stream.Dispose()
+                (``Index of NodeID -> MemoryPointer`` :> IDisposable).Dispose()
                 config.log <| sprintf "Shutting down partition writer[%A] :: Success" i                     
             ()))
         

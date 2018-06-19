@@ -10,6 +10,7 @@ open System.Threading.Tasks
 open Ahghee.Grpc
 open RocksDbSharp
 open System
+open System.Buffers
 
 type Either<'L, 'R> =
     | Left of 'L
@@ -29,6 +30,7 @@ type IStorage =
 
 type NodeIdIndex (indexFile:string) = 
     //let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
+    let buffer = System.Buffers.ArrayPool<byte>.Shared 
     let path = Environment.ExpandEnvironmentVariables(indexFile)
     let options = (new DbOptions()).SetCreateIfMissing(true).EnableStatistics()
     let db = RocksDb.Open(options,path)
@@ -58,16 +60,58 @@ type NodeIdIndex (indexFile:string) =
     member __.TryGetValue (key:NodeIdHash, value: Pointers byref) = 
         let keybytes = BitConverter.GetBytes key
         TryGetValueInternal keybytes &value 
+    
+    member __.AddOrUpdateBatch (keys:byte[][]) (getValueForKey: byte[] -> Pointers) (update: (byte[] -> Pointers -> Pointers)) =
+        let writeRP (rp:Pointers) = 
+            let len = rp.CalculateSize()
+            let b = Array.zeroCreate<byte>(len)
+            let outputStream = new CodedOutputStream(b)
+            rp.WriteTo(outputStream) 
+            outputStream.Flush() 
+            b
+        
+        //let wb = new ReadBatch()
+        let keysBytes = keys
+        
+        let gotLots = db.MultiGet keysBytes
+        // for keys with no values we just perform the Put operation.
+        let (noValues, values) = 
+            gotLots
+            |> Array.partition ( fun kvp -> kvp.Value = null || kvp.Value.Length = 0)
+        
+        let writeBatch = new WriteBatch()
+        // can use merge in writeBatch
+        // for keys with values we do a Modify and Write. Eventually maybe do a rocksDb.merge instead of all of this
+                
+        noValues
+            |> Array.iter (fun kvp -> writeBatch.Put(kvp.Key, getValueForKey(kvp.Key) |> writeRP ) |> ignore)
+        
+        values
+            |> Array.iter (fun kvp -> 
+                    let mutable outValue:Pointers = null
+                    let success = TryGetValueInternal kvp.Key (& outValue)
+                    let newVal = 
+                        if success then
+                            let updated = update kvp.Key outValue
+                            updated |> writeRP
+                        else
+                            getValueForKey(kvp.Key) |> writeRP
+                    writeBatch.Put(kvp.Key, newVal) |> ignore
+                )    
+        db.Write(writeBatch)
+        
+        ()
              
-    member __.AddOrUpdate (key:NodeIdHash) (value: Pointers) (update: (NodeIdHash -> Pointers -> Pointers)) =
+    member __.AddOrUpdate (key:NodeIdHash) (value: (Unit -> Pointers)) (update: (NodeIdHash -> Pointers -> Pointers)) =
         let keybytes = BitConverter.GetBytes key
         let writeRP (rp:Pointers) = 
             let len = rp.CalculateSize()
-            let buffer = Array.zeroCreate<byte> len
-            let outputStream = new CodedOutputStream(buffer)
+            let b = buffer.Rent(len)
+            let outputStream = new CodedOutputStream(b)
             rp.WriteTo(outputStream) 
             outputStream.Flush() 
-            db.Put(keybytes,buffer)
+            db.Put(keybytes,keybytes.LongLength,b,int64 len)
+            buffer.Return b
             rp
        
         let mutable outValue:Pointers = null
@@ -76,9 +120,9 @@ type NodeIdIndex (indexFile:string) =
             let updated = update key outValue
             writeRP updated
         else
-            writeRP value
-    member __.AddOrUpdateCS (key:NodeIdHash) (value: Pointers) (update: Func<NodeIdHash,Pointers,Pointers>) =
-        __.AddOrUpdate key value (fun a b -> update.Invoke(a,b))
+            writeRP (value())
+    member __.AddOrUpdateCS (key:NodeIdHash) (value: Func<Pointers>) (update: Func<NodeIdHash,Pointers,Pointers>) =
+        __.AddOrUpdate key (fun () -> value.Invoke()) (fun a b -> update.Invoke(a,b))
 
 module Utils =
     open Google.Protobuf
