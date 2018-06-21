@@ -4,6 +4,7 @@ open System
 open Xunit
 open Xunit.Abstractions
 open Ahghee
+open Ahghee
 open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
@@ -15,7 +16,8 @@ open System.IO
 open System.Text
 open System.Threading.Tasks
 open FSharp.Data
-
+open Google.Protobuf.Collections
+open RocksDbSharp
 
 type StorageType =
     | Memory
@@ -672,18 +674,95 @@ type MyTests(output:ITestOutputHelper) =
         let g = __.toyGraph (dbtype db)
         output.WriteLine(sprintf "%A" g.Nodes)
         Assert.NotEmpty(g.Nodes)
-
-//    [<Fact>]
-//    member __.``I can use the file api`` () =
-//        let f = System.IO.File.Open("/home/austin/foo",FileMode.OpenOrCreate,FileAccess.ReadWrite)
-//        f.Seek(10L, SeekOrigin.Begin)
-//        let buffer = Array.zeroCreate 100
-//        let doit = f.AsyncRead(buffer, 0, 100)
-//        let size = doit |> Async.RunSynchronously
-//        output.WriteLine("we read out size:{0}: {1}", size , Encoding.UTF8.GetString(buffer))
-//        f.Close
-//        
-//        Assert.True(true)
-        
     
+    [<Fact>]
+    member __.RocksDBCanWriteAndReadKeyValue () = 
+        let temp = Path.GetTempPath()
+        
+        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
+        let options = (new DbOptions()).SetCreateIfMissing(true).EnableStatistics()
+        use db = RocksDb.Open(options,path)
+        let value1 = db.Get("key")
+        db.Put("key","value")
+        let value2 = db.Get("key")
+        let nullstr = db.Get("NotThere")
+        db.Remove("key")
+        Assert.Equal("value",value2)
+        ()
+
+    [<Fact>]
+    member __.NodeIndexCanWriteAndReadKeyValue () = 
+        let temp = Path.GetTempPath()
+        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
+        use nodeIndex = new NodeIdIndex(path) 
+        let id = ABtoyId "1"
+        let idHash = GetAddressBlockHash id
+        let fp = new Pointers()
+        let mp = Utils.NullMemoryPointer()
+        mp.Offset <- 100UL
+        mp.Length <- 200UL
+        fp.Pointers_.Add(mp)
+        
+        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+        let mutable outvalue : Pointers = (new Pointers())
+        let success = nodeIndex.TryGetValue (idHash, &outvalue)
+        Assert.True success
+        Assert.Equal<MemoryPointer>(fp.Pointers_,value.Pointers_)
+        Assert.Equal<MemoryPointer>(fp.Pointers_,outvalue.Pointers_)
+        ()
+
+    [<Fact>]
+    member __.NodeIndexCanWriteAndReadMultipleSameKey () = 
+        let temp = Path.GetTempPath()
+        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
+        use nodeIndex = new NodeIdIndex(path) 
+        let id = ABtoyId "1"
+        let idHash = GetAddressBlockHash id
+        let fp = new Pointers()
+        let mp = Utils.NullMemoryPointer()
+        mp.Offset <- 100UL
+        mp.Length <- 200UL
+        fp.Pointers_.Add(mp)
+        
+        let fp2 = new Pointers()
+        let mp2 = Utils.NullMemoryPointer()
+        mp2.Offset <- 200UL
+        mp2.Length <- 200UL
+        fp2.Pointers_.Add(mp2)
+        
+        let fp3 = new Pointers()
+        let mp3 = Utils.NullMemoryPointer()
+        mp3.Offset <- 300UL
+        mp3.Length <- 200UL
+        fp3.Pointers_.Add(mp3)
+        
+        let fp4 = new Pointers()        
+        let mp4 = Utils.NullMemoryPointer()
+        mp4.Offset <- 400UL
+        mp4.Length <- 200UL        
+        fp4.Pointers_.Add(mp4)
+        
+        let fp5 = new Pointers()
+        let mp5 = Utils.NullMemoryPointer()
+        mp5.Offset <- 500UL
+        mp5.Length <- 200UL
+        fp5.Pointers_.Add(mp5)
+        
+        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+
+        let value2 = nodeIndex.AddOrUpdate idHash (fun () -> fp2) (fun id rp -> rp.Pointers_.Add mp2; rp)
+
+        let value3 = nodeIndex.AddOrUpdate idHash (fun () -> fp3) (fun id rp -> rp.Pointers_.Add mp3; rp)
+
+        let value4 = nodeIndex.AddOrUpdate idHash (fun () -> fp4) (fun id rp -> rp.Pointers_.Add mp4; rp)
+
+        let value5 = nodeIndex.AddOrUpdate idHash (fun () -> fp5) (fun id rp -> rp.Pointers_.Add mp5; rp)
+
+
+        let mutable outvalue : Pointers = (new Pointers())
+        let success = nodeIndex.TryGetValue (idHash, &outvalue)
+        Assert.True success
+        Assert.Equal<MemoryPointer>(fp.Pointers_,value.Pointers_)
+        Assert.Equal<MemoryPointer>([mp;mp2;mp3;mp4;mp5],outvalue.Pointers_)
+        ()
       

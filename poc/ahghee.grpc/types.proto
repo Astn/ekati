@@ -65,3 +65,7 @@ message Node {
     repeated MemoryPointer fragments = 2;
     repeated KeyValue attributes = 3;
 }
+
+message Pointers {
+    repeated MemoryPointer pointers = 1; 
+}
