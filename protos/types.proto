@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package ahghee.grpc;
+
+// Pointer needs fixed fields, so we can update them
+// later without affecting the position of other messages
+message Pointer {
+    fixed32 partition_key = 1;
+    fixed32 filename = 2;
+    fixed64 offset = 3;
+    fixed64 length = 4;
+}
+
+message TypeBytes{
+    string type = 1;
+    bytes bytes = 2;
+}
+
+message NodeID {
+    string graph = 1;
+    string nodeid = 2;
+    Pointer node_pointer = 3;
+}
+
+message GlobalNodeID {
+    string domain = 1;
+    string database = 2;
+    NodeID nodeid = 3;
+}
+
+message Data {
+    oneof block {
+        NodeID node_id = 1;
+        GlobalNodeID global_node_id = 2;
+        TypeBytes type_bytes = 3;
+        Pointer bytes_pointer = 4;
+    }
+}
+
+message AddressBlock {
+    oneof address {
+        NodeID node_id = 1;
+        GlobalNodeID global_node_id = 2;
+    }
+}
+
+message TMD {
+    int64 time_stamp = 1;
+    Data meta_data = 2;
+    Data data = 3;
+}
+
+message KeyValue {
+    TMD key = 1;
+    TMD value = 2;
+}
+
+message Node {
+    AddressBlock id = 1;
+    repeated Pointer fragments = 2;
+    repeated KeyValue attributes = 3;
+}
+
+message Pointers {
+    repeated Pointer pointers = 1; 
+}

@@ -1,0 +1,176 @@
+[[package]]
+name = "ahghee"
+version = "0.1.0"
+dependencies = [
+ "bytes 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc-rust 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "bitflags"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "byteorder"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "bytes"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iovec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "cfg-if"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "fuchsia-zircon"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fuchsia-zircon-sys 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "fuchsia-zircon-sys"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "iovec"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "log"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cfg-if 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "protobuf"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bytes 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "protobuf-codegen"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "protobuf 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "protoc"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "protoc-rust"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "protobuf 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf-codegen 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoc 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rand"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "remove_dir_all"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tempdir"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "remove_dir_all 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "winapi"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "winapi"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d0c54bb8f454c567f21197eefcdbf5679d0bd99f2ddbe52e84c77061952e6789"
+"checksum byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "74c0b906e9446b0a2e4f760cdb3fa4b2c48cdc6db8766a845c54b6ff063fd2e9"
+"checksum bytes 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "7dd32989a66957d3f0cba6588f15d4281a733f4e9ffc43fcd2385f57d3bf99ff"
+"checksum cfg-if 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "405216fd8fe65f718daa7102ea808a946b6ce40c742998fbfd3463645552de18"
+"checksum fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e9763c69ebaae630ba35f74888db465e49e259ba1bc0eda7d06f4a067615d82"
+"checksum fuchsia-zircon-sys 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
+"checksum iovec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "dbe6e417e7d0975db6512b90796e8ce223145ac4e33c377e4a42882a0e88bb08"
+"checksum libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)" = "b685088df2b950fccadf07a7187c8ef846a959c142338a48f9dc0b94517eb5f1"
+"checksum log 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6fddaa003a65722a7fb9e26b0ce95921fe4ba590542ced664d8ce2fa26f9f3ac"
+"checksum protobuf 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a163be69698a5cb7baa28819474344d3a268b3f3e41877e61d5555e3d3add1af"
+"checksum protobuf-codegen 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a2af1a097616f8c5602f06e056dd4ce391f3fb276eddc27828a9d26f0df28cff"
+"checksum protoc 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "74c3bb9f19100c4b622664d89afdccd4f2adaf3653028016c567d2dd2abc1e7a"
+"checksum protoc-rust 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5a4162f305b75270469bdb8ed9d418001726313c045b8b3d2324f18b9f4526f2"
+"checksum rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "eba5f8cb59cc50ed56be8880a5c7b496bfd9bd26394e176bc67884094145c2c5"
+"checksum remove_dir_all 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3488ba1b9a2084d38645c4c08276a1752dcbf2c7130d74f1569681ad5d2799c5"
+"checksum tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
+"checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
+"checksum winapi 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "773ef9dcc5f24b7d850d0ff101e542ff24c3b090a9768e03ff889fdef41f00fd"
+"checksum winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+"checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
