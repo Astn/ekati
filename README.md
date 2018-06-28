@@ -6,7 +6,34 @@ This project is still in it's early early stages, so click that *Watch* button.
 
 I'm looking for other contributors to help.
 
+#### Current State
 
+Under heavy development. Not ready for Production.
+
+Status of the prototype F#
+ 
+ - [x] Protocol Buffers data types
+ - [x] Sharding
+ - [x] Stores Fragments
+ - [x] Links Fragments
+ - [x] Resolves Fragment Pointers
+ - [x] Entry Index uses RocksDb
+ - [x] Single machine ingress tested at 50MB/s and 15m Fragments in 2.5 min. 
+ - [ ] Map Reduce
+ - [ ] Clustering
+ - [ ] Full text index
+
+Status of post prototype Rust
+
+ - [x] Protocol Buffers data types
+ - [ ] Stores Fragments
+ - [ ] Links Fragments
+ - [ ] Resolves Fragment Pointers
+ - [ ] Entry Index uses RocksDb
+ - [ ] Single machine ingress tested at 50MB/s and 15m Fragments in 2.5 min. 
+ - [ ] Map Reduce
+ - [ ] Clustering
+ - [ ] Full text index
 
 #### Slack
 
@@ -14,6 +41,10 @@ I'm looking for other contributors to help.
 
 #### Contributors 
 
+  Main implementation using Rust in root  
+  
+  Prototype in FSharp -> see /poc
+  
   Start [here](https://github.com/Astn/ahghee/wiki/Getting-Started---Contributors)
 
 ## References
@@ -30,6 +61,8 @@ I'm looking for other contributors to help.
 - [SeaStar](http://docs.seastar.io/master/md_doc_tutorial.html)
 
 ## Design goals
+
+- [Structure Whiteboard](https://realtimeboard.com/app/board/o9J_kz6OZhI=/)
 
 - Massive graphs (Trillions of nodes)
 - Write friendly (like Cassandra)

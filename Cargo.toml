@@ -1,0 +1,16 @@
+[package]
+name = "ahghee"
+version = "0.1.0"
+authors = ["Astn <austin.w.harris@gmail.com>"]
+build = "build.rs"
+
+
+[dependencies]
+protobuf = { version = "~2.0", features = ["with-bytes"] }
+bytes =  "0.4.8"
+
+[build-dependencies]
+protoc-rust = "2.0.2"
+
+[features]
+
