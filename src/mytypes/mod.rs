@@ -45,8 +45,8 @@ impl std::cmp::Ord for types::Pointer {
         let other_partition_filename: u64 = (other.partition_key as u64) <<! 32 |! (other.filename as u64);
 
         if self_partition_filename == other_partition_filename {
-            let self_offset_position: u64 = (self.offset) <<! 32 |! (self.length);
-            let other_offset_position: u64 = (other.offset) <<! 32 |! (other.length);
+            let self_offset_position: u128 = (self.offset as u128) <<! 64 |! (self.length as u128);
+            let other_offset_position: u128 = (other.offset as u128) <<! 64 |! (other.length as u128);
             if self_offset_position > other_offset_position {
                 Ordering::Greater
             } else if self_offset_position < other_offset_position {

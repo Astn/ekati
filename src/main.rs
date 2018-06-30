@@ -11,9 +11,10 @@ pub mod shard {
     use std::collections::BTreeMap;
     use mytypes;
     use std::time::Duration;
-
+    use std::error::Error;
+    use std::io::Result;
     pub enum IO {
-        Add {nodes: mpsc::Receiver<mytypes::types::Node> },
+        Add {nodes: mpsc::Receiver<mytypes::types::Node>, callback: mpsc::SyncSender<Result<()>> },
         NoOP
         // add something like Checkpoint {notify: mpsc::Sender<Result<(),Err>>}
     }
@@ -75,7 +76,24 @@ pub mod shard {
                         let data = receiver.recv_timeout(Duration::from_millis(1));
                         match data {
                             Ok(io) => match io {
-                                            IO::Add {nodes}  => println!("Got Nodes"),
+                                            IO::Add {nodes, callback}  => {
+
+                                                loop {
+                                                    let node = nodes.recv_timeout(Duration::from_millis(1));
+                                                    match node {
+                                                        Ok(_n) =>{
+                                                            //println!("Got Nodes");
+                                                            continue;
+                                                        },
+                                                        Err(_e) => {
+                                                            println!("Got nodes err: {}", _e.description());
+                                                            break;
+                                                        }
+                                                    }
+
+                                                }
+                                                callback.send(Ok(()));
+                                            },
                                             IO::NoOP => println!("Got NoOp")
                                         },
                             Err(_e) => thread::sleep(Duration::from_millis(1))
@@ -103,7 +121,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::shard;
+    use super::*;
     use mytypes;
 
     //use bytes;
@@ -112,6 +130,12 @@ mod tests {
     use protobuf::Message;
     use std::time::Duration;
     use std::thread;
+    use std::sync::mpsc;
+    use protobuf::SingularPtrField;
+    use protobuf::RepeatedField;
+    use std::error::Error;
+    use std::io::Result;
+    use std::time::Instant;
 
     #[test]
     fn it_works() {
@@ -146,8 +170,41 @@ mod tests {
         shard.post.send(shard::IO::NoOP).expect("Send failed");
         shard.post.send(shard::IO::NoOP).expect("Send failed");
         shard.post.send(shard::IO::NoOP).expect("Send failed");
+        let starttime = Instant::now();
+        let (call_back_initiatior, call_back_handler) = mpsc::sync_channel::<Result<()>>(1);
+        // new scope to cleanup a,b channel
+        {
+            let (a, b) = mpsc::channel::<mytypes::types::Node>();
 
-        thread::sleep(Duration::from_millis(50));
+            shard.post.send(shard::IO::Add {
+                nodes: b,
+                callback: call_back_initiatior
+            }).expect("send failed");
+
+            for i in 0..100000 {
+                let n = mytypes::types::Node::new();
+//
+//            {
+//                id: SingularPtrField { value: None, set: false },
+//                fragments: RepeatedField { vec: Vec::new(), len: 0 },
+//                attributes: RepeatedField { vec: Vec::new(), len: 0 },
+//                .. std::default::Default::default()
+//            };
+                a.send(n).expect("Node send failed");
+            }
+        }
+        match call_back_handler.recv() {
+            Ok(status) =>
+                match status {
+                    Ok(()) => {
+                        let elapsed = starttime.elapsed();
+                        println!("Finished OK - took: {}s {}ms",elapsed.as_secs(), elapsed.subsec_millis());
+                    },
+                    Err(_e) => println!("Finished Err {}", _e.description())
+                }
+            Err(_e) => println!("Finished Err {}", _e.description())
+        }
+        println!("Finished test");
     }
 
 }
