@@ -1738,7 +1738,7 @@ impl ::protobuf::reflect::ProtobufValue for AddressBlock {
 #[derive(PartialEq,Clone,Default)]
 pub struct TMD {
     // message fields
-    pub time_stamp: i64,
+    pub time_stamp: u64,
     pub meta_data: ::protobuf::SingularPtrField<Data>,
     pub data: ::protobuf::SingularPtrField<Data>,
     // special fields
@@ -1751,18 +1751,18 @@ impl TMD {
         ::std::default::Default::default()
     }
 
-    // int64 time_stamp = 1;
+    // uint64 time_stamp = 1;
 
     pub fn clear_time_stamp(&mut self) {
         self.time_stamp = 0;
     }
 
     // Param is passed by value, moved
-    pub fn set_time_stamp(&mut self, v: i64) {
+    pub fn set_time_stamp(&mut self, v: u64) {
         self.time_stamp = v;
     }
 
-    pub fn get_time_stamp(&self) -> i64 {
+    pub fn get_time_stamp(&self) -> u64 {
         self.time_stamp
     }
 
@@ -1856,7 +1856,7 @@ impl ::protobuf::Message for TMD {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    let tmp = is.read_int64()?;
+                    let tmp = is.read_uint64()?;
                     self.time_stamp = tmp;
                 },
                 2 => {
@@ -1895,7 +1895,7 @@ impl ::protobuf::Message for TMD {
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
         if self.time_stamp != 0 {
-            os.write_int64(1, self.time_stamp)?;
+            os.write_uint64(1, self.time_stamp)?;
         }
         if let Some(ref v) = self.meta_data.as_ref() {
             os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
@@ -1949,7 +1949,7 @@ impl ::protobuf::Message for TMD {
         unsafe {
             descriptor.get(|| {
                 let mut fields = ::std::vec::Vec::new();
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeInt64>(
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint64>(
                     "time_stamp",
                     |m: &TMD| { &m.time_stamp },
                     |m: &mut TMD| { &mut m.time_stamp },
@@ -2707,7 +2707,7 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x01\x20\x01(\x0b2\x13.ahghee.grpc.NodeIDH\0R\x06nodeId\x12A\n\x0eglobal\
     _node_id\x18\x02\x20\x01(\x0b2\x19.ahghee.grpc.GlobalNodeIDH\0R\x0cgloba\
     lNodeIdB\t\n\x07address\"{\n\x03TMD\x12\x1d\n\ntime_stamp\x18\x01\x20\
-    \x01(\x03R\ttimeStamp\x12.\n\tmeta_data\x18\x02\x20\x01(\x0b2\x11.ahghee\
+    \x01(\x04R\ttimeStamp\x12.\n\tmeta_data\x18\x02\x20\x01(\x0b2\x11.ahghee\
     .grpc.DataR\x08metaData\x12%\n\x04data\x18\x03\x20\x01(\x0b2\x11.ahghee.\
     grpc.DataR\x04data\"V\n\x08KeyValue\x12\"\n\x03key\x18\x01\x20\x01(\x0b2\
     \x10.ahghee.grpc.TMDR\x03key\x12&\n\x05value\x18\x02\x20\x01(\x0b2\x10.a\

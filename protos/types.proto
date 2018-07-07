@@ -45,7 +45,7 @@ message AddressBlock {
 }
 
 message TMD {
-    int64 time_stamp = 1;
+    uint64 time_stamp = 1;
     Data meta_data = 2;
     Data data = 3;
 }
