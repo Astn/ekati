@@ -1,4 +1,6 @@
-
+#[macro_use]
+extern crate log;
+extern crate log4rs;
 extern crate protobuf;
 extern crate bytes;
 
@@ -122,49 +124,49 @@ pub mod shard {
                         let data = receiver.recv_timeout(Duration::from_millis(1));
                         match data {
                             Ok(io) => match io {
-                                            IO::Add {nodes, callback}  => {
-                                                let buffer_capacity:usize = 1024*5;
-                                                let buffer_flush_len:usize = 1024*4;
-                                                // todo: write to buffer and flush when full
-                                                let mut buffer : Vec<u8> = Vec::with_capacity(buffer_capacity);
-                                                loop {
-                                                    let mut node = nodes.recv_timeout(Duration::from_millis(1));
-                                                    match node {
-                                                        Ok(ref mut _n) =>{
-                                                            //println!("Got Nodes");
-                                                            {
-                                                                // make sure our nodeId does not have a pointer in it.
-                                                                let mut id = _n.mut_id();
-                                                                if (&id).has_node_id() {
-                                                                    id.mut_node_id().clear_node_pointer();
-                                                                } else if (&id).has_global_node_id() {
-                                                                    // and if we have a global_node_id convert it to local_node_id
-                                                                    let mut local_id = id.mut_global_node_id().take_nodeid();
-                                                                    local_id.clear_node_pointer();
-                                                                    id.set_node_id(local_id);
-                                                                }
-                                                            }
-                                                            &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
-                                                            if &buffer.len() >= &buffer_flush_len {
-                                                                let _written_size = file.write(&buffer).expect("file write");
-                                                                &buffer.clear();
-                                                            }
-                                                            continue;
-                                                        },
-                                                        Err(_e) => {
-                                                            println!("Got nodes err: {}", _e.description());
-                                                            break;
-                                                        }
+                                IO::Add {nodes, callback}  => {
+                                    let buffer_capacity:usize = 1024*8;
+                                    let buffer_flush_len:usize = 1024*8;
+                                    // todo: write to buffer and flush when full
+                                    let mut buffer : Vec<u8> = Vec::with_capacity(buffer_capacity);
+                                    loop {
+                                        let mut node = nodes.recv_timeout(Duration::from_millis(1));
+                                        match node {
+                                            Ok(ref mut _n) =>{
+                                                //println!("Got Nodes");
+                                                {
+                                                    // make sure our nodeId does not have a pointer in it.
+                                                    let mut id = _n.mut_id();
+                                                    if (&id).has_node_id() {
+                                                        id.mut_node_id().clear_node_pointer();
+                                                    } else if (&id).has_global_node_id() {
+                                                        // and if we have a global_node_id convert it to local_node_id
+                                                        let mut local_id = id.mut_global_node_id().take_nodeid();
+                                                        local_id.clear_node_pointer();
+                                                        id.set_node_id(local_id);
                                                     }
-
                                                 }
-                                                let _written_size = file.write(&buffer).expect("file write");
-                                                &buffer.clear();
-                                                file.flush().expect("flush file");
-                                                callback.send(Ok(())).expect("callback still open");
+                                                &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
+                                                if &buffer.len() >= &buffer_flush_len {
+                                                    let _written_size = file.write(&buffer).expect("file write");
+                                                    &buffer.clear();
+                                                }
+                                                continue;
                                             },
-                                            IO::NoOP => println!("Got NoOp")
-                                        },
+                                            Err(_e) => {
+                                                warn!("Got nodes err: {}", _e.description());
+                                                break;
+                                            }
+                                        }
+
+                                    }
+                                    let _written_size = file.write(&buffer).expect("file write");
+                                    &buffer.clear();
+                                    file.flush().expect("flush file");
+                                    callback.send(Ok(())).expect("callback still open");
+                                },
+                                IO::NoOP => debug!("Got NoOp")
+                            },
                             Err(_e) => thread::sleep(Duration::from_millis(1))
                         }
                     }
@@ -182,7 +184,10 @@ pub mod shard {
 }
 
 fn main() {
+    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 
+    info!("booting up");
+    warn!("A warning");
     println!("Hello, world!");
 
 }
@@ -211,6 +216,19 @@ mod tests {
     use bytes::Bytes;
     use std::string::String;
 
+    use std::sync::{Once, ONCE_INIT};
+
+    static INIT: Once = ONCE_INIT;
+
+    /// Setup function that is only run once, even if called multiple times.
+    fn setup() {
+        INIT.call_once(|| {
+            log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+
+            info!("booting up");
+        });
+    }
+
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
@@ -219,6 +237,7 @@ mod tests {
 
     #[test]
     fn write_buffers_to_disk() {
+        setup();
         let mut x = mytypes::types::Pointer::new();
         x.partition_key =101;
         x.offset = 202;
@@ -237,6 +256,7 @@ mod tests {
 
     #[test]
     fn create_a_shard() {
+        setup();
         let shard = shard::ShardWorker::new(1, true);
 
         shard.post.send(shard::IO::NoOP).expect("Send failed");
@@ -269,14 +289,6 @@ mod tests {
                         // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
                         nid.set_graph(::protobuf::Chars::from("default"));
                         nid.set_nodeid(::protobuf::Chars::from("1"));
-                        nid.set_node_pointer({
-                            let mut p = Pointer::new();
-                            p.set_filename(1);
-                            p.set_length(1);
-                            p.set_offset(1);
-                            p.set_partition_key(1);
-                            p
-                        });
                         nid
                     });
                     ab});
@@ -346,13 +358,13 @@ mod tests {
                 match status {
                     Ok(()) => {
                         let elapsed = starttime.elapsed();
-                        println!("Finished OK - took: {}s {}ms",elapsed.as_secs(), elapsed.subsec_millis());
+                        info!("Finished OK - took: {}s {}ms",elapsed.as_secs(), elapsed.subsec_millis());
                     },
-                    Err(_e) => println!("Finished Err {}", _e.description())
+                    Err(_e) => error!("Finished Err {}", _e.description())
                 }
-            Err(_e) => println!("Finished Err {}", _e.description())
+            Err(_e) => error!("Finished Err {}", _e.description())
         }
-        println!("Finished test");
+        info!("Finished test");
     }
 
 }
