@@ -134,27 +134,50 @@ pub mod shard {
                                         match node {
                                             Ok(ref mut _n) =>{
                                                 //println!("Got Nodes");
+                                                let buffer_pos = buffer.len() as u64;
+                                                let total_pos = buffer_pos + last_file_position;
                                                 {
                                                     // make sure our nodeId does not have a pointer in it.
-                                                    let mut id = _n.mut_id();
-                                                    if (&id).has_node_id() {
-                                                        id.mut_node_id().clear_node_pointer();
-                                                    } else if (&id).has_global_node_id() {
-                                                        // and if we have a global_node_id convert it to local_node_id
-                                                        let mut local_id = id.mut_global_node_id().take_nodeid();
-                                                        local_id.clear_node_pointer();
-                                                        id.set_node_id(local_id);
+                                                    let size_incoming = _n.compute_size();
+                                                    {
+                                                        let mut id = _n.mut_id();
+                                                        if (&id).has_node_id() {
+                                                            id.mut_node_id().set_node_pointer({
+                                                                ShardWorker::make_pointer(_shard_id, total_pos, size_incoming as u64)
+                                                            });
+                                                        } else if (&id).has_global_node_id() {
+                                                            // and if we have a global_node_id convert it to local_node_id
+                                                            let mut local_id = id.mut_global_node_id().take_nodeid();
+                                                            local_id.set_node_pointer({
+                                                                ShardWorker::make_pointer(_shard_id, total_pos, size_incoming as u64)
+                                                            });
+                                                            id.set_node_id(local_id);
+                                                        }
                                                     }
+                                                    // todo: Verify that we are creating the correct pointer values
+                                                    let size_before = _n.compute_size();
+                                                    {
+                                                        let mut id = _n.mut_id();
+                                                        id.mut_node_id().set_node_pointer({
+                                                            ShardWorker::make_pointer(_shard_id, total_pos, size_before as u64)
+                                                        });
+                                                    }
+                                                    let size_after = _n.compute_size();
+                                                    assert_eq!(size_before, size_after, "We are testing to makes sure the size of our fragment didn't change when we set it's pointer");
                                                 }
+                                                // NOTE: By writing Length Delimited, the offset in our Pointer, points to Length, not the beginning of the data
+                                                // So the offset is "offset" by an i32.
                                                 &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
                                                 if &buffer.len() >= &buffer_flush_len {
                                                     let _written_size = file.write(&buffer).expect("file write");
+                                                    last_file_position = last_file_position + _written_size as u64;
+                                                    assert_ne!(0,last_file_position, "We are testing that after wrote data, we are incrementing our last_file_position");
                                                     &buffer.clear();
                                                 }
                                                 continue;
                                             },
                                             Err(_e) => {
-                                                warn!("Got nodes err: {}", _e.description());
+                                                warn!("Got nodes err: {}", _e);
                                                 break;
                                             }
                                         }
@@ -306,40 +329,10 @@ mod tests {
                 n.set_attributes({
                     let mut rf = ::protobuf::RepeatedField::<KeyValue>::new();
                     rf.push({
-                        let mut kv = KeyValue::new();
-                        kv.set_key({
-                            let mut tmd = TMD::new();
-                            tmd.set_time_stamp(now);
-                            tmd.set_data({
-                                let mut data = Data::new();
-                                data.set_type_bytes({
-                                    let mut tb = TypeBytes::new();
-                                    tb.set_field_type(::protobuf::Chars::from("xsd:string"));
-                                    tb.set_bytes(Bytes::from("name"));
-                                    tb
-                                });
-                                data
-                            });
-                            tmd
-                        });
-
-                        kv.set_value({
-                            let mut tmd = TMD::new();
-                            tmd.set_time_stamp(now);
-                            tmd.set_data({
-                                let mut data = Data::new();
-                                data.set_type_bytes({
-                                    let mut tb = TypeBytes::new();
-                                    tb.set_field_type(::protobuf::Chars::from("xsd:string"));
-                                    tb.set_bytes(Bytes::from("Austin Harris"));
-                                    tb
-                                });
-                                data
-                            });
-                            tmd
-                        });
-
-                        kv
+                        KeyValue::new_with_fields(now,
+                            Data::new_with_string_data("name"),
+                            Data::new_with_string_data("Austin Harris")
+                           )
                     });
                     rf
                 });
@@ -366,6 +359,5 @@ mod tests {
         }
         info!("Finished test");
     }
-
 }
 

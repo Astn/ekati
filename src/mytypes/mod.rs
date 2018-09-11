@@ -1,5 +1,6 @@
 
 pub mod types;
+pub mod non_generated;
 
 use std;
 use std::cmp::Ordering;
