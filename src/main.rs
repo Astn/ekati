@@ -3,7 +3,7 @@ extern crate log;
 extern crate log4rs;
 extern crate protobuf;
 extern crate bytes;
-
+extern crate parity_rocksdb;
 mod mytypes;
 
 
@@ -21,6 +21,8 @@ pub mod shard {
     use mytypes::types::Pointer;
     use mytypes::types::Node;
     use mytypes::types::NodeID;
+    use parity_rocksdb::{Options, DB, MergeOperands, Writable};
+    use mytypes::types::Pointers;
 
     pub enum IO {
         Add {nodes: mpsc::Receiver<mytypes::types::Node>, callback: mpsc::SyncSender<Result<()>> },
@@ -97,6 +99,7 @@ pub mod shard {
             let (a,b) = mpsc::channel::<IO>();
             let test_dir = create_testing_directory.clone();
             let _shard_id = shard_id.clone();
+
             let sw = ShardWorker{
                 post: a,
                 thread: thread::spawn(move ||{
@@ -111,6 +114,15 @@ pub mod shard {
                         Err(ref _e) => Err(_e)
                     }.expect("Create Directory or already exists");
 
+
+                    let node_index_db_path =  dir.join(path::Path::new("node_index"));
+                    let mut opts = Options::new();
+                    opts.create_if_missing(true);
+                    //opts.add_merge_operator()
+                    let mut index_nodes = DB::open(&opts, node_index_db_path.to_str().unwrap()).unwrap();
+
+
+
                     let file_name = format!("{}.0.a.level",_shard_id);
                     let file_path_buf = dir.join(path::Path::new(&file_name));
                     let file_path = file_path_buf.as_path();
@@ -119,6 +131,9 @@ pub mod shard {
                     let pre_alloc_size = 1024 * 100000;
                     file.set_len(pre_alloc_size).expect("File size reserved");
                     let mut last_file_position = file.seek(SeekFrom::Current(0)).expect("Couldn't seek to current position");
+
+
+
                     let receiver = b;
                     loop {
                         let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -139,6 +154,7 @@ pub mod shard {
                                                 {
                                                     // make sure our nodeId does not have a pointer in it.
                                                     let size_incoming = _n.compute_size();
+                                                    // scope to hold mut_id
                                                     {
                                                         let mut id = _n.mut_id();
                                                         if (&id).has_node_id() {
@@ -156,6 +172,7 @@ pub mod shard {
                                                     }
                                                     // todo: Verify that we are creating the correct pointer values
                                                     let size_before = _n.compute_size();
+                                                    // scope for mut_id
                                                     {
                                                         let mut id = _n.mut_id();
                                                         id.mut_node_id().set_node_pointer({
@@ -168,6 +185,18 @@ pub mod shard {
                                                 // NOTE: By writing Length Delimited, the offset in our Pointer, points to Length, not the beginning of the data
                                                 // So the offset is "offset" by an i32.
                                                 &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
+
+                                                // Add this nodeid to the nodeid index
+                                                let mut _key =_n.get_id().get_node_id().clone();
+                                                let mut _values = mytypes::types::Pointers::new();
+                                                {
+                                                    let _value = _key.get_node_pointer();
+                                                    _values.pointers.insert(0, _value.clone());
+                                                }
+                                                _key.clear_node_pointer();
+                                                index_nodes.put(_key.write_to_bytes().unwrap().as_mut_slice(),_values.write_to_bytes().unwrap().as_mut_slice());
+
+
                                                 if &buffer.len() >= &buffer_flush_len {
                                                     let _written_size = file.write(&buffer).expect("file write");
                                                     last_file_position = last_file_position + _written_size as u64;
