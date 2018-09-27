@@ -79,7 +79,7 @@ pub mod shard {
     impl ShardWorker {
         /// Sets the file position and length
         /// Returns the position + length which is the next position
-        fn make_pointer(shard_id: i32, mut last_file_position: u64, size: u64) -> Pointer {
+        fn make_pointer(shard_id: i32, last_file_position: u64, size: u64) -> Pointer {
             use ::protobuf::Message;
             let mut ptr = Pointer::new();
             ptr.partition_key = shard_id as u32;
@@ -87,6 +87,36 @@ pub mod shard {
             ptr.length = size;
             ptr.offset = last_file_position;
             ptr
+        }
+
+        fn node_index_merge(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
+            use std::cmp::Ordering;
+            use protobuf::Message;
+
+            let mut _values = mytypes::types::Pointers::new();
+            let mut _result = mytypes::types::Pointers::new();
+            // load exising value in if we have one
+            for v in existing_val {
+                _values.merge_from_bytes(v);
+            }
+
+            for op in operands {
+                let mut _newVal = mytypes::types::Pointers::new();
+                _newVal.merge_from_bytes(op);
+                for p in _newVal.mut_pointers().as_mut_slice() {
+                        _values.pointers.push(p.clone());
+                }
+            }
+            {
+                let mut v = _values.take_pointers();
+                {
+                    v.sort_unstable_by_key(|f| { ((f.filename as u64) << 16) + f.offset });
+                }
+                let mut vecv = v.into_vec();
+                vecv.dedup();
+                _result.set_pointers(::protobuf::RepeatedField::from(vecv));
+            }
+            _result.write_to_bytes().unwrap()
         }
 
         pub fn new(shard_id:i32, create_testing_directory:bool) -> ShardWorker {
@@ -100,7 +130,7 @@ pub mod shard {
             let test_dir = create_testing_directory.clone();
             let _shard_id = shard_id.clone();
 
-            let sw = ShardWorker{
+            let sw: ShardWorker = ShardWorker{
                 post: a,
                 thread: thread::spawn(move ||{
                     let dir = match test_dir {
@@ -118,7 +148,7 @@ pub mod shard {
                     let node_index_db_path =  dir.join(path::Path::new("node_index"));
                     let mut opts = Options::new();
                     opts.create_if_missing(true);
-                    //opts.add_merge_operator()
+                    opts.add_merge_operator("node_index_merge",  ShardWorker::node_index_merge);
                     let mut index_nodes = DB::open(&opts, node_index_db_path.to_str().unwrap()).unwrap();
 
 
@@ -186,16 +216,20 @@ pub mod shard {
                                                 // So the offset is "offset" by an i32.
                                                 &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
 
+                                                // todo: Would adding to the index in a seperate channel speed this up?
+                                                // todo: Would a "multi_put" be faster?
                                                 // Add this nodeid to the nodeid index
-                                                let mut _key =_n.get_id().get_node_id().clone();
+                                                let _key = _n.mut_id().mut_node_id();
                                                 let mut _values = mytypes::types::Pointers::new();
                                                 {
-                                                    let _value = _key.get_node_pointer();
-                                                    _values.pointers.insert(0, _value.clone());
+                                                    // todo: Anyway to avoid doing this clone?
+                                                    let _value = _key.get_node_pointer().clone();
+                                                    _values.pointers.insert(0, _value);
                                                 }
                                                 _key.clear_node_pointer();
-                                                index_nodes.put(_key.write_to_bytes().unwrap().as_mut_slice(),_values.write_to_bytes().unwrap().as_mut_slice());
-
+                                                //index_nodes.put(_key.write_to_bytes().unwrap().as_mut_slice(),_values.write_to_bytes().unwrap().as_mut_slice());
+                                                // todo: test this merge instead of a put.
+                                                index_nodes.merge(_key.write_to_bytes().unwrap().as_mut_slice(),_values.write_to_bytes().unwrap().as_mut_slice());
 
                                                 if &buffer.len() >= &buffer_flush_len {
                                                     let _written_size = file.write(&buffer).expect("file write");
@@ -327,7 +361,7 @@ mod tests {
                 callback: call_back_initiatior
             }).expect("send failed");
 
-            for i in 0..100000 {
+            for _i in 0..100000 {
                 let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
                     Ok(n) => n.as_secs(),
                     Err(_) => panic!("SystemTime before UNIX EPOCH!")
@@ -340,7 +374,7 @@ mod tests {
                         let mut nid = NodeID::new();
                         // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
                         nid.set_graph(::protobuf::Chars::from("default"));
-                        nid.set_nodeid(::protobuf::Chars::from("1"));
+                        nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
                         nid
                     });
                     ab});
@@ -362,6 +396,18 @@ mod tests {
                             Data::new_with_string_data("name"),
                             Data::new_with_string_data("Austin Harris")
                            )
+                    });
+                    rf.push({
+                        KeyValue::new_with_fields(now,
+                                                  Data::new_with_string_data("uses"),
+                                                  Data::new_with_string_data("Linux")
+                        )
+                    });
+                    rf.push({
+                        KeyValue::new_with_fields(now,
+                                                  Data::new_with_string_data("eats"),
+                                                  Data::new_with_string_data("pizza")
+                        )
                     });
                     rf
                 });
