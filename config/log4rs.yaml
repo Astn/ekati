@@ -8,11 +8,11 @@ appenders:
     encoder:
       pattern: "{d} - {m}{n}"
 root:
-  level: warn
+  level: debug
   appenders:
   - stdout
 loggers:
-  ahghee::tests:
+  ahghee::shard::tests:
     level: debug
   app::requests:
     level: info
