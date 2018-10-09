@@ -5,7 +5,9 @@ extern crate bytes;
 extern crate parity_rocksdb;
 
 use mytypes;
-use shard;
+use shard::shardindex::ShardIndex;
+use shard::shardworker::ShardWorker;
+use shard::io::IO;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -24,6 +26,7 @@ use bytes::Bytes;
 use std::string::String;
 
 use std::sync::{Once, ONCE_INIT};
+
 
 static INIT: Once = ONCE_INIT;
 
@@ -58,97 +61,107 @@ fn write_buffers_to_disk() {
 #[test]
 fn create_a_shard() {
     setup();
-    let shard = shard::ShardWorker::new(1, true);
+    let start = SystemTime::now();
+    let n_fragments = 2000000;
+    let shardA_joiner = run_shard_thread(n_fragments/2,1);
+    let shardB_joiner= run_shard_thread(n_fragments/2, 2);
 
-    info!("Starting to send NoOps");
+    let a_fin = shardA_joiner.join();
+    let b_fin = shardB_joiner.join();
 
-
-    shard.post.send(shard::IO::NoOP).expect("Send failed");
-    shard.post.send(shard::IO::NoOP).expect("Send failed");
-    shard.post.send(shard::IO::NoOP).expect("Send failed");
-    shard.post.send(shard::IO::NoOP).expect("Send failed");
-    shard.post.send(shard::IO::NoOP).expect("Send failed");
-    info!("Finished NoOps");
-
-    let starttime = Instant::now();
-    let (call_back_initiatior, call_back_handler) = mpsc::sync_channel::<Result<()>>(1);
-    // new scope to cleanup a,b channel
-    {
-        let (a, b) = mpsc::channel::<mytypes::types::Node>();
+    let elapsed =  start.elapsed().unwrap();
+    info!("Finished adding {} fragments in {} s {} ms",n_fragments, elapsed.as_secs(), elapsed.subsec_millis());
+}
 
 
-        info!("Sending IO:Add");
-        shard.post.send(shard::IO::Add {
-            nodes: b,
-            callback: call_back_initiatior
-        }).expect("send failed");
+fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()> {
 
-        let n_fragments = 100000;
-        info!("Starting to send {} fragments", n_fragments);
-        for _i in 0..n_fragments {
-            let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                Ok(n) => n.as_secs(),
-                Err(_) => panic!("SystemTime before UNIX EPOCH!")
-            };
+    let t = thread::spawn(move ||{
 
-            let mut n = mytypes::types::Node::new();
-            n.set_id({
-                let mut ab = AddressBlock::new();
-                ab.set_node_id({
-                    let mut nid = NodeID::new();
-                    // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
-                    nid.set_graph(::protobuf::Chars::from("default"));
-                    nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
-                    nid
-                });
-                ab});
+        let someShard = ShardWorker::new(someShard_id, true);
 
-            n.set_fragments(
-                {
-                    let mut rf = ::protobuf::RepeatedField::<Pointer>::new();
-                    rf.push(Pointer::new());
-                    rf.push(Pointer::new());
-                    rf.push(Pointer::new());
+        let starttime = Instant::now();
+        let (call_back_initiatior_A, call_back_handler_A) = mpsc::sync_channel::<Result<()>>(1);
+        // new scope to cleanup a,b channel
+        {
+            let (a, b) = mpsc::channel::<mytypes::types::Node>();
+
+            info!("{} - Sending IO:Add",someShard_id);
+            someShard.post.send(IO::Add {
+                nodes: b,
+                callback: call_back_initiatior_A
+            }).expect("send failed");
+
+
+            info!("{} - Starting to send {} fragments",someShard_id, n_fragments);
+            let started_at = SystemTime::now();
+            for _i in 0..n_fragments {
+                let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(n) => n.as_secs(),
+                    Err(_) => panic!("SystemTime before UNIX EPOCH!")
+                };
+
+                let mut n = mytypes::types::Node::new();
+                n.set_id({
+                    let mut ab = AddressBlock::new();
+                    ab.set_node_id({
+                        let mut nid = NodeID::new();
+                        // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+                        nid.set_graph(::protobuf::Chars::from("default"));
+                        nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
+                        nid
+                    });
+                    ab});
+
+                n.set_fragments(
+                    {
+                        let mut rf = ::protobuf::RepeatedField::<Pointer>::new();
+                        rf.push(Pointer::new());
+                        rf.push(Pointer::new());
+                        rf.push(Pointer::new());
+                        rf
+                    }
+                );
+
+                n.set_attributes({
+                    let mut rf = ::protobuf::RepeatedField::<KeyValue>::new();
+                    rf.push({
+                        KeyValue::new_with_fields(now,
+                                                  Data::new_with_string_data("name"),
+                                                  Data::new_with_string_data("Austin Harris")
+                        )
+                    });
+                    rf.push({
+                        KeyValue::new_with_fields(now,
+                                                  Data::new_with_string_data("uses"),
+                                                  Data::new_with_string_data("Linux")
+                        )
+                    });
+                    rf.push({
+                        KeyValue::new_with_fields(now,
+                                                  Data::new_with_string_data("eats"),
+                                                  Data::new_with_string_data("pizza")
+                        )
+                    });
                     rf
-                }
-            );
+                });
 
-            n.set_attributes({
-                let mut rf = ::protobuf::RepeatedField::<KeyValue>::new();
-                rf.push({
-                    KeyValue::new_with_fields(now,
-                                              Data::new_with_string_data("name"),
-                                              Data::new_with_string_data("Austin Harris")
-                    )
-                });
-                rf.push({
-                    KeyValue::new_with_fields(now,
-                                              Data::new_with_string_data("uses"),
-                                              Data::new_with_string_data("Linux")
-                    )
-                });
-                rf.push({
-                    KeyValue::new_with_fields(now,
-                                              Data::new_with_string_data("eats"),
-                                              Data::new_with_string_data("pizza")
-                    )
-                });
-                rf
-            });
-
-            a.send(n).expect("Node send failed");
-        }
-    }
-    match call_back_handler.recv() {
-        Ok(status) =>
-            match status {
-                Ok(()) => {
-                    let elapsed = starttime.elapsed();
-                    info!("Finished OK - took: {}s {}ms",elapsed.as_secs(), elapsed.subsec_millis());
-                },
-                Err(_e) => error!("Finished Err {}", _e.description())
+                a.send(n).expect("Node send failed");
             }
-        Err(_e) => error!("Finished Err {}", _e.description())
-    }
-    info!("Finished test");
+            let gen_elapsed = started_at.elapsed().unwrap();
+            info!("{} - Finished generating and queueing fragments in {} sec, {} ms",someShard_id,gen_elapsed.as_secs(),gen_elapsed.subsec_millis());
+        }
+        match call_back_handler_A.recv() {
+            Ok(status) =>
+                match status {
+                    Ok(()) => {
+                        let elapsed = starttime.elapsed();
+                        info!("{} - Finished OK - wrote {} fragments in {}s {}ms",someShard_id,n_fragments,elapsed.as_secs(), elapsed.subsec_millis());
+                    },
+                    Err(_e) => error!("{} - Finished Err {}",someShard_id, _e.description())
+                }
+            Err(_e) => error!("{} - Finished Err {}",someShard_id, _e.description())
+        }
+    });
+    t
 }
