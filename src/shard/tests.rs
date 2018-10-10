@@ -84,7 +84,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
         let (call_back_initiatior_A, call_back_handler_A) = mpsc::sync_channel::<Result<()>>(1);
         // new scope to cleanup a,b channel
         {
-            let (a, b) = mpsc::channel::<mytypes::types::Node>();
+            let (a, b) = mpsc::channel::<mytypes::types::Node_Fragment>();
 
             info!("{} - Sending IO:Add",someShard_id);
             someShard.post.send(IO::Add {
@@ -101,7 +101,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
                     Err(_) => panic!("SystemTime before UNIX EPOCH!")
                 };
 
-                let mut n = mytypes::types::Node::new();
+                let mut n = mytypes::types::Node_Fragment::new();
                 n.set_id({
                     let mut ab = AddressBlock::new();
                     ab.set_node_id({
@@ -113,37 +113,20 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
                     });
                     ab});
 
-                n.set_fragments(
-                    {
-                        let mut rf = ::protobuf::RepeatedField::<Pointer>::new();
-                        rf.push(Pointer::new());
-                        rf.push(Pointer::new());
-                        rf.push(Pointer::new());
-                        rf
-                    }
-                );
+                n.set_keys({
+                    let mut ks = ::protobuf::RepeatedField::<Key>::new();
+                    ks.push(Key::new_without_attributes(now,"name"));
+                    ks.push(Key::new_without_attributes(now,"uses"));
+                    ks.push(Key::new_without_attributes(now,"eats"));
+                    ks
+                });
 
-                n.set_attributes({
-                    let mut rf = ::protobuf::RepeatedField::<KeyValue>::new();
-                    rf.push({
-                        KeyValue::new_with_fields(now,
-                                                  Data::new_with_string_data("name"),
-                                                  Data::new_with_string_data("Austin Harris")
-                        )
-                    });
-                    rf.push({
-                        KeyValue::new_with_fields(now,
-                                                  Data::new_with_string_data("uses"),
-                                                  Data::new_with_string_data("Linux")
-                        )
-                    });
-                    rf.push({
-                        KeyValue::new_with_fields(now,
-                                                  Data::new_with_string_data("eats"),
-                                                  Data::new_with_string_data("pizza")
-                        )
-                    });
-                    rf
+                n.set_values({
+                    let mut vs = ::protobuf::RepeatedField::<Value>::new();
+                    vs.push(Value::new_with_data(Data::new_with_string_data("Austin Harris")));
+                    vs.push(Value::new_with_data(Data::new_with_string_data("Linux")));
+                    vs.push(Value::new_with_data(Data::new_with_string_data("Pizza")));
+                    vs
                 });
 
                 a.send(n).expect("Node send failed");

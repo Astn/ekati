@@ -13,7 +13,7 @@ use parity_rocksdb::Column;
 
 
 pub enum IO {
-    Add {nodes: mpsc::Receiver<mytypes::types::Node>, callback: mpsc::SyncSender<Result<()>> },
+    Add {nodes: mpsc::Receiver<mytypes::types::Node_Fragment>, callback: mpsc::SyncSender<Result<()>> },
     NoOP,
     Shutdown
     // add something like Checkpoint {notify: mpsc::Sender<Result<(),Err>>}

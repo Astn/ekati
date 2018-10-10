@@ -127,6 +127,32 @@ impl ShardWorker {
                                                 let size_after = _n.compute_size();
                                                 assert_eq!(size_before, size_after, "We are testing to makes sure the size of our fragment didn't change when we set it's pointer");
                                             }
+                                            // todo: Should we sort keys and values here, or do it later?
+                                            // Must make sure that our keys are sorted for quick lookup later
+                                            // Values must also have their ordinal match the keys
+                                            // Maybe a better way to do this..
+//                                            let mut indexed_keys: Vec<(usize, &mytypes::types::Key)> = Vec::new();
+//                                            let mut sorted_keys = ::protobuf::RepeatedField::<mytypes::types::Key>::new();
+//                                            let mut sorted_values_by_key = ::protobuf::RepeatedField::<mytypes::types::Value>::new();
+//
+//                                            {
+//                                                let keys = _n.get_keys();
+//                                                indexed_keys = keys.iter().enumerate().collect();
+//
+//                                                indexed_keys.sort_unstable_by_key(|t| t.1.get_name());
+//                                                // now move the keys and the values by the indexed_keys
+//                                                // keys
+//
+//                                                for indexed_key in indexed_keys {
+//                                                    sorted_keys.push(_n.keys.as_ref()[indexed_key.0].clone());
+//                                                    sorted_values_by_key.push(_n.values.as_ref()[indexed_key.0].clone());
+//                                                }
+//                                            }
+//
+//                                            _n.set_keys(sorted_keys);
+//                                            _n.set_values(sorted_values_by_key);
+
+
                                             // NOTE: By writing Length Delimited, the offset in our Pointer, points to Length, not the beginning of the data
                                             // So the offset is "offset" by an i32.
                                             &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
@@ -141,6 +167,7 @@ impl ShardWorker {
                                                 let _value = _key.get_node_pointer().clone();
                                                 _values.pointers.insert(0, _value);
                                             }
+                                            // must clear the node pointer before using it as the Key in the lookup
                                             _key.clear_node_pointer();
 
                                             index.node_index_merge(&mut index_batch, _key, _values);

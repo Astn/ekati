@@ -1736,9 +1736,8 @@ impl ::protobuf::reflect::ProtobufValue for AddressBlock {
 }
 
 #[derive(PartialEq,Clone,Default)]
-pub struct TMD {
+pub struct Value {
     // message fields
-    pub time_stamp: u64,
     pub meta_data: ::protobuf::SingularPtrField<Data>,
     pub data: ::protobuf::SingularPtrField<Data>,
     // special fields
@@ -1746,27 +1745,12 @@ pub struct TMD {
     cached_size: ::protobuf::CachedSize,
 }
 
-impl TMD {
-    pub fn new() -> TMD {
+impl Value {
+    pub fn new() -> Value {
         ::std::default::Default::default()
     }
 
-    // uint64 time_stamp = 1;
-
-    pub fn clear_time_stamp(&mut self) {
-        self.time_stamp = 0;
-    }
-
-    // Param is passed by value, moved
-    pub fn set_time_stamp(&mut self, v: u64) {
-        self.time_stamp = v;
-    }
-
-    pub fn get_time_stamp(&self) -> u64 {
-        self.time_stamp
-    }
-
-    // .ahghee.grpc.Data meta_data = 2;
+    // .ahghee.grpc.Data meta_data = 1;
 
     pub fn clear_meta_data(&mut self) {
         self.meta_data.clear();
@@ -1799,7 +1783,7 @@ impl TMD {
         self.meta_data.as_ref().unwrap_or_else(|| Data::default_instance())
     }
 
-    // .ahghee.grpc.Data data = 3;
+    // .ahghee.grpc.Data data = 2;
 
     pub fn clear_data(&mut self) {
         self.data.clear();
@@ -1833,7 +1817,7 @@ impl TMD {
     }
 }
 
-impl ::protobuf::Message for TMD {
+impl ::protobuf::Message for Value {
     fn is_initialized(&self) -> bool {
         for v in &self.meta_data {
             if !v.is_initialized() {
@@ -1853,16 +1837,9 @@ impl ::protobuf::Message for TMD {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
-                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
-                    }
-                    let tmp = is.read_uint64()?;
-                    self.time_stamp = tmp;
-                },
-                2 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.meta_data)?;
                 },
-                3 => {
+                2 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.data)?;
                 },
                 _ => {
@@ -1877,9 +1854,6 @@ impl ::protobuf::Message for TMD {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        if self.time_stamp != 0 {
-            my_size += ::protobuf::rt::value_size(1, self.time_stamp, ::protobuf::wire_format::WireTypeVarint);
-        }
         if let Some(ref v) = self.meta_data.as_ref() {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
@@ -1894,15 +1868,261 @@ impl ::protobuf::Message for TMD {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        if self.time_stamp != 0 {
-            os.write_uint64(1, self.time_stamp)?;
-        }
         if let Some(ref v) = self.meta_data.as_ref() {
-            os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         }
         if let Some(ref v) = self.data.as_ref() {
+            os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &::std::any::Any {
+        self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> Value {
+        Value::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static mut descriptor: ::protobuf::lazy::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const ::protobuf::reflect::MessageDescriptor,
+        };
+        unsafe {
+            descriptor.get(|| {
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Data>>(
+                    "meta_data",
+                    |m: &Value| { &m.meta_data },
+                    |m: &mut Value| { &mut m.meta_data },
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Data>>(
+                    "data",
+                    |m: &Value| { &m.data },
+                    |m: &mut Value| { &mut m.data },
+                ));
+                ::protobuf::reflect::MessageDescriptor::new::<Value>(
+                    "Value",
+                    fields,
+                    file_descriptor_proto()
+                )
+            })
+        }
+    }
+
+    fn default_instance() -> &'static Value {
+        static mut instance: ::protobuf::lazy::Lazy<Value> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const Value,
+        };
+        unsafe {
+            instance.get(Value::new)
+        }
+    }
+}
+
+impl ::protobuf::Clear for Value {
+    fn clear(&mut self) {
+        self.clear_meta_data();
+        self.clear_data();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Value {
+    fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
+        ::protobuf::reflect::ProtobufValueRef::Message(self)
+    }
+}
+
+#[derive(PartialEq,Clone,Default)]
+pub struct Key {
+    // message fields
+    pub name: ::protobuf::Chars,
+    pub time_stamp: u64,
+    pub edge_attributes: ::protobuf::SingularPtrField<NodeID>,
+    // special fields
+    unknown_fields: ::protobuf::UnknownFields,
+    cached_size: ::protobuf::CachedSize,
+}
+
+impl Key {
+    pub fn new() -> Key {
+        ::std::default::Default::default()
+    }
+
+    // string name = 1;
+
+    pub fn clear_name(&mut self) {
+        ::protobuf::Clear::clear(&mut self.name);
+    }
+
+    // Param is passed by value, moved
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
+        self.name = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
+        &mut self.name
+    }
+
+    // Take field
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    // uint64 time_stamp = 2;
+
+    pub fn clear_time_stamp(&mut self) {
+        self.time_stamp = 0;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_time_stamp(&mut self, v: u64) {
+        self.time_stamp = v;
+    }
+
+    pub fn get_time_stamp(&self) -> u64 {
+        self.time_stamp
+    }
+
+    // .ahghee.grpc.NodeID edge_attributes = 3;
+
+    pub fn clear_edge_attributes(&mut self) {
+        self.edge_attributes.clear();
+    }
+
+    pub fn has_edge_attributes(&self) -> bool {
+        self.edge_attributes.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_edge_attributes(&mut self, v: NodeID) {
+        self.edge_attributes = ::protobuf::SingularPtrField::some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_edge_attributes(&mut self) -> &mut NodeID {
+        if self.edge_attributes.is_none() {
+            self.edge_attributes.set_default();
+        }
+        self.edge_attributes.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_edge_attributes(&mut self) -> NodeID {
+        self.edge_attributes.take().unwrap_or_else(|| NodeID::new())
+    }
+
+    pub fn get_edge_attributes(&self) -> &NodeID {
+        self.edge_attributes.as_ref().unwrap_or_else(|| NodeID::default_instance())
+    }
+}
+
+impl ::protobuf::Message for Key {
+    fn is_initialized(&self) -> bool {
+        for v in &self.edge_attributes {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
+                },
+                2 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    let tmp = is.read_uint64()?;
+                    self.time_stamp = tmp;
+                },
+                3 => {
+                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.edge_attributes)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if !self.name.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.name);
+        }
+        if self.time_stamp != 0 {
+            my_size += ::protobuf::rt::value_size(2, self.time_stamp, ::protobuf::wire_format::WireTypeVarint);
+        }
+        if let Some(ref v) = self.edge_attributes.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+        if !self.name.is_empty() {
+            os.write_string(1, &self.name)?;
+        }
+        if self.time_stamp != 0 {
+            os.write_uint64(2, self.time_stamp)?;
+        }
+        if let Some(ref v) = self.edge_attributes.as_ref() {
             os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
@@ -1937,8 +2157,8 @@ impl ::protobuf::Message for TMD {
         Self::descriptor_static()
     }
 
-    fn new() -> TMD {
-        TMD::new()
+    fn new() -> Key {
+        Key::new()
     }
 
     fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -1949,23 +2169,23 @@ impl ::protobuf::Message for TMD {
         unsafe {
             descriptor.get(|| {
                 let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
+                    "name",
+                    |m: &Key| { &m.name },
+                    |m: &mut Key| { &mut m.name },
+                ));
                 fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint64>(
                     "time_stamp",
-                    |m: &TMD| { &m.time_stamp },
-                    |m: &mut TMD| { &mut m.time_stamp },
+                    |m: &Key| { &m.time_stamp },
+                    |m: &mut Key| { &mut m.time_stamp },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Data>>(
-                    "meta_data",
-                    |m: &TMD| { &m.meta_data },
-                    |m: &mut TMD| { &mut m.meta_data },
+                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<NodeID>>(
+                    "edge_attributes",
+                    |m: &Key| { &m.edge_attributes },
+                    |m: &mut Key| { &mut m.edge_attributes },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Data>>(
-                    "data",
-                    |m: &TMD| { &m.data },
-                    |m: &mut TMD| { &mut m.data },
-                ));
-                ::protobuf::reflect::MessageDescriptor::new::<TMD>(
-                    "TMD",
+                ::protobuf::reflect::MessageDescriptor::new::<Key>(
+                    "Key",
                     fields,
                     file_descriptor_proto()
                 )
@@ -1973,286 +2193,51 @@ impl ::protobuf::Message for TMD {
         }
     }
 
-    fn default_instance() -> &'static TMD {
-        static mut instance: ::protobuf::lazy::Lazy<TMD> = ::protobuf::lazy::Lazy {
+    fn default_instance() -> &'static Key {
+        static mut instance: ::protobuf::lazy::Lazy<Key> = ::protobuf::lazy::Lazy {
             lock: ::protobuf::lazy::ONCE_INIT,
-            ptr: 0 as *const TMD,
+            ptr: 0 as *const Key,
         };
         unsafe {
-            instance.get(TMD::new)
+            instance.get(Key::new)
         }
     }
 }
 
-impl ::protobuf::Clear for TMD {
+impl ::protobuf::Clear for Key {
     fn clear(&mut self) {
+        self.clear_name();
         self.clear_time_stamp();
-        self.clear_meta_data();
-        self.clear_data();
+        self.clear_edge_attributes();
         self.unknown_fields.clear();
     }
 }
 
-impl ::std::fmt::Debug for TMD {
+impl ::std::fmt::Debug for Key {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
 }
 
-impl ::protobuf::reflect::ProtobufValue for TMD {
+impl ::protobuf::reflect::ProtobufValue for Key {
     fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
         ::protobuf::reflect::ProtobufValueRef::Message(self)
     }
 }
 
 #[derive(PartialEq,Clone,Default)]
-pub struct KeyValue {
-    // message fields
-    pub key: ::protobuf::SingularPtrField<TMD>,
-    pub value: ::protobuf::SingularPtrField<TMD>,
-    // special fields
-    unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::protobuf::CachedSize,
-}
-
-impl KeyValue {
-    pub fn new() -> KeyValue {
-        ::std::default::Default::default()
-    }
-
-    // .ahghee.grpc.TMD key = 1;
-
-    pub fn clear_key(&mut self) {
-        self.key.clear();
-    }
-
-    pub fn has_key(&self) -> bool {
-        self.key.is_some()
-    }
-
-    // Param is passed by value, moved
-    pub fn set_key(&mut self, v: TMD) {
-        self.key = ::protobuf::SingularPtrField::some(v);
-    }
-
-    // Mutable pointer to the field.
-    // If field is not initialized, it is initialized with default value first.
-    pub fn mut_key(&mut self) -> &mut TMD {
-        if self.key.is_none() {
-            self.key.set_default();
-        }
-        self.key.as_mut().unwrap()
-    }
-
-    // Take field
-    pub fn take_key(&mut self) -> TMD {
-        self.key.take().unwrap_or_else(|| TMD::new())
-    }
-
-    pub fn get_key(&self) -> &TMD {
-        self.key.as_ref().unwrap_or_else(|| TMD::default_instance())
-    }
-
-    // .ahghee.grpc.TMD value = 2;
-
-    pub fn clear_value(&mut self) {
-        self.value.clear();
-    }
-
-    pub fn has_value(&self) -> bool {
-        self.value.is_some()
-    }
-
-    // Param is passed by value, moved
-    pub fn set_value(&mut self, v: TMD) {
-        self.value = ::protobuf::SingularPtrField::some(v);
-    }
-
-    // Mutable pointer to the field.
-    // If field is not initialized, it is initialized with default value first.
-    pub fn mut_value(&mut self) -> &mut TMD {
-        if self.value.is_none() {
-            self.value.set_default();
-        }
-        self.value.as_mut().unwrap()
-    }
-
-    // Take field
-    pub fn take_value(&mut self) -> TMD {
-        self.value.take().unwrap_or_else(|| TMD::new())
-    }
-
-    pub fn get_value(&self) -> &TMD {
-        self.value.as_ref().unwrap_or_else(|| TMD::default_instance())
-    }
-}
-
-impl ::protobuf::Message for KeyValue {
-    fn is_initialized(&self) -> bool {
-        for v in &self.key {
-            if !v.is_initialized() {
-                return false;
-            }
-        };
-        for v in &self.value {
-            if !v.is_initialized() {
-                return false;
-            }
-        };
-        true
-    }
-
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
-        while !is.eof()? {
-            let (field_number, wire_type) = is.read_tag_unpack()?;
-            match field_number {
-                1 => {
-                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.key)?;
-                },
-                2 => {
-                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.value)?;
-                },
-                _ => {
-                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
-                },
-            };
-        }
-        ::std::result::Result::Ok(())
-    }
-
-    // Compute sizes of nested messages
-    #[allow(unused_variables)]
-    fn compute_size(&self) -> u32 {
-        let mut my_size = 0;
-        if let Some(ref v) = self.key.as_ref() {
-            let len = v.compute_size();
-            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-        }
-        if let Some(ref v) = self.value.as_ref() {
-            let len = v.compute_size();
-            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-        }
-        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
-        self.cached_size.set(my_size);
-        my_size
-    }
-
-    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        if let Some(ref v) = self.key.as_ref() {
-            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
-            os.write_raw_varint32(v.get_cached_size())?;
-            v.write_to_with_cached_sizes(os)?;
-        }
-        if let Some(ref v) = self.value.as_ref() {
-            os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
-            os.write_raw_varint32(v.get_cached_size())?;
-            v.write_to_with_cached_sizes(os)?;
-        }
-        os.write_unknown_fields(self.get_unknown_fields())?;
-        ::std::result::Result::Ok(())
-    }
-
-    fn get_cached_size(&self) -> u32 {
-        self.cached_size.get()
-    }
-
-    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
-        &self.unknown_fields
-    }
-
-    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
-        &mut self.unknown_fields
-    }
-
-    fn as_any(&self) -> &::std::any::Any {
-        self as &::std::any::Any
-    }
-    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
-        self as &mut ::std::any::Any
-    }
-    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
-        self
-    }
-
-    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
-        Self::descriptor_static()
-    }
-
-    fn new() -> KeyValue {
-        KeyValue::new()
-    }
-
-    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
-        static mut descriptor: ::protobuf::lazy::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::lazy::Lazy {
-            lock: ::protobuf::lazy::ONCE_INIT,
-            ptr: 0 as *const ::protobuf::reflect::MessageDescriptor,
-        };
-        unsafe {
-            descriptor.get(|| {
-                let mut fields = ::std::vec::Vec::new();
-                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<TMD>>(
-                    "key",
-                    |m: &KeyValue| { &m.key },
-                    |m: &mut KeyValue| { &mut m.key },
-                ));
-                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<TMD>>(
-                    "value",
-                    |m: &KeyValue| { &m.value },
-                    |m: &mut KeyValue| { &mut m.value },
-                ));
-                ::protobuf::reflect::MessageDescriptor::new::<KeyValue>(
-                    "KeyValue",
-                    fields,
-                    file_descriptor_proto()
-                )
-            })
-        }
-    }
-
-    fn default_instance() -> &'static KeyValue {
-        static mut instance: ::protobuf::lazy::Lazy<KeyValue> = ::protobuf::lazy::Lazy {
-            lock: ::protobuf::lazy::ONCE_INIT,
-            ptr: 0 as *const KeyValue,
-        };
-        unsafe {
-            instance.get(KeyValue::new)
-        }
-    }
-}
-
-impl ::protobuf::Clear for KeyValue {
-    fn clear(&mut self) {
-        self.clear_key();
-        self.clear_value();
-        self.unknown_fields.clear();
-    }
-}
-
-impl ::std::fmt::Debug for KeyValue {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        ::protobuf::text_format::fmt(self, f)
-    }
-}
-
-impl ::protobuf::reflect::ProtobufValue for KeyValue {
-    fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
-        ::protobuf::reflect::ProtobufValueRef::Message(self)
-    }
-}
-
-#[derive(PartialEq,Clone,Default)]
-pub struct Node {
+pub struct Node_Fragment {
     // message fields
     pub id: ::protobuf::SingularPtrField<AddressBlock>,
-    pub fragments: ::protobuf::RepeatedField<Pointer>,
-    pub attributes: ::protobuf::RepeatedField<KeyValue>,
+    pub keys: ::protobuf::RepeatedField<Key>,
+    pub values: ::protobuf::RepeatedField<Value>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
     cached_size: ::protobuf::CachedSize,
 }
 
-impl Node {
-    pub fn new() -> Node {
+impl Node_Fragment {
+    pub fn new() -> Node_Fragment {
         ::std::default::Default::default()
     }
 
@@ -2289,70 +2274,70 @@ impl Node {
         self.id.as_ref().unwrap_or_else(|| AddressBlock::default_instance())
     }
 
-    // repeated .ahghee.grpc.Pointer fragments = 2;
+    // repeated .ahghee.grpc.Key keys = 3;
 
-    pub fn clear_fragments(&mut self) {
-        self.fragments.clear();
+    pub fn clear_keys(&mut self) {
+        self.keys.clear();
     }
 
     // Param is passed by value, moved
-    pub fn set_fragments(&mut self, v: ::protobuf::RepeatedField<Pointer>) {
-        self.fragments = v;
+    pub fn set_keys(&mut self, v: ::protobuf::RepeatedField<Key>) {
+        self.keys = v;
     }
 
     // Mutable pointer to the field.
-    pub fn mut_fragments(&mut self) -> &mut ::protobuf::RepeatedField<Pointer> {
-        &mut self.fragments
+    pub fn mut_keys(&mut self) -> &mut ::protobuf::RepeatedField<Key> {
+        &mut self.keys
     }
 
     // Take field
-    pub fn take_fragments(&mut self) -> ::protobuf::RepeatedField<Pointer> {
-        ::std::mem::replace(&mut self.fragments, ::protobuf::RepeatedField::new())
+    pub fn take_keys(&mut self) -> ::protobuf::RepeatedField<Key> {
+        ::std::mem::replace(&mut self.keys, ::protobuf::RepeatedField::new())
     }
 
-    pub fn get_fragments(&self) -> &[Pointer] {
-        &self.fragments
+    pub fn get_keys(&self) -> &[Key] {
+        &self.keys
     }
 
-    // repeated .ahghee.grpc.KeyValue attributes = 3;
+    // repeated .ahghee.grpc.Value values = 4;
 
-    pub fn clear_attributes(&mut self) {
-        self.attributes.clear();
+    pub fn clear_values(&mut self) {
+        self.values.clear();
     }
 
     // Param is passed by value, moved
-    pub fn set_attributes(&mut self, v: ::protobuf::RepeatedField<KeyValue>) {
-        self.attributes = v;
+    pub fn set_values(&mut self, v: ::protobuf::RepeatedField<Value>) {
+        self.values = v;
     }
 
     // Mutable pointer to the field.
-    pub fn mut_attributes(&mut self) -> &mut ::protobuf::RepeatedField<KeyValue> {
-        &mut self.attributes
+    pub fn mut_values(&mut self) -> &mut ::protobuf::RepeatedField<Value> {
+        &mut self.values
     }
 
     // Take field
-    pub fn take_attributes(&mut self) -> ::protobuf::RepeatedField<KeyValue> {
-        ::std::mem::replace(&mut self.attributes, ::protobuf::RepeatedField::new())
+    pub fn take_values(&mut self) -> ::protobuf::RepeatedField<Value> {
+        ::std::mem::replace(&mut self.values, ::protobuf::RepeatedField::new())
     }
 
-    pub fn get_attributes(&self) -> &[KeyValue] {
-        &self.attributes
+    pub fn get_values(&self) -> &[Value] {
+        &self.values
     }
 }
 
-impl ::protobuf::Message for Node {
+impl ::protobuf::Message for Node_Fragment {
     fn is_initialized(&self) -> bool {
         for v in &self.id {
             if !v.is_initialized() {
                 return false;
             }
         };
-        for v in &self.fragments {
+        for v in &self.keys {
             if !v.is_initialized() {
                 return false;
             }
         };
-        for v in &self.attributes {
+        for v in &self.values {
             if !v.is_initialized() {
                 return false;
             }
@@ -2367,11 +2352,11 @@ impl ::protobuf::Message for Node {
                 1 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.id)?;
                 },
-                2 => {
-                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.fragments)?;
-                },
                 3 => {
-                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.attributes)?;
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.keys)?;
+                },
+                4 => {
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.values)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -2389,11 +2374,11 @@ impl ::protobuf::Message for Node {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         }
-        for value in &self.fragments {
+        for value in &self.keys {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
-        for value in &self.attributes {
+        for value in &self.values {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
@@ -2408,13 +2393,13 @@ impl ::protobuf::Message for Node {
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         }
-        for v in &self.fragments {
-            os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+        for v in &self.keys {
+            os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         };
-        for v in &self.attributes {
-            os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+        for v in &self.values {
+            os.write_tag(4, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         };
@@ -2448,8 +2433,8 @@ impl ::protobuf::Message for Node {
         Self::descriptor_static()
     }
 
-    fn new() -> Node {
-        Node::new()
+    fn new() -> Node_Fragment {
+        Node_Fragment::new()
     }
 
     fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -2462,21 +2447,21 @@ impl ::protobuf::Message for Node {
                 let mut fields = ::std::vec::Vec::new();
                 fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<AddressBlock>>(
                     "id",
-                    |m: &Node| { &m.id },
-                    |m: &mut Node| { &mut m.id },
+                    |m: &Node_Fragment| { &m.id },
+                    |m: &mut Node_Fragment| { &mut m.id },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Pointer>>(
-                    "fragments",
-                    |m: &Node| { &m.fragments },
-                    |m: &mut Node| { &mut m.fragments },
+                fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Key>>(
+                    "keys",
+                    |m: &Node_Fragment| { &m.keys },
+                    |m: &mut Node_Fragment| { &mut m.keys },
                 ));
-                fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<KeyValue>>(
-                    "attributes",
-                    |m: &Node| { &m.attributes },
-                    |m: &mut Node| { &mut m.attributes },
+                fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Value>>(
+                    "values",
+                    |m: &Node_Fragment| { &m.values },
+                    |m: &mut Node_Fragment| { &mut m.values },
                 ));
-                ::protobuf::reflect::MessageDescriptor::new::<Node>(
-                    "Node",
+                ::protobuf::reflect::MessageDescriptor::new::<Node_Fragment>(
+                    "Node_Fragment",
                     fields,
                     file_descriptor_proto()
                 )
@@ -2484,33 +2469,33 @@ impl ::protobuf::Message for Node {
         }
     }
 
-    fn default_instance() -> &'static Node {
-        static mut instance: ::protobuf::lazy::Lazy<Node> = ::protobuf::lazy::Lazy {
+    fn default_instance() -> &'static Node_Fragment {
+        static mut instance: ::protobuf::lazy::Lazy<Node_Fragment> = ::protobuf::lazy::Lazy {
             lock: ::protobuf::lazy::ONCE_INIT,
-            ptr: 0 as *const Node,
+            ptr: 0 as *const Node_Fragment,
         };
         unsafe {
-            instance.get(Node::new)
+            instance.get(Node_Fragment::new)
         }
     }
 }
 
-impl ::protobuf::Clear for Node {
+impl ::protobuf::Clear for Node_Fragment {
     fn clear(&mut self) {
         self.clear_id();
-        self.clear_fragments();
-        self.clear_attributes();
+        self.clear_keys();
+        self.clear_values();
         self.unknown_fields.clear();
     }
 }
 
-impl ::std::fmt::Debug for Node {
+impl ::std::fmt::Debug for Node_Fragment {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
 }
 
-impl ::protobuf::reflect::ProtobufValue for Node {
+impl ::protobuf::reflect::ProtobufValue for Node_Fragment {
     fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
         ::protobuf::reflect::ProtobufValueRef::Message(self)
     }
@@ -2706,17 +2691,17 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     terB\x07\n\x05block\"\x8c\x01\n\x0cAddressBlock\x12.\n\x07node_id\x18\
     \x01\x20\x01(\x0b2\x13.ahghee.grpc.NodeIDH\0R\x06nodeId\x12A\n\x0eglobal\
     _node_id\x18\x02\x20\x01(\x0b2\x19.ahghee.grpc.GlobalNodeIDH\0R\x0cgloba\
-    lNodeIdB\t\n\x07address\"{\n\x03TMD\x12\x1d\n\ntime_stamp\x18\x01\x20\
-    \x01(\x04R\ttimeStamp\x12.\n\tmeta_data\x18\x02\x20\x01(\x0b2\x11.ahghee\
-    .grpc.DataR\x08metaData\x12%\n\x04data\x18\x03\x20\x01(\x0b2\x11.ahghee.\
-    grpc.DataR\x04data\"V\n\x08KeyValue\x12\"\n\x03key\x18\x01\x20\x01(\x0b2\
-    \x10.ahghee.grpc.TMDR\x03key\x12&\n\x05value\x18\x02\x20\x01(\x0b2\x10.a\
-    hghee.grpc.TMDR\x05value\"\x9c\x01\n\x04Node\x12)\n\x02id\x18\x01\x20\
-    \x01(\x0b2\x19.ahghee.grpc.AddressBlockR\x02id\x122\n\tfragments\x18\x02\
-    \x20\x03(\x0b2\x14.ahghee.grpc.PointerR\tfragments\x125\n\nattributes\
-    \x18\x03\x20\x03(\x0b2\x15.ahghee.grpc.KeyValueR\nattributes\"<\n\x08Poi\
-    nters\x120\n\x08pointers\x18\x01\x20\x03(\x0b2\x14.ahghee.grpc.PointerR\
-    \x08pointersb\x06proto3\
+    lNodeIdB\t\n\x07address\"^\n\x05Value\x12.\n\tmeta_data\x18\x01\x20\x01(\
+    \x0b2\x11.ahghee.grpc.DataR\x08metaData\x12%\n\x04data\x18\x02\x20\x01(\
+    \x0b2\x11.ahghee.grpc.DataR\x04data\"v\n\x03Key\x12\x12\n\x04name\x18\
+    \x01\x20\x01(\tR\x04name\x12\x1d\n\ntime_stamp\x18\x02\x20\x01(\x04R\tti\
+    meStamp\x12<\n\x0fedge_attributes\x18\x03\x20\x01(\x0b2\x13.ahghee.grpc.\
+    NodeIDR\x0eedgeAttributes\"\x8c\x01\n\rNode_Fragment\x12)\n\x02id\x18\
+    \x01\x20\x01(\x0b2\x19.ahghee.grpc.AddressBlockR\x02id\x12$\n\x04keys\
+    \x18\x03\x20\x03(\x0b2\x10.ahghee.grpc.KeyR\x04keys\x12*\n\x06values\x18\
+    \x04\x20\x03(\x0b2\x12.ahghee.grpc.ValueR\x06values\"<\n\x08Pointers\x12\
+    0\n\x08pointers\x18\x01\x20\x03(\x0b2\x14.ahghee.grpc.PointerR\x08pointe\
+    rsb\x06proto3\
 ";
 
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy {

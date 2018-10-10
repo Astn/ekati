@@ -14,26 +14,33 @@ impl Data {
         data
     }
 }
+impl Key {
+    pub fn new_without_attributes(now:u64, text: &str) -> Key {
+        let mut k = Key::new();
+        k.set_name(::protobuf::Chars::from(text));
+        k.set_time_stamp(now);
+        k.clear_edge_attributes();
+        k
+    }
 
-impl KeyValue{
-    pub fn new_with_fields(now: u64, key: Data, value: Data) -> KeyValue {
-        let mut kv = KeyValue::new();
-        kv.set_key({
-            let mut tmd = TMD::new();
-            tmd.set_time_stamp(now);
-            tmd.set_data({
-                key
-            });
-            tmd
-        });
-        kv.set_value({
-            let mut tmd = TMD::new();
-            tmd.set_time_stamp(now);
-            tmd.set_data({
-                value
-            });
-            tmd
-        });
-        kv
+    pub fn new_with_attributes(now:u64, text: &str, owned_attributes: NodeID) -> Key {
+        let mut k = Key::new();
+        k.set_name(::protobuf::Chars::from(text));
+        k.set_time_stamp(now);
+        k.set_edge_attributes(owned_attributes);
+        k
+    }
+}
+impl Value {
+    pub fn new_with_data(data: Data) -> Value{
+        let mut v = Value::new();
+        v.set_data(data);
+        v
+    }
+    pub fn new_with_meta_data(meta: Data, data: Data) -> Value{
+        let mut v = Value::new();
+        v.set_meta_data(meta);
+        v.set_data(data);
+        v
     }
 }

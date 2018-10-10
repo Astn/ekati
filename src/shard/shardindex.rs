@@ -10,10 +10,10 @@ use parity_rocksdb::WriteBatch;
 use parity_rocksdb::Column;
 
 pub struct ShardIndex {
-    pub db: DB
-//    pub node_index: Column,
-//    pub fragments_connected: Column,
-//    pub fragments_requested: Column
+    pub db: DB,
+    pub node_index: [u8;4],
+    pub fragments_connected: [u8;4],
+    pub fragments_requested: [u8;4]
 }
 impl ShardIndex {
     pub fn new(path: &str) -> ShardIndex{
@@ -35,30 +35,35 @@ impl ShardIndex {
         //let d = DB::open_cf(&defaultOpts, path, &["node_index","fragments_connected", "fragments_requested"], &[node_index_options, fragments_connected_options, fragments_requested_options]).unwrap();
         let d = DB::open_default(path).unwrap();
         ShardIndex{
-            // todo: different column familys may need different options
-//            node_index : d.cf_handle("node_index").unwrap(),
-//            fragments_connected : d.cf_handle("fragments_connected").unwrap(),
-//            fragments_requested : d.cf_handle("fragments_requested").unwrap(),
+            node_index : ['n' as u8,'i' as u8,':' as u8,':' as u8],
+            fragments_connected : ['f' as u8,'c' as u8,':' as u8,':' as u8],
+            fragments_requested : ['f' as u8,'r' as u8,':' as u8,':' as u8],
             db : d,
         }
     }
 
-//    pub fn fragments_connected_merge(&mut self, batch: &mut WriteBatch, pointer: &mut mytypes::types::Pointer, pointers: &mut mytypes::types::Pointers){
-//        use protobuf::Message;
-//        //let typekey = "fc:".as_bytes();
-//        batch.merge_cf(self.fragments_connected,pointer.write_to_bytes().unwrap().as_mut_slice(),pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
-//    }
-//
-//    pub fn fragments_requested_merge(&mut self, batch: &mut WriteBatch, pointer: &mut mytypes::types::Pointer, pointers: &mut mytypes::types::Pointers){
-//        use protobuf::Message;
-//        //let typekey = "fr:".as_bytes();
-//        batch.merge_cf(self.fragments_requested,pointer.write_to_bytes().unwrap().as_mut_slice(),pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
-//    }
+    pub fn fragments_connected_merge(&mut self, batch: &mut WriteBatch, pointer: &mut mytypes::types::Pointer, pointers: &mut mytypes::types::Pointers){
+        use protobuf::Message;
+        use std::io::Write;
+        let key = &mut self.fragments_connected.to_vec();
+        key.write(&pointer.write_to_bytes().unwrap().as_slice());
+        batch.merge(key, pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
+    }
+
+    pub fn fragments_requested_merge(&mut self, batch: &mut WriteBatch, pointer: &mut mytypes::types::Pointer, pointers: &mut mytypes::types::Pointers){
+        use protobuf::Message;
+        use std::io::Write;
+        let key = &mut self.fragments_requested.to_vec();
+        key.write(&pointer.write_to_bytes().unwrap().as_slice());
+        batch.merge(key, pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
+    }
 
     pub fn node_index_merge(&mut self, batch: &mut WriteBatch, node: &mut mytypes::types::NodeID, pointers: &mut mytypes::types::Pointers){
         use protobuf::Message;
-        //let typekey = "ni:".as_bytes();
-        batch.merge(node.write_to_bytes().unwrap().as_mut_slice(),pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
+        use std::io::Write;
+        let key = &mut self.fragments_requested.to_vec();
+        key.write(&node.write_to_bytes().unwrap().as_slice());
+        batch.merge(key,pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
     }
 
     /// All the values are currently a mytypes::types::Pointers. If this changes, we will need to check the key for a prefix to select the correct merge operator
