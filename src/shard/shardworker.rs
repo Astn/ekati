@@ -163,7 +163,7 @@ impl ShardWorker {
 
                                             // NOTE: By writing Length Delimited, the offset in our Pointer, points to Length, not the beginning of the data
                                             // So the offset is "offset" by an i32.
-                                            &_n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
+                                            _n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
 
                                             // todo: Would adding to the index in a seperate channel speed this up?
                                             // todo: Would a "multi_put" be faster?

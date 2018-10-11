@@ -19,21 +19,14 @@ impl ShardIndex {
     pub fn new(path: &str) -> ShardIndex{
 
         let mut defaultOpts = Options::new();
-        let mut node_index_options = Options::new();
-        let mut fragments_connected_options = Options::new();
-        let mut fragments_requested_options = Options::new();
+
         defaultOpts.create_if_missing(true);
+        defaultOpts.add_merge_operator("node_index_merge",  ShardIndex::merge_operator);
 
-        node_index_options.create_if_missing(true);
-        fragments_connected_options.create_if_missing(true);
-        fragments_requested_options.create_if_missing(true);
 
-        node_index_options.add_merge_operator("node_index_merge",  ShardIndex::merge_operator);
-        fragments_requested_options.add_merge_operator("node_index_merge",  ShardIndex::merge_operator);
-        fragments_connected_options.add_merge_operator("node_index_merge",  ShardIndex::merge_operator);
 
         //let d = DB::open_cf(&defaultOpts, path, &["node_index","fragments_connected", "fragments_requested"], &[node_index_options, fragments_connected_options, fragments_requested_options]).unwrap();
-        let d = DB::open_default(path).unwrap();
+        let d = DB::open(&defaultOpts, path).unwrap();
         ShardIndex{
             node_index : ['n' as u8,'i' as u8,':' as u8,':' as u8],
             fragments_connected : ['f' as u8,'c' as u8,':' as u8,':' as u8],
