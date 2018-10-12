@@ -12,10 +12,10 @@ use shard::io::IO;
 use std::fs::File;
 use std::io::prelude::*;
 use protobuf::Message;
+use protobuf::text_format;
 use std::thread;
 use std::sync::mpsc;
-use protobuf::SingularPtrField;
-use protobuf::RepeatedField;
+use protobuf::*;
 use std::error::Error;
 use std::io::Result;
 use std::time::Instant;
@@ -26,7 +26,8 @@ use bytes::Bytes;
 use std::string::String;
 
 use std::sync::{Once, ONCE_INIT};
-
+use std::fmt;
+use std::fmt::Debug;
 
 static INIT: Once = ONCE_INIT;
 
@@ -62,12 +63,12 @@ fn write_buffers_to_disk() {
 fn create_a_shard() {
     setup();
     let start = SystemTime::now();
-    let n_fragments = 2000000;
+    let n_fragments = 2;
     let shardA_joiner = run_shard_thread(n_fragments/2,1);
-    let shardB_joiner= run_shard_thread(n_fragments/2, 2);
+    //let shardB_joiner= run_shard_thread(n_fragments/2, 2);
 
     let a_fin = shardA_joiner.join();
-    let b_fin = shardB_joiner.join();
+    //let b_fin = shardB_joiner.join();
 
     let elapsed =  start.elapsed().unwrap();
     info!("Finished adding {} fragments in {} s {} ms",n_fragments, elapsed.as_secs(), elapsed.subsec_millis());
@@ -145,6 +146,37 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
                 }
             Err(_e) => error!("{} - Finished Err {}",someShard_id, _e.description())
         }
+        info!("{} - That's not all folks, can we get something out?",someShard_id);
+
+        let mut queryNid = NodeID::new();
+        // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+        queryNid.set_graph(::protobuf::Chars::from("default"));
+        queryNid.set_nodeid(::protobuf::Chars::from("0".to_string()));
+
+        let (call_back_initiatior_B, call_back_handler_B) = mpsc::sync_channel::<ProtobufResult<Node_Fragment>>(1);
+
+        someShard.post.send(IO::ReadNodeFragments {
+            nodeid: queryNid,
+            callback: call_back_initiatior_B
+        });
+
+
+        match call_back_handler_B.recv() {
+
+            Ok(status) => {
+                match status {
+                    Ok(frag) => {
+                        ;
+                        info!("Woo!!! got a:\n {}",text_format::print_to_string(&frag));
+                    },
+                    Err(_e) => error!("Sad eyes, got a {}", _e)
+                }
+            }
+            Err(_e) => {
+                error!("Sad eyes, got a {}", _e)
+            }
+        }
+
     });
     t
 }

@@ -9,7 +9,7 @@ use parity_rocksdb::WriteBatch;
 use parity_rocksdb::WriteOptions;
 use ::shard::shardindex::ShardIndex;
 use ::shard::io::IO;
-use ::protobuf::RepeatedField;
+use ::protobuf::*;
 use mytypes::types::Node_Fragment;
 use mytypes::types::Key;
 use mytypes::types::Value;
@@ -34,6 +34,7 @@ impl ShardWorker {
         ptr
     }
 
+    /// This is used by sort_key_values internally. Maybe you should use that.
     fn _sorted_key_values(nf: &Node_Fragment) -> ( RepeatedField<mytypes::types::Key>, RepeatedField<Value>) {
         let mut indexed_keys: Vec<(usize, &mytypes::types::Key)> = Vec::new();
         let mut sorted_keys = ::protobuf::RepeatedField::<mytypes::types::Key>::new();
@@ -54,6 +55,9 @@ impl ShardWorker {
 
         (sorted_keys, sorted_values_by_key)
     }
+
+    /// this replaces the keys and values with sorted ones to enable searching keys, and having
+    /// the values ordinal match the keys' ordinal
     fn sort_key_values(nf: &mut mytypes::types::Node_Fragment){
 
         let (ks,vs) = ShardWorker::_sorted_key_values(&nf);
@@ -62,12 +66,14 @@ impl ShardWorker {
     }
 
 
+    /// Creates and starts up a shard with it's own IO thread.
     pub fn new(shard_id:i32, create_testing_directory:bool) -> ShardWorker {
         use std::fs;
         use std::env;
         use std::path;
         use std::io::*;
         use ::protobuf::Message;
+
         let (a,receiver) = mpsc::channel::<IO>();
         let test_dir = create_testing_directory.clone();
         let _shard_id = shard_id.clone();
@@ -75,10 +81,9 @@ impl ShardWorker {
         let sw: ShardWorker = ShardWorker{
             post: a,
             thread: thread::spawn(move ||{
-                let dir = match test_dir {
-                    true => env::current_dir().unwrap().join(path::Path::new(&format!("tmp-data-{}",shard_id))),
-                    false => env::current_dir().unwrap().join(path::Path::new("data"))
-                };
+                // todo: allow specifying the directory when creating the shard
+                // to allow spreading shards across multiple physical disks
+                let dir = env::current_dir().unwrap().join(path::Path::new(&format!("shard-{}",shard_id)));
 
                 match fs::create_dir(&dir){
                     Ok(_) => Ok(()),
@@ -99,10 +104,13 @@ impl ShardWorker {
                 let file_path_buf = dir.join(path::Path::new(&file_name));
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",file_path.to_str().expect("valid path"));
-                let mut file = OpenOptions::new().read(true).append(true).create(true).open(&file_path).expect(&file_error);
-                let pre_alloc_size = 1024 * 100000;
-                file.set_len(pre_alloc_size).expect("File size reserved");
-                let mut last_file_position = file.seek(SeekFrom::Current(0)).expect("Couldn't seek to current position");
+                let mut file_out = OpenOptions::new().create(true).write(true).open(&file_path).expect(&file_error);
+                let pre_alloc_size = 1024 * 100;
+                file_out.set_len(pre_alloc_size).expect("File size reserved");
+                file_out.flush();
+                let mut file_out = OpenOptions::new().write(true).open(&file_path).expect(&file_error);
+                let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&file_path).expect(&file_error);
+                let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
 
                 loop {
@@ -165,7 +173,7 @@ impl ShardWorker {
                                             // So the offset is "offset" by an i32.
                                             _n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
 
-                                            // todo: Would adding to the index in a seperate channel speed this up?
+                                            // todo: Would adding to the index in a separate channel speed this up?
                                             // todo: Would a "multi_put" be faster?
                                             // Add this nodeid to the nodeid index
                                             let _key = _n.mut_id().mut_node_id();
@@ -182,7 +190,7 @@ impl ShardWorker {
 
                                             if &buffer.len() >= &buffer_flush_len {
                                                 // flush the buffer
-                                                let _written_size = file.write(&buffer).expect("file write");
+                                                let _written_size = file_out.write(&buffer).expect("file write");
                                                 last_file_position = last_file_position + _written_size as u64;
                                                 assert_ne!(0,last_file_position, "We are testing that after wrote data, we are incrementing our last_file_position");
                                                 &buffer.clear();
@@ -203,12 +211,51 @@ impl ShardWorker {
                                 // todo: can we do this async some how? We could use some profiling, cause I think, but don't know that this call is a slow blocking call.
                                 index.db.write(index_batch);
                                 // flush the buffer
-                                let _written_size = file.write(&buffer).expect("file write");
+                                let _written_size = file_out.write(&buffer).expect("file write");
                                 &buffer.clear();
-                                file.flush().expect("flush file");
+                                file_out.flush().expect("flush file");
                                 callback.send(Ok(())).expect("callback still open");
                                 // todo: background work to link fragments
                             },
+                            IO::ReadNodeFragments {nodeid, callback} => {
+                                // flush the writer side... if we are going to read from it.
+                                file_out.flush();
+                                let mut frag_pointers : Vec<Pointer> = Vec::new();
+                                let mut from_index = false;
+                                if nodeid.has_node_pointer() {
+                                    frag_pointers.push(nodeid.get_node_pointer().to_owned());
+                                } else {
+                                    from_index = true;
+                                    {
+                                        let got = index.node_index_get(&nodeid);
+                                        got.iter().for_each(|opts| {
+                                            opts.iter().for_each(|pts| {
+                                                pts.get_pointers().iter().for_each(|p| {
+                                                    frag_pointers.push(p.clone());
+                                                })
+                                            })
+                                        });
+                                    }
+                                }
+
+                                if from_index {
+                                    // we should have all the node_fragment pointers we know about
+                                    frag_pointers.iter().for_each(|p|{
+                                        // todo: most likely its a different file
+                                        file_in.seek(SeekFrom::Start(p.offset));
+                                        let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut file_in);
+                                        let f: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                                        callback.send(f);
+                                        ()
+                                    });
+                                    // todo: do we need to send something down callback to tell it we are done?
+
+                                } else {
+                                    // as we load a fragment we either need to follow internal pointers
+                                    // or we need to go back to the index.
+                                }
+
+                            }
                             IO::NoOP => debug!("Got NoOp"),
                             IO::Shutdown => {
                                 // todo: if we have a thread pool running maintenance tasks or IO:Add tasks, we need to call shutdown on those.

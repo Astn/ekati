@@ -1,3 +1,5 @@
+
+use std::result;
 use std::sync::mpsc;
 use std::thread;
 use std::collections::BTreeMap;
@@ -57,6 +59,22 @@ impl ShardIndex {
         let key = &mut self.fragments_requested.to_vec();
         key.write(&node.write_to_bytes().unwrap().as_slice());
         batch.merge(key,pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
+    }
+    /// this only works if node_pointer is not set.
+    pub fn node_index_get(&mut self, nodeid: &mytypes::types::NodeID) -> result::Result<Option<mytypes::types::Pointers>,String>  {
+        use protobuf::Message;
+        use std::io::Write;
+        let key = &mut self.fragments_requested.to_vec();
+        key.write(&nodeid.write_to_bytes().unwrap().as_slice());
+        let found = self.db.get(key);
+        let x = found.map(|odbv| {
+            odbv.map(|dbv| {
+                let mut _values = mytypes::types::Pointers::new();
+                _values.merge_from_bytes(dbv.as_ref());
+                _values
+            })
+        });
+        x
     }
 
     /// All the values are currently a mytypes::types::Pointers. If this changes, we will need to check the key for a prefix to select the correct merge operator
