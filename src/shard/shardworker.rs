@@ -105,7 +105,7 @@ impl ShardWorker {
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",file_path.to_str().expect("valid path"));
                 let mut file_out = OpenOptions::new().create(true).write(true).open(&file_path).expect(&file_error);
-                let pre_alloc_size = 1024 * 100;
+                let pre_alloc_size = 1024 * 100000;
                 file_out.set_len(pre_alloc_size).expect("File size reserved");
                 file_out.flush();
                 let mut file_out = OpenOptions::new().write(true).open(&file_path).expect(&file_error);
