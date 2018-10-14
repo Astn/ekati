@@ -65,13 +65,16 @@ fn write_buffers_to_disk() {
 fn create_a_shard() {
     setup();
     let start = SystemTime::now();
-    let n_fragments = 2000000;
-    let shardA_joiner = run_shard_thread(n_fragments,1);
-   // let shardB_joiner= run_shard_thread(n_fragments/2, 2);
-
-    let a_fin = shardA_joiner.join();
-  //  let b_fin = shardB_joiner.join();
-
+    let n_fragments = 10000000;
+    let shard_count = 4;
+    let mut handles = Vec::new();
+    for sc in 0..shard_count {
+        handles.push(run_shard_thread(n_fragments/shard_count,sc));
+    }
+    for sc in 0..shard_count as usize {
+        let h = handles.pop();
+        h.map(|jh| jh.join());
+    }
     let elapsed =  start.elapsed().unwrap();
     info!("Finished shard test of {} fragments in {} s {} ms",n_fragments, elapsed.as_secs(), elapsed.subsec_millis());
     // todo: let rocksdb shutdown gracefully.
