@@ -4,6 +4,8 @@ extern crate log4rs;
 extern crate protobuf;
 extern crate bytes;
 extern crate parity_rocksdb;
+extern crate threadpool;
+
 mod mytypes;
 
 

@@ -1,24 +1,23 @@
+
 use std::sync::mpsc;
 use std::thread;
-use mytypes;
 use std::time::Duration;
 use std::fs::OpenOptions;
-use mytypes::types::Pointer;
 use parity_rocksdb::{Options};
 use parity_rocksdb::WriteBatch;
 use parity_rocksdb::WriteOptions;
 use ::shard::shardindex::ShardIndex;
 use ::shard::io::IO;
 use ::protobuf::*;
-use mytypes::types::Node_Fragment;
-use mytypes::types::Key;
-use mytypes::types::Value;
+use mytypes::types::*;
+use ::threadpool::ThreadPool;
+
 
 pub struct ShardWorker {
     pub post: mpsc::Sender<self::IO>,
     thread: thread::JoinHandle<()>,
     shard_id: i32
-//    scan_index : Vec<mytypes::types::Pointer>
+//    scan_index : Vec<Pointer>
 }
 
 impl ShardWorker {
@@ -35,10 +34,10 @@ impl ShardWorker {
     }
 
     /// This is used by sort_key_values internally. Maybe you should use that.
-    fn _sorted_key_values(nf: &Node_Fragment) -> ( RepeatedField<mytypes::types::Key>, RepeatedField<Value>) {
-        let mut indexed_keys: Vec<(usize, &mytypes::types::Key)> = Vec::new();
-        let mut sorted_keys = ::protobuf::RepeatedField::<mytypes::types::Key>::new();
-        let mut sorted_values_by_key = ::protobuf::RepeatedField::<mytypes::types::Value>::new();
+    fn _sorted_key_values(nf: &Node_Fragment) -> ( RepeatedField<Key>, RepeatedField<Value>) {
+        let mut indexed_keys: Vec<(usize, &Key)> = Vec::new();
+        let mut sorted_keys = ::protobuf::RepeatedField::<Key>::new();
+        let mut sorted_values_by_key = ::protobuf::RepeatedField::<Value>::new();
 
         let k = nf.get_keys();
         let v = nf.get_values();
@@ -58,7 +57,7 @@ impl ShardWorker {
 
     /// this replaces the keys and values with sorted ones to enable searching keys, and having
     /// the values ordinal match the keys' ordinal
-    fn sort_key_values(nf: &mut mytypes::types::Node_Fragment){
+    fn sort_key_values(nf: &mut Node_Fragment){
 
         let (ks,vs) = ShardWorker::_sorted_key_values(&nf);
         nf.set_keys(ks);
@@ -103,15 +102,16 @@ impl ShardWorker {
                 let file_name = format!("{}.0.a.level",_shard_id);
                 let file_path_buf = dir.join(path::Path::new(&file_name));
                 let file_path = file_path_buf.as_path();
-                let file_error = format!("Could not open file: {}",file_path.to_str().expect("valid path"));
+                let file_error = format!("Could not open file: {}",&file_path.to_str().expect("valid path"));
                 let mut file_out = OpenOptions::new().create(true).write(true).open(&file_path).expect(&file_error);
                 let pre_alloc_size = 1024 * 100000;
                 file_out.set_len(pre_alloc_size).expect("File size reserved");
                 file_out.flush();
                 let mut file_out = OpenOptions::new().write(true).open(&file_path).expect(&file_error);
-                let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&file_path).expect(&file_error);
+
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
+                let pool = ThreadPool::new(16);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -120,8 +120,8 @@ impl ShardWorker {
                             // todo: throw this Add operation into a future on a current thread pool, so when we block on nodes.recv_timeout we can process from some other IO::Add operation that comes in
                             // because as it is now, all items from the current add operation have to come in and finish being written, before we start to put in any nodes from then next Add operation in line.
                             IO::Add {nodes, callback}  => {
-                                let buffer_capacity:usize = 1024*8;
-                                let buffer_flush_len:usize = 1024*8;
+                                let buffer_capacity:usize = 1024*16;
+                                let buffer_flush_len:usize = 1024*16;
 
                                 let mut buffer : Vec<u8> = Vec::with_capacity(buffer_capacity);
                                 let mut index_batch_opts = WriteOptions::new();
@@ -177,7 +177,7 @@ impl ShardWorker {
                                             // todo: Would a "multi_put" be faster?
                                             // Add this nodeid to the nodeid index
                                             let _key = _n.mut_id().mut_node_id();
-                                            let _values = &mut mytypes::types::Pointers::new();
+                                            let _values = &mut Pointers::new();
                                             {
                                                 // todo: Anyway to avoid doing this clone?
                                                 let _value = _key.get_node_pointer().clone();
@@ -217,44 +217,76 @@ impl ShardWorker {
                                 callback.send(Ok(())).expect("callback still open");
                                 // todo: background work to link fragments
                             },
-                            IO::ReadNodeFragments {nodeid, callback} => {
-                                // flush the writer side... if we are going to read from it.
-                                file_out.flush();
-                                let mut frag_pointers : Vec<Pointer> = Vec::new();
-                                let mut from_index = false;
-                                if nodeid.has_node_pointer() {
-                                    frag_pointers.push(nodeid.get_node_pointer().to_owned());
-                                } else {
-                                    from_index = true;
-                                    {
-                                        let got = index.node_index_get(&nodeid);
-                                        got.iter().for_each(|opts| {
-                                            opts.iter().for_each(|pts| {
-                                                pts.get_pointers().iter().for_each(|p| {
-                                                    frag_pointers.push(p.clone());
-                                                })
-                                            })
-                                        });
+                            IO::ReadNodeFragments {nodeids, callback} => {
+                                // create  a channel to notify us us we read fragments from the pool
+                                let (tx,rx) = mpsc::channel();
+
+                                let mut query =  || {
+                                    let movetx = move||{tx};
+                                    let tx = movetx();
+                                    for nodeid in nodeids.iter() {
+                                        // flush the writer side... if we are going to read from it.
+                                        file_out.flush();
+                                        let mut frag_pointers: Vec<Pointer> = Vec::new();
+                                        let mut from_index = false;
+                                        if nodeid.has_node_pointer() {
+                                            frag_pointers.push(nodeid.get_node_pointer().to_owned());
+                                        } else {
+                                            from_index = true;
+                                            {
+                                                let got = &index.node_index_get(&nodeid);
+                                                got.iter().for_each(|opts| {
+                                                    opts.iter().for_each(|pts| {
+                                                        pts.get_pointers().iter().for_each(|p| {
+                                                            frag_pointers.push(p.clone());
+                                                        })
+                                                    })
+                                                });
+                                            }
+                                        }
+
+
+                                        if from_index {
+                                            // we should have all the node_fragment pointers we know about
+                                            let n_frag = frag_pointers.len();
+                                            let fpi = frag_pointers.iter();
+                                            fpi.for_each(|p| {
+                                                let tx = tx.clone();
+                                                let offset = p.offset.clone();
+                                                let fpbc = file_path_buf.clone().into_boxed_path();
+
+
+                                                let err_message = file_error.clone();
+                                                let my_cb = callback.clone();
+                                                pool.execute(move || {
+                                                    // todo: most likely its a different file
+                                                    // TODO: Do async file IO like:
+                                                    // https://docs.rs/tokio-io/0.1/tokio_io/trait.AsyncRead.html
+                                                    // or https://lwn.net/Articles/743714/
+                                                    let mut path = fpbc.to_str().unwrap();
+                                                    let ppath = path::Path::new(&path);
+                                                    let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
+                                                    file_in.seek(SeekFrom::Start(offset));
+                                                    let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut file_in);
+                                                    let f: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                                                    my_cb.send(f);
+                                                    tx.send(1).expect("channel will be there waiting for the pool");
+                                                });
+                                                ()
+                                            });
+
+
+                                            // todo: do we need to send something down callback to tell it we are done?
+                                        } else {
+                                            // as we load a fragment we either need to follow internal pointers
+                                            // or we need to go back to the index.
+                                        }
                                     }
+                                };
+                                query();
+                                for done in rx.iter() {
+                                    // waiting for them all to be done reading.
                                 }
-
-                                if from_index {
-                                    // we should have all the node_fragment pointers we know about
-                                    frag_pointers.iter().for_each(|p|{
-                                        // todo: most likely its a different file
-                                        file_in.seek(SeekFrom::Start(p.offset));
-                                        let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut file_in);
-                                        let f: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                                        callback.send(f);
-                                        ()
-                                    });
-                                    // todo: do we need to send something down callback to tell it we are done?
-
-                                } else {
-                                    // as we load a fragment we either need to follow internal pointers
-                                    // or we need to go back to the index.
-                                }
-
                             }
                             IO::NoOP => debug!("Got NoOp"),
                             IO::Shutdown => {

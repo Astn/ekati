@@ -11,12 +11,18 @@ use parity_rocksdb::{Options, DB, MergeOperands, Writable};
 use parity_rocksdb::WriteBatch;
 use parity_rocksdb::Column;
 
+
 pub struct ShardIndex {
     pub db: DB,
     pub node_index: [u8;4],
     pub fragments_connected: [u8;4],
     pub fragments_requested: [u8;4]
 }
+//unsafe impl Send for ShardIndex {}
+//unsafe impl Sync for ShardIndex {}
+
+
+
 impl ShardIndex {
     pub fn new(path: &str) -> ShardIndex{
 

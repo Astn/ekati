@@ -66,14 +66,15 @@ fn create_a_shard() {
     setup();
     let start = SystemTime::now();
     let n_fragments = 2000000;
-    let shardA_joiner = run_shard_thread(n_fragments/2,1);
-    let shardB_joiner= run_shard_thread(n_fragments/2, 2);
+    let shardA_joiner = run_shard_thread(n_fragments,1);
+   // let shardB_joiner= run_shard_thread(n_fragments/2, 2);
 
     let a_fin = shardA_joiner.join();
-    let b_fin = shardB_joiner.join();
+  //  let b_fin = shardB_joiner.join();
 
     let elapsed =  start.elapsed().unwrap();
     info!("Finished shard test of {} fragments in {} s {} ms",n_fragments, elapsed.as_secs(), elapsed.subsec_millis());
+    // todo: let rocksdb shutdown gracefully.
 }
 
 
@@ -98,7 +99,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
 
             info!("thread {} - Starting to send {} fragments",someShard_id, n_fragments);
             let started_at = SystemTime::now();
-            for _i in 0..n_fragments {
+            for _i in 0..n_fragments / 4 {
                 let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
                     Ok(n) => n.as_secs(),
                     Err(_) => panic!("SystemTime before UNIX EPOCH!")
@@ -134,6 +135,106 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
 
                 a.send(n).expect("Node send failed");
             }
+            for _i in 0..n_fragments / 4 {
+                let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(n) => n.as_secs(),
+                    Err(_) => panic!("SystemTime before UNIX EPOCH!")
+                };
+
+                let mut n = mytypes::types::Node_Fragment::new();
+                n.set_id({
+                    let mut ab = AddressBlock::new();
+                    ab.set_node_id({
+                        let mut nid = NodeID::new();
+                        // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+                        nid.set_graph(::protobuf::Chars::from("default"));
+                        nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
+                        nid
+                    });
+                    ab});
+
+                n.set_keys({
+                    let mut ks = ::protobuf::RepeatedField::<Key>::new();
+                    ks.push(Key::new_without_attributes(now,"wants"));
+                    ks.push(Key::new_without_attributes(now,"but"));
+                    ks.push(Key::new_without_attributes(now,"common"));
+                    ks
+                });
+
+                n.set_values({
+                    let mut vs = ::protobuf::RepeatedField::<Value>::new();
+                    vs.push(Value::new_with_data(Data::new_with_string_data("async io")));
+                    vs.push(Value::new_with_data(Data::new_with_string_data("only has sync io")));
+                    vs.push(Value::new_with_data(Data::new_with_string_data("Linux wtf")));
+                    vs
+                });
+
+                a.send(n).expect("Node send failed");
+            }
+            for _i in 0..n_fragments / 4 {
+                let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(n) => n.as_secs(),
+                    Err(_) => panic!("SystemTime before UNIX EPOCH!")
+                };
+
+                let mut n = mytypes::types::Node_Fragment::new();
+                n.set_id({
+                    let mut ab = AddressBlock::new();
+                    ab.set_node_id({
+                        let mut nid = NodeID::new();
+                        // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+                        nid.set_graph(::protobuf::Chars::from("default"));
+                        nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
+                        nid
+                    });
+                    ab});
+
+                n.set_keys({
+                    let mut ks = ::protobuf::RepeatedField::<Key>::new();
+                    ks.push(Key::new_without_attributes(now,"follows"));
+                    ks
+                });
+
+                n.set_values({
+                    let mut vs = ::protobuf::RepeatedField::<Value>::new();
+                    vs.push(Value::new_with_data(Data::new_with_string_data("Bob")));
+                    vs
+                });
+
+                a.send(n).expect("Node send failed");
+            }
+            for _i in 0..n_fragments / 4 {
+                let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(n) => n.as_secs(),
+                    Err(_) => panic!("SystemTime before UNIX EPOCH!")
+                };
+
+                let mut n = mytypes::types::Node_Fragment::new();
+                n.set_id({
+                    let mut ab = AddressBlock::new();
+                    ab.set_node_id({
+                        let mut nid = NodeID::new();
+                        // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+                        nid.set_graph(::protobuf::Chars::from("default"));
+                        nid.set_nodeid(::protobuf::Chars::from(_i.to_string()));
+                        nid
+                    });
+                    ab});
+
+                n.set_keys({
+                    let mut ks = ::protobuf::RepeatedField::<Key>::new();
+                    ks.push(Key::new_without_attributes(now,"friends"));
+                    ks
+                });
+
+                n.set_values({
+                    let mut vs = ::protobuf::RepeatedField::<Value>::new();
+                    vs.push(Value::new_with_data(Data::new_with_string_data("chris")));
+                    vs
+                });
+
+                a.send(n).expect("Node send failed");
+            }
             let gen_elapsed = started_at.elapsed().unwrap();
             info!("thread {} - Finished generating and queueing fragments in {} sec, {} ms",someShard_id,gen_elapsed.as_secs(),gen_elapsed.subsec_millis());
         }
@@ -153,7 +254,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
 
         let rndReadCnt = n_fragments/10;
         info!("thread {} - Testing reading {} random nodes by logical address",someShard_id,rndReadCnt);
-        let (call_back_initiatior_B, call_back_handler_B) = mpsc::sync_channel::<ProtobufResult<Node_Fragment>>(1);
+        let (call_back_initiatior_B, call_back_handler_B) = mpsc::sync_channel::<ProtobufResult<Node_Fragment>>(16);
 
         let mut rnd = rand::prelude::thread_rng();
         let mut randomIds = Vec::<i32>::new();
@@ -164,39 +265,46 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
             rnd.gen_range(0, rndReadCnt)
         });
         let started_at_read = SystemTime::now();
-
-        for _j in randomIds  {
-            let mut queryNid = NodeID::new();
-            // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
-            queryNid.set_graph(::protobuf::Chars::from("default"));
-            queryNid.set_nodeid(::protobuf::Chars::from(_j.to_string()));
-
+        // we are doing this to move call_back_initiatior_B into the closure, so it is disposed of when query() finishes executing.
+        // we do that, because we want call_back_handler_B to receive a shutdown when there are no more messages.
+        let query =  move || {
+            let (sendNids,reciveNids) = mpsc::sync_channel::<NodeID>(16);
             someShard.post.send(IO::ReadNodeFragments {
-                nodeid: queryNid,
+                nodeids: reciveNids,
                 callback: call_back_initiatior_B.clone()
             });
-        }
-        for _j in 0 .. rndReadCnt  {
+            for _j in randomIds  {
+                let mut queryNid = NodeID::new();
+                // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
+                queryNid.set_graph(::protobuf::Chars::from("default"));
+                queryNid.set_nodeid(::protobuf::Chars::from(_j.to_string()));
+                sendNids.send(queryNid);
+            }
+        };
+        query();
+        let mut found_fragments = 0;
+        loop {
             match call_back_handler_B.recv() {
-                Ok(status) => {
-                    match status {
-                        Ok(frag) => {
-                            //info!("got: {}",text_format::print_to_string(&frag));
-                        },
-                        Err(_e) => {
-                            error!("Sad eyes, got a {}", _e);
-                            break;
-                        }
-                    }
+                Ok(Ok(frag)) => {
+                    found_fragments += 1;
+                //     info!("got: {}",text_format::print_to_string(&frag));
+
+                }
+                Ok(Err(_e)) =>{
+                    // this is expected when there are no more items to send down the channel
+                    error!("Sad eyes, got a {}", _e);
+                    break;
                 }
                 Err(_e) => {
+                    // this is expected when there are no more items to send down the channel
                     error!("Sad eyes, got a {}", _e);
                     break;
                 }
             }
         }
+
         let read_dur = started_at_read.elapsed().unwrap();
-        info!("thread {} - Finished OK - read {} fragments in {}s {}ms",someShard_id,rndReadCnt,read_dur.as_secs(), read_dur.subsec_millis());
+        info!("thread {} - Finished OK - read {} fragments in {}s {}ms",someShard_id,found_fragments,read_dur.as_secs(), read_dur.subsec_millis());
     });
     t
 }
