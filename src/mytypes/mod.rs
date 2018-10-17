@@ -4,6 +4,7 @@ pub mod non_generated;
 
 use std;
 use std::cmp::Ordering;
+use mytypes::types::NodeID;
 
 impl Eq for types::NodeID {}
 
@@ -25,7 +26,7 @@ impl Ord for types::NodeID {
     }
 }
 
-impl PartialOrd for types::NodeID {
+impl PartialOrd for NodeID {
     fn partial_cmp(&self, other: &types::NodeID) -> Option<Ordering> {
         Some(self.cmp(other))
     }

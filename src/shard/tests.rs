@@ -65,8 +65,8 @@ fn write_buffers_to_disk() {
 fn create_a_shard() {
     setup();
     let start = SystemTime::now();
-    let n_fragments = 10000000;
-    let shard_count = 4;
+    let n_fragments = 1000000;
+    let shard_count = 1;
     let mut handles = Vec::new();
     for sc in 0..shard_count {
         handles.push(run_shard_thread(n_fragments/shard_count,sc));
@@ -270,6 +270,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
         let started_at_read = SystemTime::now();
         // we are doing this to move call_back_initiatior_B into the closure, so it is disposed of when query() finishes executing.
         // we do that, because we want call_back_handler_B to receive a shutdown when there are no more messages.
+
         let query =  move || {
             let (sendNids,reciveNids) = mpsc::sync_channel::<NodeID>(16);
             someShard.post.send(IO::ReadNodeFragments {
@@ -290,7 +291,7 @@ fn run_shard_thread(n_fragments:i32, someShard_id: i32) -> thread::JoinHandle<()
             match call_back_handler_B.recv() {
                 Ok(Ok(frag)) => {
                     found_fragments += 1;
-                //     info!("got: {}",text_format::print_to_string(&frag));
+                        //info!("got: {}",text_format::print_to_string(&frag));
 
                 }
                 Ok(Err(_e)) =>{

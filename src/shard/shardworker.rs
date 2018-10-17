@@ -120,20 +120,42 @@ impl ShardWorker {
                             // todo: throw this Add operation into a future on a current thread pool, so when we block on nodes.recv_timeout we can process from some other IO::Add operation that comes in
                             // because as it is now, all items from the current add operation have to come in and finish being written, before we start to put in any nodes from then next Add operation in line.
                             IO::Add {nodes, callback}  => {
-                                let buffer_capacity:usize = 1024*16;
-                                let buffer_flush_len:usize = 1024*16;
 
-                                let mut buffer : Vec<u8> = Vec::with_capacity(buffer_capacity);
+                                // I think we want two memtables. A, and B so that when A is full we can have another thread start writing it out
+                                // and in the mean time, start adding data into memtable B.
+                                // This means that if a read request comes in that needs to read from memtables
+                                // if the data is in the active memtable, then we are ok to read it.
+                                // if it is in the memtable that was sent to flush to disk, then we need to wait for that operation to finish,
+                                // and then just use a standard file read to access that data. Assuming we aren't yet using DirectIO, that data
+                                // would be in the OS page cache.
+
+                                // We likely need a struct to represent this memtable state machine.
+
+                                let memtable_capacity:usize = 1024*16;
+                                let buffer_flush_len:usize = 1024*16;
+                                let mut memtable : Vec<u8> = Vec::with_capacity(memtable_capacity);
+
                                 let mut index_batch_opts = WriteOptions::new();
-                                index_batch_opts.disable_wal(true);
+
+                                // todo: figure out what needs to be done so we can disable_wal for more perf.
+                                // disable_wal can make writes faster, but we will need to have a
+                                // index recovery mechanisim in case we crash, or the process
+                                // closes before the index is fully synced.
+                                //index_batch_opts.disable_wal(true);
+
                                 let mut index_batch = WriteBatch::new();
                                 loop {
+                                    // todo: use nodes.try_recv() and if it isn't ready, then take this IO::Add and put it in another channel that we will interleave with the main channel
+                                    // we will have to flush the buffer to disk if we put anything in it... unless move the buffer out of this operation and share it across multiple ops.
+                                    // Or we could learn how to use the futures crate.
+                                    //let xxxx = nodes.try_recv()
                                     let mut node = nodes.recv_timeout(Duration::from_millis(1));
                                     match node {
                                         Ok(ref mut _n) =>{
                                             //println!("Got Nodes");
-                                            let buffer_pos = buffer.len() as u64;
+                                            let buffer_pos = memtable.len() as u64;
                                             let total_pos = buffer_pos + last_file_position;
+
                                             {
                                                 // make sure our nodeId does not have a pointer in it.
                                                 let size_incoming = _n.compute_size();
@@ -153,7 +175,6 @@ impl ShardWorker {
                                                         id.set_node_id(local_id);
                                                     }
                                                 }
-                                                // todo: Verify that we are creating the correct pointer values
                                                 let size_before = _n.compute_size();
                                                 // scope for mut_id
                                                 {
@@ -171,7 +192,7 @@ impl ShardWorker {
 
                                             // NOTE: By writing Length Delimited, the offset in our Pointer, points to Length, not the beginning of the data
                                             // So the offset is "offset" by an i32.
-                                            _n.write_length_delimited_to_vec(&mut buffer).expect("write_to_bytes");
+                                            _n.write_length_delimited_to_vec(&mut memtable).expect("write_to_bytes");
 
                                             // todo: Would adding to the index in a separate channel speed this up?
                                             // todo: Would a "multi_put" be faster?
@@ -188,12 +209,12 @@ impl ShardWorker {
 
                                             index.node_index_merge(&mut index_batch, _key, _values);
 
-                                            if &buffer.len() >= &buffer_flush_len {
+                                            if &memtable.len() >= &buffer_flush_len {
                                                 // flush the buffer
-                                                let _written_size = file_out.write(&buffer).expect("file write");
+                                                let _written_size = file_out.write(&memtable).expect("file write");
                                                 last_file_position = last_file_position + _written_size as u64;
                                                 assert_ne!(0,last_file_position, "We are testing that after wrote data, we are incrementing our last_file_position");
-                                                &buffer.clear();
+                                                &memtable.clear();
                                             }
                                             continue;
                                         },
@@ -208,11 +229,11 @@ impl ShardWorker {
 
                                 }
                                 // flush the index_batch
-                                // todo: can we do this async some how? We could use some profiling, cause I think, but don't know that this call is a slow blocking call.
+                                // todo: can we do this async some how? Look at AIO for linux https://github.com/hmwill/tokio-linux-aio
                                 index.db.write(index_batch);
                                 // flush the buffer
-                                let _written_size = file_out.write(&buffer).expect("file write");
-                                &buffer.clear();
+                                let _written_size = file_out.write(&memtable).expect("file write");
+                                &memtable.clear();
                                 file_out.flush().expect("flush file");
                                 callback.send(Ok(())).expect("callback still open");
                                 // todo: background work to link fragments
