@@ -30,6 +30,7 @@ use std::string::String;
 use std::sync::{Once, ONCE_INIT};
 use std::fmt;
 use std::fmt::Debug;
+use std::sync::mpsc::TrySendError::Full;
 
 static INIT: Once = ONCE_INIT;
 
@@ -65,8 +66,8 @@ fn write_buffers_to_disk() {
 fn create_a_shard() {
     setup();
     let start = SystemTime::now();
-    let n_fragments = 1000000;
-    let shard_count = 1;
+    let n_fragments = 4000000;
+    let shard_count = 4;
     let mut handles = Vec::new();
     for sc in 0..shard_count {
         handles.push(run_shard_thread(n_fragments/shard_count,sc));
@@ -180,7 +181,7 @@ fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<(
 
         let rnd_read_cnt = n_fragments/10;
         info!("thread {} - Testing reading {} random nodes by logical address", some_shard_id, rnd_read_cnt);
-        let (call_back_initiatior_b, call_back_handler_b) = mpsc::sync_channel::<ProtobufResult<Node_Fragment>>(16);
+        let (call_back_initiatior_b, mut call_back_handler_b) = mpsc::sync_channel::<ProtobufResult<Node_Fragment>>(16);
 
         let mut rnd = rand::prelude::thread_rng();
         let mut random_ids = Vec::<i32>::new();
@@ -193,9 +194,10 @@ fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<(
         let started_at_read = SystemTime::now();
         // we are doing this to move call_back_initiatior_b into the closure, so it is disposed of when query() finishes executing.
         // we do that, because we want call_back_handler_b to receive a shutdown when there are no more messages.
-
+        let mut found_fragments = 0;
         let query =  move || {
-            let (send_nids, recive_nids) = mpsc::sync_channel::<NodeID>(16);
+
+            let (send_nids, recive_nids) = mpsc::channel::<NodeID>();
             some_shard.post.send(IO::ReadNodeFragments {
                 nodeids: recive_nids,
                 callback: call_back_initiatior_b.clone()
@@ -205,33 +207,51 @@ fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<(
                 // todo: better way to make chars directly from a string maybe Chars::From<String>(...)
                 query_nid.set_graph(::protobuf::Chars::from("default"));
                 query_nid.set_nodeid(::protobuf::Chars::from(_j.to_string()));
-                send_nids.send(query_nid).unwrap();
+
+
+                match call_back_handler_b.try_recv() {
+                    Ok(Ok(frag)) => {
+                        found_fragments += 1;
+                    }
+                    Ok(Err(_e)) => {
+                        error!("A -Sad eyes, got a {}", _e);
+                    }
+                    Err(_e) => {
+                        // expect for this to happen as we may try to receive when there
+                        // is nothing to receive
+                        //error!("B -Sad eyes, got a {}", _e);
+                    }
+                }
+                let sentok = send_nids.send(query_nid).unwrap();
+
             }
+            call_back_handler_b
         };
-        query();
-        let mut found_fragments = 0;
+        call_back_handler_b = query();
+        info!("thread - query returned ");
         loop {
             match call_back_handler_b.recv() {
                 Ok(Ok(frag)) => {
                     found_fragments += 1;
-                        //info!("got: {}",text_format::print_to_string(&frag));
+                    //info!("got: {}",text_format::print_to_string(&frag));
 
                 }
                 Ok(Err(_e)) =>{
                     // this is expected when there are no more items to send down the channel
-                    error!("Sad eyes, got a {}", _e);
+                    error!("C - Sad eyes, got a {}", _e);
                     break;
                 }
                 Err(_e) => {
                     // this is expected when there are no more items to send down the channel
-                    error!("Sad eyes, got a {}", _e);
+                    error!("D - Sad eyes, got a {}", _e);
                     break;
                 }
             }
         }
-
         let read_dur = started_at_read.elapsed().unwrap();
         info!("thread {} - Finished OK - read {} fragments in {}s {}ms", some_shard_id, found_fragments, read_dur.as_secs(), read_dur.subsec_millis());
+
+
     });
     t
 }

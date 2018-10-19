@@ -111,6 +111,16 @@ impl ShardWorker {
 
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
+                let (file_read_pool_send, file_read_pool_receive) = mpsc::sync_channel(16);
+                for i in 1..16 {
+                    let fpbc = file_path_buf.clone().into_boxed_path();
+                    let path = fpbc.to_str().unwrap();
+                    let ppath = path::Path::new(&path);
+                    let err_message = file_error.clone();
+                    let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
+                    file_read_pool_send.send(file_in);
+                }
+
                 let pool = ThreadPool::new(16);
 
                 loop {
@@ -252,11 +262,16 @@ impl ShardWorker {
                             IO::ReadNodeFragments {nodeids, callback} => {
                                 // create  a channel to notify us us we read fragments from the pool
                                 let (tx,rx) = mpsc::channel();
-
+                                let file_read_pool_send_cp = file_read_pool_send.clone();
                                 let mut query =  || {
                                     let movetx = move||{tx};
                                     let tx = movetx();
+
+                                    // /////////////////////////////
+                                    // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
+                                    // /////////////////////////////
                                     for nodeid in nodeids.iter() {
+
                                         // flush the writer side... if we are going to read from it.
                                         file_out.flush().unwrap();
                                         let mut frag_pointers: Vec<Pointer> = Vec::new();
@@ -287,9 +302,15 @@ impl ShardWorker {
                                                 let offset = p.offset.clone();
                                                 let fpbc = file_path_buf.clone().into_boxed_path();
 
-
                                                 let err_message = file_error.clone();
                                                 let my_cb = callback.clone();
+                                                let file_in = file_read_pool_receive.recv().unwrap();
+
+                                                // this is super clumsy, but what is going on is we are using a file pool, and a thread pool, and trying to do all the reads as async as possible.
+                                                // likely can be done way better. :D But this does seem to be ok fast.
+
+                                                let file_read_pool_send_cp_cp = file_read_pool_send_cp.clone();
+
                                                 pool.execute(move || {
                                                     // todo: most likely its a different file
                                                     // TODO: Do async file IO like: And don't get POSIX AIO and Linux AIO mixed up, different things! seastar linux-aio seems the best so far.
@@ -302,14 +323,32 @@ impl ShardWorker {
                                                     // or https://lwn.net/Articles/743714/
                                                     // or https://github.com/sile/linux_aio
                                                     // ref https://www.ibm.com/developerworks/library/l-async/index.html
-                                                    let path = fpbc.to_str().unwrap();
-                                                    let ppath = path::Path::new(&path);
-                                                    let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
-                                                    file_in.seek(SeekFrom::Start(offset)).unwrap();
-                                                    let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut file_in);
-                                                    let f: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                                                    my_cb.send(f).unwrap();
-                                                    tx.send(1).expect("channel will be there waiting for the pool");
+
+                                                    let mut f = file_in;
+                                                    f.seek(SeekFrom::Start(offset)).map(|offset| {
+                                                        let opt = {
+                                                            let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut f);
+                                                            let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                                                            my_cb.send(fres)
+                                                        };
+                                                        if opt.is_err() {
+                                                            error!("Error A: {}", opt.expect_err("only if we have an error"));
+                                                        } else {
+                                                            let err = opt.map(|()| {
+                                                                file_read_pool_send_cp_cp.send(f)
+                                                                    .map(|()|{
+                                                                        tx.send(1).expect("channel will be there waiting for the pool");
+                                                                    })
+                                                            });
+                                                            if err.is_err(){
+                                                                error!("Error B: {}", err.expect_err("only if we have an error"));
+                                                            }
+
+                                                        }
+
+                                                    });
+
+
                                                 });
                                                 ()
                                             });
