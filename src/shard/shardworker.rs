@@ -104,7 +104,7 @@ impl ShardWorker {
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",&file_path.to_str().expect("valid path"));
                 let mut file_out = OpenOptions::new().create(true).write(true).open(&file_path).expect(&file_error);
-                let pre_alloc_size = 1024 * 100000;
+                let pre_alloc_size = 1024 * 50000;
                 file_out.set_len(pre_alloc_size).expect("File size reserved");
                 file_out.flush().unwrap();
                 let mut file_out = OpenOptions::new().write(true).open(&file_path).expect(&file_error);
@@ -112,7 +112,7 @@ impl ShardWorker {
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
                 let (file_read_pool_send, file_read_pool_receive) = mpsc::sync_channel(16);
-                for i in 1..16 {
+                for i in 1..12 {
                     let fpbc = file_path_buf.clone().into_boxed_path();
                     let path = fpbc.to_str().unwrap();
                     let ppath = path::Path::new(&path);
@@ -121,7 +121,7 @@ impl ShardWorker {
                     file_read_pool_send.send(file_in);
                 }
 
-                let pool = ThreadPool::new(16);
+                let pool = ThreadPool::new(12);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -141,8 +141,8 @@ impl ShardWorker {
 
                                 // We likely need a struct to represent this memtable state machine.
 
-                                let memtable_capacity:usize = 1024*16;
-                                let buffer_flush_len:usize = 1024*16;
+                                let memtable_capacity:usize = 1024*64;
+                                let buffer_flush_len:usize = 1024*64;
                                 let mut memtable : Vec<u8> = Vec::with_capacity(memtable_capacity);
 
                                 let mut index_batch_opts = WriteOptions::new();
