@@ -2229,6 +2229,7 @@ impl ::protobuf::reflect::ProtobufValue for Key {
 pub struct Node_Fragment {
     // message fields
     pub id: ::protobuf::SingularPtrField<AddressBlock>,
+    pub fragments: ::protobuf::RepeatedField<Pointer>,
     pub keys: ::protobuf::RepeatedField<Key>,
     pub values: ::protobuf::RepeatedField<Value>,
     // special fields
@@ -2272,6 +2273,31 @@ impl Node_Fragment {
 
     pub fn get_id(&self) -> &AddressBlock {
         self.id.as_ref().unwrap_or_else(|| AddressBlock::default_instance())
+    }
+
+    // repeated .ahghee.grpc.Pointer fragments = 2;
+
+    pub fn clear_fragments(&mut self) {
+        self.fragments.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_fragments(&mut self, v: ::protobuf::RepeatedField<Pointer>) {
+        self.fragments = v;
+    }
+
+    // Mutable pointer to the field.
+    pub fn mut_fragments(&mut self) -> &mut ::protobuf::RepeatedField<Pointer> {
+        &mut self.fragments
+    }
+
+    // Take field
+    pub fn take_fragments(&mut self) -> ::protobuf::RepeatedField<Pointer> {
+        ::std::mem::replace(&mut self.fragments, ::protobuf::RepeatedField::new())
+    }
+
+    pub fn get_fragments(&self) -> &[Pointer] {
+        &self.fragments
     }
 
     // repeated .ahghee.grpc.Key keys = 3;
@@ -2332,6 +2358,11 @@ impl ::protobuf::Message for Node_Fragment {
                 return false;
             }
         };
+        for v in &self.fragments {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         for v in &self.keys {
             if !v.is_initialized() {
                 return false;
@@ -2351,6 +2382,9 @@ impl ::protobuf::Message for Node_Fragment {
             match field_number {
                 1 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.id)?;
+                },
+                2 => {
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.fragments)?;
                 },
                 3 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.keys)?;
@@ -2374,6 +2408,10 @@ impl ::protobuf::Message for Node_Fragment {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         }
+        for value in &self.fragments {
+            let len = value.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        };
         for value in &self.keys {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
@@ -2393,6 +2431,11 @@ impl ::protobuf::Message for Node_Fragment {
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         }
+        for v in &self.fragments {
+            os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        };
         for v in &self.keys {
             os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
@@ -2450,6 +2493,11 @@ impl ::protobuf::Message for Node_Fragment {
                     |m: &Node_Fragment| { &m.id },
                     |m: &mut Node_Fragment| { &mut m.id },
                 ));
+                fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Pointer>>(
+                    "fragments",
+                    |m: &Node_Fragment| { &m.fragments },
+                    |m: &mut Node_Fragment| { &mut m.fragments },
+                ));
                 fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Key>>(
                     "keys",
                     |m: &Node_Fragment| { &m.keys },
@@ -2483,6 +2531,7 @@ impl ::protobuf::Message for Node_Fragment {
 impl ::protobuf::Clear for Node_Fragment {
     fn clear(&mut self) {
         self.clear_id();
+        self.clear_fragments();
         self.clear_keys();
         self.clear_values();
         self.unknown_fields.clear();
@@ -2696,12 +2745,13 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x0b2\x11.ahghee.grpc.DataR\x04data\"v\n\x03Key\x12\x12\n\x04name\x18\
     \x01\x20\x01(\tR\x04name\x12\x1d\n\ntime_stamp\x18\x02\x20\x01(\x04R\tti\
     meStamp\x12<\n\x0fedge_attributes\x18\x03\x20\x01(\x0b2\x13.ahghee.grpc.\
-    NodeIDR\x0eedgeAttributes\"\x8c\x01\n\rNode_Fragment\x12)\n\x02id\x18\
-    \x01\x20\x01(\x0b2\x19.ahghee.grpc.AddressBlockR\x02id\x12$\n\x04keys\
-    \x18\x03\x20\x03(\x0b2\x10.ahghee.grpc.KeyR\x04keys\x12*\n\x06values\x18\
-    \x04\x20\x03(\x0b2\x12.ahghee.grpc.ValueR\x06values\"<\n\x08Pointers\x12\
-    0\n\x08pointers\x18\x01\x20\x03(\x0b2\x14.ahghee.grpc.PointerR\x08pointe\
-    rsb\x06proto3\
+    NodeIDR\x0eedgeAttributes\"\xc0\x01\n\rNode_Fragment\x12)\n\x02id\x18\
+    \x01\x20\x01(\x0b2\x19.ahghee.grpc.AddressBlockR\x02id\x122\n\tfragments\
+    \x18\x02\x20\x03(\x0b2\x14.ahghee.grpc.PointerR\tfragments\x12$\n\x04key\
+    s\x18\x03\x20\x03(\x0b2\x10.ahghee.grpc.KeyR\x04keys\x12*\n\x06values\
+    \x18\x04\x20\x03(\x0b2\x12.ahghee.grpc.ValueR\x06values\"<\n\x08Pointers\
+    \x120\n\x08pointers\x18\x01\x20\x03(\x0b2\x14.ahghee.grpc.PointerR\x08po\
+    intersb\x06proto3\
 ";
 
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy {

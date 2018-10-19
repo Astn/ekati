@@ -31,7 +31,7 @@ pub struct MemTableData {
 impl MemTableData {
 
 
-    fn new() -> MemTableData {
+    pub fn new() -> MemTableData {
         let mtd = MemTableData {
             active_slot: ActiveSlot::TableA,
             other_slot_state: OtherSlotState::Ready,
@@ -41,7 +41,7 @@ impl MemTableData {
         mtd
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self.active_slot {
             ActiveSlot::TableA => {
                 self.table_a.borrow().len().to_owned()
@@ -53,7 +53,7 @@ impl MemTableData {
     }
     // we need to be able to continue writing to this object and have it flush when it needs to.
     // or at least return a value indicating you cannot write without flushing.
-    fn try_write(&self, write: &Fn(&mut Vec<u8>) -> ()) -> Result<usize, MemTableWriteError> {
+    pub fn try_write(&self, write: &Fn(&mut Vec<u8>) -> ()) -> Result<usize, MemTableWriteError> {
         match self.active_slot {
             ActiveSlot::TableA => {
                 let mut bm = self.table_a.borrow_mut();

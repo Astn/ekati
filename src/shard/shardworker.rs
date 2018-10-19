@@ -106,7 +106,7 @@ impl ShardWorker {
                 let mut file_out = OpenOptions::new().create(true).write(true).open(&file_path).expect(&file_error);
                 let pre_alloc_size = 1024 * 100000;
                 file_out.set_len(pre_alloc_size).expect("File size reserved");
-                file_out.flush();
+                file_out.flush().unwrap();
                 let mut file_out = OpenOptions::new().write(true).open(&file_path).expect(&file_error);
 
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
@@ -157,6 +157,17 @@ impl ShardWorker {
                                             let total_pos = buffer_pos + last_file_position;
 
                                             {
+                                                // make sure our fragment has reserved space for other fragment pointers.
+                                                // we are using 3 instead of 2 to enable fanning out the fragment loading, vs 2 would be following a linked list.
+                                                while _n.fragments.len() > 3 {
+                                                    _n.fragments.pop();
+                                                }
+                                                while _n.fragments.len() < 3 {
+                                                    _n.fragments.push(Pointer::new());
+                                                }
+                                                // todo: check in the nodeid->pointer index to see if we should be setting a pointer.
+                                                // and tracking that other fragments need to know about this new one.
+
                                                 // make sure our nodeId does not have a pointer in it.
                                                 let size_incoming = _n.compute_size();
                                                 // scope to hold mut_id
@@ -230,7 +241,7 @@ impl ShardWorker {
                                 }
                                 // flush the index_batch
                                 // todo: can we do this async some how? Look at AIO for linux https://github.com/hmwill/tokio-linux-aio
-                                index.db.write(index_batch);
+                                index.db.write(index_batch).unwrap();
                                 // flush the buffer
                                 let _written_size = file_out.write(&memtable).expect("file write");
                                 &memtable.clear();
@@ -247,7 +258,7 @@ impl ShardWorker {
                                     let tx = movetx();
                                     for nodeid in nodeids.iter() {
                                         // flush the writer side... if we are going to read from it.
-                                        file_out.flush();
+                                        file_out.flush().unwrap();
                                         let mut frag_pointers: Vec<Pointer> = Vec::new();
                                         let mut from_index = false;
                                         if nodeid.has_node_pointer() {
@@ -281,16 +292,23 @@ impl ShardWorker {
                                                 let my_cb = callback.clone();
                                                 pool.execute(move || {
                                                     // todo: most likely its a different file
-                                                    // TODO: Do async file IO like:
+                                                    // TODO: Do async file IO like: And don't get POSIX AIO and Linux AIO mixed up, different things! seastar linux-aio seems the best so far.
+                                                    // In addition, you must use a filesystem that has good support for AIO. Today, and for the foreseeable future, this means XFS.
+                                                    // https://www.scylladb.com/2016/02/09/qualifying-filesystems/
+                                                    // https://github.com/avikivity/fsqual
+                                                    // http://tinyurl.com/msl-scylladb
+                                                    // https://github.com/scylladb/seastar/blob/72a729da6cb7f843334d515af2cfd791328f5275/core/linux-aio.cc
                                                     // https://docs.rs/tokio-io/0.1/tokio_io/trait.AsyncRead.html
                                                     // or https://lwn.net/Articles/743714/
-                                                    let mut path = fpbc.to_str().unwrap();
+                                                    // or https://github.com/sile/linux_aio
+                                                    // ref https://www.ibm.com/developerworks/library/l-async/index.html
+                                                    let path = fpbc.to_str().unwrap();
                                                     let ppath = path::Path::new(&path);
                                                     let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
-                                                    file_in.seek(SeekFrom::Start(offset));
+                                                    file_in.seek(SeekFrom::Start(offset)).unwrap();
                                                     let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut file_in);
                                                     let f: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                                                    my_cb.send(f);
+                                                    my_cb.send(f).unwrap();
                                                     tx.send(1).expect("channel will be there waiting for the pool");
                                                 });
                                                 ()

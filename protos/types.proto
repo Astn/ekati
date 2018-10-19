@@ -57,7 +57,7 @@ message Key {
 message Node_Fragment { // this is a Node_Fragment, meaning multiple fragments per node. and Node is a logical collection of fragments with the same id.
    AddressBlock id = 1;
     // we need to test with the fragments inline here, vs external
-    // repeated Pointer fragments = 2;
+   repeated Pointer fragments = 2;
    repeated Key keys = 3; // keys should be sorted
    repeated Value values = 4; // values ordinal must match keys ordinal
 }
