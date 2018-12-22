@@ -68,7 +68,7 @@ fn create_a_shard() {
     setup();
     let start = SystemTime::now();
     //let n_fragments = 1000000;
-    let n_fragments = 1000;
+    let n_fragments = 100000;
     let shard_count = 1;
     let mut handles = Vec::new();
     for sc in 0..shard_count {

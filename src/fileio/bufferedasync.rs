@@ -104,7 +104,7 @@ impl BufferedAsync{
 
     pub fn new(poolSize: u32, slots: usize, shard_id: u32) -> BufferedAsync
     {
-        let exec = CpuPool::new(5);
+        let exec = CpuPool::new(poolSize as usize);
         BufferedAsync {
             shard_id,
             files: HashMap::new(),
@@ -135,7 +135,7 @@ impl BufferedAsync{
 
         // pretty sure this needs to be a block aligned size.
         let inner_offset = offset % 8192;
-        let length_with_alignment = inner_offset + length;
+        let length_with_alignment = inner_offset + length + 1;
         let offset_aligned = (offset / 8192) * 8192 as u64;
         let aligned_size = 8192 + ((length_with_alignment / 8192) * 8192) as u64;
         let read_buffer = MemoryHandle::new(aligned_size as usize);
@@ -159,9 +159,17 @@ impl BufferedAsync{
                     // Is this expecting it to be length delimited?
                     let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
                     let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                    {
-                        if (fres.is_err()) {
-                            error!("offset_inner: {}, offset_aligned:{}, length:{}, bufferSize:{}", inner_offset, offset_aligned, length, aligned_size);
+
+                    if (fres.is_err()) {
+                        error!("offset_inner: {}, offset_aligned:{}, length:{}, bufferSize:{}", inner_offset, offset_aligned, length, aligned_size);
+                    } else {
+                        // recurse for connected fragments?
+                        for frag in fres.unwrap().fragments.iter() {
+                            if frag.length > 0 {
+                                // need to track which fragments we have already loaded so we avoid
+                                // an infinite loop of loading connected fragments.
+                                // https://blog.rust-lang.org/2015/04/10/Fearless-Concurrency.html
+                            }
                         }
                     }
                     callback.send(fres)

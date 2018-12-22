@@ -129,7 +129,7 @@ impl ShardWorker {
 
 
 
-                let mut bufaio = BufferedAsync::new(5, 10, 0);
+                let mut bufaio = BufferedAsync::new(5, 32, 0);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
