@@ -11,6 +11,7 @@ use ::shard::shardindex::ShardIndex;
 use ::shard::io::IO;
 use ::protobuf::*;
 use mytypes::types::*;
+use fileio::bufferedasync::*;
 use ::threadpool::ThreadPool;
 use tokio_linux_aio::AioContext;
 use futures_cpupool::CpuPool;
@@ -24,71 +25,6 @@ use std::os::unix::ffi::OsStrExt;
 use futures::Future;
 use futures;
 
-struct MemoryBlock {
-    bytes: sync::RwLock<memmap::MmapMut>,
-}
-
-impl MemoryBlock {
-    fn new(size: usize) -> MemoryBlock {
-        let map = memmap::MmapMut::map_anon(size).unwrap();
-        unsafe { mlock(map.as_ref().as_ptr() as *const c_void, map.len()) };
-
-        MemoryBlock {
-            // for real uses, we'll have a buffer pool with locks associated with individual pages
-            // simplifying the logic here for test case development
-            bytes: sync::RwLock::new(map),
-        }
-    }
-}
-
-struct MemoryHandle {
-    block: sync::Arc<MemoryBlock>,
-}
-
-impl MemoryHandle {
-    fn new(size: usize) -> MemoryHandle {
-        MemoryHandle {
-            block: sync::Arc::new(MemoryBlock::new(size)),
-        }
-    }
-}
-
-impl Clone for MemoryHandle {
-    fn clone(&self) -> MemoryHandle {
-        MemoryHandle {
-            block: self.block.clone(),
-        }
-    }
-}
-
-impl convert::AsRef<[u8]> for MemoryHandle {
-    fn as_ref(&self) -> &[u8] {
-        unsafe { mem::transmute(&(*self.block.bytes.read().unwrap())[..]) }
-    }
-}
-
-impl convert::AsMut<[u8]> for MemoryHandle {
-    fn as_mut(&mut self) -> &mut [u8] {
-        unsafe { mem::transmute(&mut (*self.block.bytes.write().unwrap())[..]) }
-    }
-}
-
-struct OwnedFd {
-    fd: RawFd,
-}
-
-impl OwnedFd {
-    fn new_from_raw_fd(fd: RawFd) -> OwnedFd {
-        OwnedFd { fd }
-    }
-}
-
-impl Drop for OwnedFd {
-    fn drop(&mut self) {
-        let result = unsafe { close(self.fd) };
-        assert!(result == 0);
-    }
-}
 
 pub struct ShardWorker {
     pub post: mpsc::Sender<self::IO>,
@@ -178,7 +114,8 @@ impl ShardWorker {
 
                 // todo: level files
                 // todo: index files
-                let file_name = format!("{}.0.a.level",_shard_id);
+                // filename should be = "{filenameInt}.{fileversion}"
+                let file_name = format!("{}.0",_shard_id);
                 let file_path_buf = dir.join(path::Path::new(&file_name));
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",&file_path.to_str().expect("valid path"));
@@ -192,19 +129,7 @@ impl ShardWorker {
 
 
 
-                let owned_fd = OwnedFd::new_from_raw_fd(unsafe {
-                    open(
-                        mem::transmute(file_path_buf.clone().as_os_str().as_bytes().as_ptr()),
-                        O_DIRECT | O_RDONLY,
-                    )
-                });
-                let read_fd = owned_fd.fd;
-                let read_pool = CpuPool::new(5);
-
-                let aio_context = AioContext::new(&read_pool, 10).unwrap();
-
-                    //let err_message = file_error.clone();
-                    //let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
+                let mut bufaio = BufferedAsync::new(5, 10, 0);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -343,97 +268,58 @@ impl ShardWorker {
                                 // todo: background work to link fragments
                             },
                             IO::ReadNodeFragments {nodeids, callback} => {
-                                let mut query =  || {
-                                    let mut futures = Vec::new();
-                                    // /////////////////////////////
-                                    // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
-                                    // /////////////////////////////
-                                    // flush the writer side... if we are going to read from it.
-                                    // file_out should really be a block of memory that we just
-                                    // write to disk when it fills up. And we should be reading
-                                    // from all the files we have created that are "closed" and
-                                    // not "superseded".
-                                    file_out.flush().unwrap();
-                                    for nodeid in nodeids.iter() {
-                                        let mut frag_pointers: Vec<Pointer> = Vec::new();
-                                        let mut from_index = false;
-                                        if nodeid.has_node_pointer() {
-                                            frag_pointers.push(nodeid.get_node_pointer().to_owned());
-                                        } else {
-                                            from_index = true;
-                                            {
-                                                let got = &index.node_index_get(&nodeid);
-                                                got.iter().for_each(|opts| {
-                                                    opts.iter().for_each(|pts| {
-                                                        pts.get_pointers().iter().for_each(|p| {
-                                                            frag_pointers.push(p.clone());
-                                                        })
+
+                                let mut futures = Vec::new();
+                                // /////////////////////////////
+                                // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
+                                // /////////////////////////////
+                                // flush the writer side... if we are going to read from it.
+                                // file_out should really be a block of memory that we just
+                                // write to disk when it fills up. And we should be reading
+                                // from all the files we have created that are "closed" and
+                                // not "superseded".
+                                file_out.flush().unwrap();
+                                for nodeid in nodeids.iter() {
+                                    let mut frag_pointers: Vec<Pointer> = Vec::new();
+                                    let mut from_index = false;
+                                    if nodeid.has_node_pointer() {
+                                        frag_pointers.push(nodeid.get_node_pointer().to_owned());
+                                    } else {
+                                        from_index = true;
+                                        {
+                                            let got = &index.node_index_get(&nodeid);
+                                            got.iter().for_each(|opts| {
+                                                opts.iter().for_each(|pts| {
+                                                    pts.get_pointers().iter().for_each(|p| {
+                                                        frag_pointers.push(p.clone());
                                                     })
-                                                });
-                                            }
-                                        }
-
-
-                                        if from_index {
-                                            // we should have all the node_fragment pointers we know about
-                                            let n_frag = frag_pointers.len();
-                                            let fpi = frag_pointers.iter();
-                                            fpi.for_each(|p| {
-                                                let offset = p.offset.clone();
-                                                // pretty sure this needs to be a block aligned size.
-                                                let lengthWithAlignment = (offset % 8192) + p.length;
-                                                let aligned_size = 8192 + ((lengthWithAlignment / 8192) * 8192) as u64;
-                                                let my_cb = callback.clone();
-                                                let read_buffer = MemoryHandle::new(aligned_size as usize);
-                                                let offsetAligned = (offset / aligned_size) * aligned_size as u64;
-                                                // does offset and length always have to be at a boundary?
-                                                //if (offset == 0){
-
-
-                                                    let read_future = aio_context
-                                                        .read(read_fd, offsetAligned, read_buffer)
-                                                        .map_err(move |err| {
-                                                            panic!("{}{:?}",offset, err);
-                                                        })
-                                                        .map(move |result_buffer| {
-                                                            //assert!(validate_block(result_buffer.as_ref()));
-
-                                                            let mut dataAtOffset: &[u8] =
-                                                                unsafe {
-                                                                    let data = result_buffer.as_ref().as_ptr().add((offset % aligned_size) as usize);
-                                                                    let len = aligned_size - (offset % aligned_size);
-                                                                    slice::from_raw_parts(data, len  as usize)
-                                                                };
-                                                            // Is this expecting it to be length delimited?
-                                                            let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut dataAtOffset);
-
-                                                            let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                                                            fres
-                                                        })
-                                                        .and_then(move |fres|{
-                                                            my_cb.send(fres)
-                                                        });
-                                                    // start the future.
-                                                    futures.push(read_pool.spawn(read_future));
-                                                //}
-                                                ()
+                                                })
                                             });
-
-
-                                            // todo: do we need to send something down callback to tell it we are done?
-                                        } else {
-                                            // as we load a fragment we either need to follow internal pointers
-                                            // or we need to go back to the index.
                                         }
                                     }
-                                    // Wair for completion
-                                    let result = futures::future::join_all(futures).wait();
 
-                                    assert!(result.is_ok());
-                                };
 
-                                query();
+                                    if from_index {
+                                        // we should have all the node_fragment pointers we know about
+                                        let n_frag = frag_pointers.len();
+                                        let fpi = frag_pointers.iter();
+                                        fpi.for_each(|p| {
 
+                                            let my_cb = callback.clone();
+                                            let abc = bufaio.ReadAsync(p.filename,p.offset,p.length, my_cb);
+                                            futures.push(abc);
+
+                                            ()
+                                        });
+                                    } else {
+                                        // as we load a fragment we either need to follow internal pointers
+                                        // or we need to go back to the index.
+                                    }
+                                }
+                                // Wait for completion
+                                let result = futures::future::join_all(futures).wait();
+
+                                assert!(result.is_ok());
                             }
                             IO::NoOP => debug!("Got NoOp"),
                             IO::Shutdown => {

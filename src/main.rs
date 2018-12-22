@@ -13,7 +13,7 @@ extern crate memmap;
 extern crate libc;
 
 mod mytypes;
-
+mod fileio;
 
 mod shard;
 
