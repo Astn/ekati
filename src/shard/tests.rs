@@ -31,6 +31,7 @@ use std::sync::{Once, ONCE_INIT};
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::mpsc::TrySendError::Full;
+use protobuf::error::ProtobufError::IoError;
 
 static INIT: Once = ONCE_INIT;
 
@@ -66,8 +67,9 @@ fn write_buffers_to_disk() {
 fn create_a_shard() {
     setup();
     let start = SystemTime::now();
-    let n_fragments = 4000000;
-    let shard_count = 4;
+    //let n_fragments = 1000000;
+    let n_fragments = 10000;
+    let shard_count = 1;
     let mut handles = Vec::new();
     for sc in 0..shard_count {
         handles.push(run_shard_thread(n_fragments/shard_count,sc));
@@ -84,7 +86,8 @@ fn create_a_shard() {
 
 fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<()> {
     use shard::tests::rand::Rng;
-    let t = thread::spawn(move ||{
+    let t = thread::spawn(
+        move ||{
 
         let some_shard = ShardWorker::new(some_shard_id, true);
 
@@ -233,8 +236,12 @@ fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<(
             match call_back_handler_b.recv() {
                 Ok(Ok(frag)) => {
                     found_fragments += 1;
-                    //info!("got: {}",text_format::print_to_string(&frag));
+                    // info!("got: {}",text_format::print_to_string(&frag));
 
+                }
+                Ok(Err(IoError(_e))) => {
+                    // this is expected when there are no more items to send down the channel
+                    error!("got: {}", _e);
                 }
                 Ok(Err(_e)) =>{
                     // this is expected when there are no more items to send down the channel
@@ -253,5 +260,7 @@ fn run_shard_thread(n_fragments:i32, some_shard_id: i32) -> thread::JoinHandle<(
 
 
     });
+
+
     t
 }

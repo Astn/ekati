@@ -13,6 +13,12 @@ log = "0.4.4"
 parity-rocksdb = "0.5.0"
 rand = "0.5.5"
 threadpool = "1.7.1"
+tokio-linux-aio = "0.1.11"
+tokio = "0.1.13"
+futures = "0.1"
+futures-cpupool = "0.1"
+memmap = "0.7.0"
+libc = "0.2"
 
 [build-dependencies]
 protoc-rust = "2.0.2"

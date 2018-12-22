@@ -1,4 +1,5 @@
 
+use std::sync;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -11,7 +12,83 @@ use ::shard::io::IO;
 use ::protobuf::*;
 use mytypes::types::*;
 use ::threadpool::ThreadPool;
+use tokio_linux_aio::AioContext;
+use futures_cpupool::CpuPool;
+use std::convert;
+use std::mem;
+use memmap;
+use libc::{c_long, c_void, mlock};
+use libc::{close, open, O_DIRECT, O_RDONLY, O_RDWR};
+use std::os::unix::io::RawFd;
+use std::os::unix::ffi::OsStrExt;
+use futures::Future;
+use futures;
 
+struct MemoryBlock {
+    bytes: sync::RwLock<memmap::MmapMut>,
+}
+
+impl MemoryBlock {
+    fn new(size: usize) -> MemoryBlock {
+        let map = memmap::MmapMut::map_anon(size).unwrap();
+        unsafe { mlock(map.as_ref().as_ptr() as *const c_void, map.len()) };
+
+        MemoryBlock {
+            // for real uses, we'll have a buffer pool with locks associated with individual pages
+            // simplifying the logic here for test case development
+            bytes: sync::RwLock::new(map),
+        }
+    }
+}
+
+struct MemoryHandle {
+    block: sync::Arc<MemoryBlock>,
+}
+
+impl MemoryHandle {
+    fn new(size: usize) -> MemoryHandle {
+        MemoryHandle {
+            block: sync::Arc::new(MemoryBlock::new(size)),
+        }
+    }
+}
+
+impl Clone for MemoryHandle {
+    fn clone(&self) -> MemoryHandle {
+        MemoryHandle {
+            block: self.block.clone(),
+        }
+    }
+}
+
+impl convert::AsRef<[u8]> for MemoryHandle {
+    fn as_ref(&self) -> &[u8] {
+        unsafe { mem::transmute(&(*self.block.bytes.read().unwrap())[..]) }
+    }
+}
+
+impl convert::AsMut<[u8]> for MemoryHandle {
+    fn as_mut(&mut self) -> &mut [u8] {
+        unsafe { mem::transmute(&mut (*self.block.bytes.write().unwrap())[..]) }
+    }
+}
+
+struct OwnedFd {
+    fd: RawFd,
+}
+
+impl OwnedFd {
+    fn new_from_raw_fd(fd: RawFd) -> OwnedFd {
+        OwnedFd { fd }
+    }
+}
+
+impl Drop for OwnedFd {
+    fn drop(&mut self) {
+        let result = unsafe { close(self.fd) };
+        assert!(result == 0);
+    }
+}
 
 pub struct ShardWorker {
     pub post: mpsc::Sender<self::IO>,
@@ -71,6 +148,8 @@ impl ShardWorker {
         use std::env;
         use std::path;
         use std::io::*;
+        use std::mem;
+        use std::slice;
         use ::protobuf::Message;
 
         let (a,receiver) = mpsc::channel::<IO>();
@@ -111,17 +190,21 @@ impl ShardWorker {
 
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
-                let (file_read_pool_send, file_read_pool_receive) = mpsc::sync_channel(16);
-                for i in 1..12 {
-                    let fpbc = file_path_buf.clone().into_boxed_path();
-                    let path = fpbc.to_str().unwrap();
-                    let ppath = path::Path::new(&path);
-                    let err_message = file_error.clone();
-                    let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
-                    file_read_pool_send.send(file_in);
-                }
 
-                let pool = ThreadPool::new(12);
+
+                let owned_fd = OwnedFd::new_from_raw_fd(unsafe {
+                    open(
+                        mem::transmute(file_path_buf.clone().as_os_str().as_bytes().as_ptr()),
+                        O_DIRECT | O_RDONLY,
+                    )
+                });
+                let read_fd = owned_fd.fd;
+                let read_pool = CpuPool::new(5);
+
+                let aio_context = AioContext::new(&read_pool, 10).unwrap();
+
+                    //let err_message = file_error.clone();
+                    //let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -260,20 +343,18 @@ impl ShardWorker {
                                 // todo: background work to link fragments
                             },
                             IO::ReadNodeFragments {nodeids, callback} => {
-                                // create  a channel to notify us us we read fragments from the pool
-                                let (tx,rx) = mpsc::channel();
-                                let file_read_pool_send_cp = file_read_pool_send.clone();
                                 let mut query =  || {
-                                    let movetx = move||{tx};
-                                    let tx = movetx();
-
+                                    let mut futures = Vec::new();
                                     // /////////////////////////////
                                     // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
                                     // /////////////////////////////
+                                    // flush the writer side... if we are going to read from it.
+                                    // file_out should really be a block of memory that we just
+                                    // write to disk when it fills up. And we should be reading
+                                    // from all the files we have created that are "closed" and
+                                    // not "superseded".
+                                    file_out.flush().unwrap();
                                     for nodeid in nodeids.iter() {
-
-                                        // flush the writer side... if we are going to read from it.
-                                        file_out.flush().unwrap();
                                         let mut frag_pointers: Vec<Pointer> = Vec::new();
                                         let mut from_index = false;
                                         if nodeid.has_node_pointer() {
@@ -298,58 +379,43 @@ impl ShardWorker {
                                             let n_frag = frag_pointers.len();
                                             let fpi = frag_pointers.iter();
                                             fpi.for_each(|p| {
-                                                let tx = tx.clone();
                                                 let offset = p.offset.clone();
-                                                let fpbc = file_path_buf.clone().into_boxed_path();
-
-                                                let err_message = file_error.clone();
+                                                // pretty sure this needs to be a block aligned size.
+                                                let lengthWithAlignment = (offset % 8192) + p.length;
+                                                let aligned_size = 8192 + ((lengthWithAlignment / 8192) * 8192) as u64;
                                                 let my_cb = callback.clone();
-                                                let file_in = file_read_pool_receive.recv().unwrap();
+                                                let read_buffer = MemoryHandle::new(aligned_size as usize);
+                                                let offsetAligned = (offset / aligned_size) * aligned_size as u64;
+                                                // does offset and length always have to be at a boundary?
+                                                //if (offset == 0){
 
-                                                // this is super clumsy, but what is going on is we are using a file pool, and a thread pool, and trying to do all the reads as async as possible.
-                                                // likely can be done way better. :D But this does seem to be ok fast.
 
-                                                let file_read_pool_send_cp_cp = file_read_pool_send_cp.clone();
+                                                    let read_future = aio_context
+                                                        .read(read_fd, offsetAligned, read_buffer)
+                                                        .map_err(move |err| {
+                                                            panic!("{}{:?}",offset, err);
+                                                        })
+                                                        .map(move |result_buffer| {
+                                                            //assert!(validate_block(result_buffer.as_ref()));
 
-                                                pool.execute(move || {
-                                                    // todo: most likely its a different file
-                                                    // TODO: Do async file IO like: And don't get POSIX AIO and Linux AIO mixed up, different things! seastar linux-aio seems the best so far.
-                                                    // In addition, you must use a filesystem that has good support for AIO. Today, and for the foreseeable future, this means XFS.
-                                                    // https://www.scylladb.com/2016/02/09/qualifying-filesystems/
-                                                    // https://github.com/avikivity/fsqual
-                                                    // http://tinyurl.com/msl-scylladb
-                                                    // https://github.com/scylladb/seastar/blob/72a729da6cb7f843334d515af2cfd791328f5275/core/linux-aio.cc
-                                                    // https://docs.rs/tokio-io/0.1/tokio_io/trait.AsyncRead.html
-                                                    // or https://lwn.net/Articles/743714/
-                                                    // or https://github.com/sile/linux_aio
-                                                    // ref https://www.ibm.com/developerworks/library/l-async/index.html
+                                                            let mut dataAtOffset: &[u8] =
+                                                                unsafe {
+                                                                    let data = result_buffer.as_ref().as_ptr().add((offset % aligned_size) as usize);
+                                                                    let len = aligned_size - (offset % aligned_size);
+                                                                    slice::from_raw_parts(data, len  as usize)
+                                                                };
+                                                            // Is this expecting it to be length delimited?
+                                                            let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut dataAtOffset);
 
-                                                    let mut f = file_in;
-                                                    f.seek(SeekFrom::Start(offset)).map(|offset| {
-                                                        let opt = {
-                                                            let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut f);
                                                             let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                                                            fres
+                                                        })
+                                                        .and_then(move |fres|{
                                                             my_cb.send(fres)
-                                                        };
-                                                        if opt.is_err() {
-                                                            error!("Error A: {}", opt.expect_err("only if we have an error"));
-                                                        } else {
-                                                            let err = opt.map(|()| {
-                                                                file_read_pool_send_cp_cp.send(f)
-                                                                    .map(|()|{
-                                                                        tx.send(1).expect("channel will be there waiting for the pool");
-                                                                    })
-                                                            });
-                                                            if err.is_err(){
-                                                                error!("Error B: {}", err.expect_err("only if we have an error"));
-                                                            }
-
-                                                        }
-
-                                                    });
-
-
-                                                });
+                                                        });
+                                                    // start the future.
+                                                    futures.push(read_pool.spawn(read_future));
+                                                //}
                                                 ()
                                             });
 
@@ -360,14 +426,18 @@ impl ShardWorker {
                                             // or we need to go back to the index.
                                         }
                                     }
+                                    // Wair for completion
+                                    let result = futures::future::join_all(futures).wait();
+
+                                    assert!(result.is_ok());
                                 };
+
                                 query();
-                                for done in rx.iter() {
-                                    // waiting for them all to be done reading.
-                                }
+
                             }
                             IO::NoOP => debug!("Got NoOp"),
                             IO::Shutdown => {
+                                // index.db shutdown?
                                 // todo: if we have a thread pool running maintenance tasks or IO:Add tasks, we need to call shutdown on those.
                                 break;
                             }
@@ -375,6 +445,9 @@ impl ShardWorker {
                         Err(_e) => thread::sleep(Duration::from_millis(1))
                     }
                 }
+
+
+
             }),
             shard_id
         };
