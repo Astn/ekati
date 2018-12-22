@@ -134,10 +134,11 @@ impl BufferedAsync{
         };
 
         // pretty sure this needs to be a block aligned size.
-        let length_with_alignment = (offset % 8192) + length;
+        let inner_offset = offset % 8192;
+        let length_with_alignment = inner_offset + length;
+        let offset_aligned = (offset / 8192) * 8192 as u64;
         let aligned_size = 8192 + ((length_with_alignment / 8192) * 8192) as u64;
         let read_buffer = MemoryHandle::new(aligned_size as usize);
-        let offset_aligned = (offset / aligned_size) * aligned_size as u64;
 
         let x =
             self.aio_context
@@ -151,14 +152,18 @@ impl BufferedAsync{
 
                     let mut data_at_offset: &[u8] =
                         unsafe {
-                            let data = result_buffer.as_ref().as_ptr().add((offset % aligned_size) as usize);
-                            let len = aligned_size - (offset % aligned_size);
+                            let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
+                            let len = aligned_size - (inner_offset);
                             slice::from_raw_parts(data, len  as usize)
                         };
                     // Is this expecting it to be length delimited?
                     let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
-
                     let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                    {
+                        if (fres.is_err()) {
+                            error!("offset_inner: {}, offset_aligned:{}, length:{}, bufferSize:{}", inner_offset, offset_aligned, length, aligned_size);
+                        }
+                    }
                     callback.send(fres)
                 });
 

@@ -96,7 +96,10 @@ impl ShardIndex {
 
         for op in operands {
             let mut _new_val = mytypes::types::Pointers::new();
-            _new_val.merge_from_bytes(op).unwrap();
+            let merged = _new_val.merge_from_bytes(op);
+            if(merged.is_err()){
+                error!("Merge_operator failure: {:?}", merged.err().unwrap())
+            }
             for p in _new_val.mut_pointers().as_mut_slice() {
                 _values.pointers.push(p.clone());
             }
