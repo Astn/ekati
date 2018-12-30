@@ -11,6 +11,7 @@ extern crate futures_cpupool;
 extern crate tokio;
 extern crate memmap;
 extern crate libc;
+extern crate cart_cache;
 
 mod mytypes;
 mod fileio;

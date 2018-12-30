@@ -10,7 +10,7 @@ use libc::{c_long, c_void, mlock};
 use libc::{close, open, O_DIRECT, O_RDONLY, O_RDWR};
 use std::os::unix::io::RawFd;
 use std::os::unix::ffi::OsStrExt;
-use futures::Future;
+use futures::*;
 use futures;
 use std::sync;
 use tokio_linux_aio::AioPollFuture;
@@ -19,12 +19,15 @@ use std::slice;
 use std::path::Path;
 use std::collections::HashMap;
 use std::env;
+use std::ops::*;
 use futures::Map;
 use tokio_linux_aio::AioError;
 use std::sync::mpsc::SyncSender;
 use futures_cpupool::*;
 use protobuf::error::ProtobufError::IoError;
 use std::sync::mpsc::SendError;
+use bytes::{Bytes, BytesMut, Buf, BufMut};
+use cart_cache::CartCache;
 
 pub struct MemoryBlock {
     bytes: sync::RwLock<memmap::MmapMut>,
@@ -98,7 +101,8 @@ pub struct BufferedAsync{
     shard_id: u32,
     aio_context: AioContext,
     files: HashMap<u32,OwnedFd>,
-    pool: CpuPool
+    pool: CpuPool,
+    pagecache: sync::Arc<sync::RwLock<CartCache<u64, MemoryHandle>>>
 }
 impl BufferedAsync{
 
@@ -109,7 +113,8 @@ impl BufferedAsync{
             shard_id,
             files: HashMap::new(),
             aio_context: AioContext::new(&exec, slots).unwrap(),
-            pool: exec
+            pool: exec,
+            pagecache: sync::Arc::new(sync::RwLock::new(CartCache::new(1024).unwrap()))
         }
     }
 
@@ -138,6 +143,32 @@ impl BufferedAsync{
         let length_with_alignment = inner_offset + length + 1;
         let offset_aligned = (offset / 8192) * 8192 as u64;
         let aligned_size = 8192 + ((length_with_alignment / 8192) * 8192) as u64;
+
+
+        // todo: maybe use https://doc.rust-lang.org/std/primitive.u32.html#method.reverse_bits
+        let key = offset_aligned.bitor(fileid.shl(16) as u64);
+        {
+//            let mut reader = self.pagecache.write().unwrap();
+//            let page = reader.get(&key);
+//            if page.is_some() {
+//                info!("hit: {}",offset_aligned);
+//                let result_buffer = page.unwrap().to_owned();
+//                let mut data_at_offset: & [u8] =
+//                    unsafe {
+//                        let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
+//                        let len = aligned_size - (inner_offset);
+//                        slice::from_raw_parts(data, len as usize)
+//                    };
+//                // Is this expecting it to be length delimited?
+//                let mut cinp =::protobuf::stream::CodedInputStream::new( & mut data_at_offset);
+//                let fres: ProtobufResult < Node_Fragment > = cinp.read_message::< Node_Fragment > ();
+//
+//                let earlyRet =self.pool.spawn( futures::done( Ok(callback.send(fres))))  ;
+//                return earlyRet;
+//            }
+        }
+
+        let mut reader = self.pagecache.clone();
         let read_buffer = MemoryHandle::new(aligned_size as usize);
 
         let x =
@@ -147,32 +178,26 @@ impl BufferedAsync{
                     error!("{:?}",e);
                     Err(IoError(e.error))
                 })
-                .map(move |result_buffer| {
-                    //assert!(validate_block(result_buffer.as_ref()));
+                .map(move |result_buffer : MemoryHandle| {
+                    info!("miss: {}",offset_aligned);
+                    let blaw = {
+                        let mut data_at_offset: &[u8] =
+                            unsafe {
+                                let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
+                                let len = aligned_size - (inner_offset);
+                                slice::from_raw_parts(data, len as usize)
+                            };
+                        // Is this expecting it to be length delimited?
+                        let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
+                        let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
 
-                    let mut data_at_offset: &[u8] =
-                        unsafe {
-                            let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
-                            let len = aligned_size - (inner_offset);
-                            slice::from_raw_parts(data, len  as usize)
-                        };
-                    // Is this expecting it to be length delimited?
-                    let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
-                    let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                        callback.send(fres)
+                    };
+                    let mut rr = reader.write().unwrap();
+                    rr.insert(key, result_buffer);
 
-                    if (fres.is_err()) {
-                        error!("offset_inner: {}, offset_aligned:{}, length:{}, bufferSize:{}", inner_offset, offset_aligned, length, aligned_size);
-                    } else {
-                        // recurse for connected fragments?
-                        for frag in fres.unwrap().fragments.iter() {
-                            if frag.length > 0 {
-                                // need to track which fragments we have already loaded so we avoid
-                                // an infinite loop of loading connected fragments.
-                                // https://blog.rust-lang.org/2015/04/10/Fearless-Concurrency.html
-                            }
-                        }
-                    }
-                    callback.send(fres)
+
+                    blaw
                 });
 
         let y = self.pool.spawn(x);
