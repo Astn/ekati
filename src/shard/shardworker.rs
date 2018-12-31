@@ -24,23 +24,24 @@ use std::os::unix::io::RawFd;
 use std::os::unix::ffi::OsStrExt;
 use futures::Future;
 use futures;
+use std::time::SystemTime;
 
 
 pub struct ShardWorker {
     pub post: mpsc::Sender<self::IO>,
     thread: thread::JoinHandle<()>,
-    shard_id: i32
+    shard_id: u32
 //    scan_index : Vec<Pointer>
 }
 
 impl ShardWorker {
     /// Sets the file position and length
     /// Returns the position + length which is the next position
-    fn make_pointer(shard_id: i32, last_file_position: u64, size: u64) -> Pointer {
+    fn make_pointer(shard_id: u32, last_file_position: u64, size: u64) -> Pointer {
         use ::protobuf::Message;
         let mut ptr = Pointer::new();
         ptr.partition_key = shard_id as u32;
-        ptr.filename = shard_id as u32; // todo: this is not correct. idea use 1 byte for level and remaining bytes for file number
+        ptr.filename = 0 as u32; // todo: this is not correct. idea use 1 byte for level and remaining bytes for file number
         ptr.length = size;
         ptr.offset = last_file_position;
         ptr
@@ -79,7 +80,7 @@ impl ShardWorker {
 
 
     /// Creates and starts up a shard with it's own IO thread.
-    pub fn new(shard_id:i32, create_testing_directory:bool) -> ShardWorker {
+    pub fn new(shard_id:u32, create_testing_directory:bool) -> ShardWorker {
         use std::fs;
         use std::env;
         use std::path;
@@ -99,6 +100,10 @@ impl ShardWorker {
                 // to allow spreading shards across multiple physical disks
                 let dir = env::current_dir().unwrap().join(path::Path::new(&format!("shard-{}",shard_id)));
 
+                if create_testing_directory{
+                    fs::remove_dir_all(&dir);
+                }
+
                 match fs::create_dir(&dir){
                     Ok(_) => Ok(()),
                     Err(ref _e) if _e.kind() == ErrorKind::AlreadyExists => Ok(()),
@@ -115,7 +120,7 @@ impl ShardWorker {
                 // todo: level files
                 // todo: index files
                 // filename should be = "{filenameInt}.{fileversion}"
-                let file_name = format!("{}.0",_shard_id);
+                let file_name = format!("{}.0",0);
                 let file_path_buf = dir.join(path::Path::new(&file_name));
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",&file_path.to_str().expect("valid path"));
@@ -129,7 +134,7 @@ impl ShardWorker {
 
 
 
-                let mut bufaio = BufferedAsync::new(5, 32, 0);
+                let mut bufaio = BufferedAsync::new(5, 32, _shard_id);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -268,7 +273,7 @@ impl ShardWorker {
                                 // todo: background work to link fragments
                             },
                             IO::ReadNodeFragments {nodeids, callback} => {
-
+                                let mut all_rocks_time:Duration = Duration::new(0,0);
                                 let mut futures = Vec::new();
                                 // /////////////////////////////
                                 // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
@@ -287,7 +292,9 @@ impl ShardWorker {
                                     } else {
                                         from_index = true;
                                         {
+                                            let rocks_time = SystemTime::now();
                                             let got = &index.node_index_get(&nodeid);
+                                            all_rocks_time = all_rocks_time + rocks_time.elapsed().unwrap();
                                             got.iter().for_each(|opts| {
                                                 opts.iter().for_each(|pts| {
                                                     pts.get_pointers().iter().for_each(|p| {
@@ -318,7 +325,7 @@ impl ShardWorker {
                                 }
                                 // Wait for completion
                                 let result = futures::future::join_all(futures).wait();
-
+                                info!("RocksTime in {}s {}ms", all_rocks_time.as_secs(), all_rocks_time.subsec_millis());
                                 assert!(result.is_ok());
                             }
                             IO::NoOP => debug!("Got NoOp"),

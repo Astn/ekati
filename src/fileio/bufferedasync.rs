@@ -29,33 +29,17 @@ use std::sync::mpsc::SendError;
 use bytes::{Bytes, BytesMut, Buf, BufMut};
 use cart_cache::CartCache;
 
-pub struct MemoryBlock {
-    bytes: sync::RwLock<memmap::MmapMut>,
-}
-
-impl MemoryBlock {
-    pub fn new(size: usize) -> MemoryBlock {
-        let map = memmap::MmapMut::map_anon(size).unwrap();
-        unsafe { mlock(map.as_ref().as_ptr() as *const c_void, map.len()) };
-
-        MemoryBlock {
-            // for real uses, we'll have a buffer pool with locks associated with individual pages
-            // simplifying the logic here for test case development
-            bytes: sync::RwLock::new(map),
-        }
-    }
-}
 
 pub struct MemoryHandle {
-    block: sync::Arc<MemoryBlock>,
+    block: sync::Arc<sync::RwLock<memmap::MmapMut>>,
 }
-
-
 
 impl MemoryHandle {
     pub fn new(size: usize) -> MemoryHandle {
+        let map = memmap::MmapMut::map_anon(size).unwrap();
+        unsafe { mlock(map.as_ref().as_ptr() as *const c_void, map.len()) };
         MemoryHandle {
-            block: sync::Arc::new(MemoryBlock::new(size)),
+            block: sync::Arc::new(sync::RwLock::new(map)),
         }
     }
 }
@@ -70,13 +54,13 @@ impl Clone for MemoryHandle {
 
 impl convert::AsRef<[u8]> for MemoryHandle {
     fn as_ref(&self) -> &[u8] {
-        unsafe { mem::transmute(&(*self.block.bytes.read().unwrap())[..]) }
+        unsafe { mem::transmute(&(*self.block.read().unwrap())[..]) }
     }
 }
 
 impl convert::AsMut<[u8]> for MemoryHandle {
     fn as_mut(&mut self) -> &mut [u8] {
-        unsafe { mem::transmute(&mut (*self.block.bytes.write().unwrap())[..]) }
+        unsafe { mem::transmute(&mut (*self.block.write().unwrap())[..]) }
     }
 }
 
@@ -85,6 +69,7 @@ pub struct OwnedFd {
 }
 
 impl OwnedFd {
+
     pub fn new_from_raw_fd(fd: RawFd) -> OwnedFd {
         OwnedFd { fd }
     }
@@ -93,7 +78,7 @@ impl OwnedFd {
 impl Drop for OwnedFd {
     fn drop(&mut self) {
         let result = unsafe { close(self.fd) };
-        assert!(result == 0);
+        // assert!(result == 0);
     }
 }
 
@@ -127,7 +112,7 @@ impl BufferedAsync{
             let file_name = format!("{}.0",fileid);
             let dir = env::current_dir().unwrap().join(Path::new(&format!("shard-{}",self.shard_id)));
             let file_path_buf = dir.join(Path::new(&file_name));
-
+            info!("creating FD: {}", file_path_buf.display());
             let owned_fd: OwnedFd = OwnedFd::new_from_raw_fd(unsafe {
                 open(
                     mem::transmute(file_path_buf.clone().as_os_str().as_bytes().as_ptr()),
@@ -143,29 +128,36 @@ impl BufferedAsync{
         let length_with_alignment = inner_offset + length + 1;
         let offset_aligned = (offset / 8192) * 8192 as u64;
         let aligned_size = 8192 + ((length_with_alignment / 8192) * 8192) as u64;
-
+        let pages_needed = aligned_size / 8192;
 
         // todo: maybe use https://doc.rust-lang.org/std/primitive.u32.html#method.reverse_bits
         let key = offset_aligned.bitor(fileid.shl(16) as u64);
         {
-//            let mut reader = self.pagecache.write().unwrap();
-//            let page = reader.get(&key);
-//            if page.is_some() {
-//                info!("hit: {}",offset_aligned);
-//                let result_buffer = page.unwrap().to_owned();
-//                let mut data_at_offset: & [u8] =
-//                    unsafe {
-//                        let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
-//                        let len = aligned_size - (inner_offset);
-//                        slice::from_raw_parts(data, len as usize)
-//                    };
-//                // Is this expecting it to be length delimited?
-//                let mut cinp =::protobuf::stream::CodedInputStream::new( & mut data_at_offset);
-//                let fres: ProtobufResult < Node_Fragment > = cinp.read_message::< Node_Fragment > ();
-//
-//                let earlyRet =self.pool.spawn( futures::done( Ok(callback.send(fres))))  ;
-//                return earlyRet;
-//            }
+            if pages_needed == 1 && offset_aligned != 0
+            {
+                let mut reader = self.pagecache.write().unwrap();
+                let page = reader.get(&key);
+                if page.is_some() {
+                    let result_buffer = page.unwrap().to_owned();
+                    let pageSize = result_buffer.as_ref().len();
+                    let mut data_at_offset: &[u8] =
+                        unsafe {
+                            let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
+                            let len = aligned_size - (inner_offset);
+                            slice::from_raw_parts(data, len as usize)
+                        };
+
+                    let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
+                    let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
+                    if fres.is_err() {
+                        error!("hit err: offset: {} aligned_size: {} pageSize: {}", offset_aligned, aligned_size, pageSize);
+                    } else {
+                        // info!("hit: offset: {} aligned_size: {} pageSize: {}", offset_aligned, aligned_size, pageSize);
+                    }
+                    let earlyRet = self.pool.spawn(futures::done(Ok(callback.send(fres))));
+                    return earlyRet;
+                }
+            }
         }
 
         let mut reader = self.pagecache.clone();
@@ -179,7 +171,7 @@ impl BufferedAsync{
                     Err(IoError(e.error))
                 })
                 .map(move |result_buffer : MemoryHandle| {
-                    info!("miss: {}",offset_aligned);
+                    // info!("miss: {}",offset_aligned);
                     let blaw = {
                         let mut data_at_offset: &[u8] =
                             unsafe {
@@ -187,7 +179,7 @@ impl BufferedAsync{
                                 let len = aligned_size - (inner_offset);
                                 slice::from_raw_parts(data, len as usize)
                             };
-                        // Is this expecting it to be length delimited?
+
                         let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
                         let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
 
