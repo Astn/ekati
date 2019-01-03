@@ -1,4 +1,5 @@
 
+use std::sync;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -10,24 +11,37 @@ use ::shard::shardindex::ShardIndex;
 use ::shard::io::IO;
 use ::protobuf::*;
 use mytypes::types::*;
+use fileio::bufferedasync::*;
 use ::threadpool::ThreadPool;
+use tokio_linux_aio::AioContext;
+use futures_cpupool::CpuPool;
+use std::convert;
+use std::mem;
+use memmap;
+use libc::{c_long, c_void, mlock};
+use libc::{close, open, O_DIRECT, O_RDONLY, O_RDWR};
+use std::os::unix::io::RawFd;
+use std::os::unix::ffi::OsStrExt;
+use futures::Future;
+use futures;
+use std::time::SystemTime;
 
 
 pub struct ShardWorker {
     pub post: mpsc::Sender<self::IO>,
     thread: thread::JoinHandle<()>,
-    shard_id: i32
+    shard_id: u32
 //    scan_index : Vec<Pointer>
 }
 
 impl ShardWorker {
     /// Sets the file position and length
     /// Returns the position + length which is the next position
-    fn make_pointer(shard_id: i32, last_file_position: u64, size: u64) -> Pointer {
+    fn make_pointer(shard_id: u32, last_file_position: u64, size: u64) -> Pointer {
         use ::protobuf::Message;
         let mut ptr = Pointer::new();
         ptr.partition_key = shard_id as u32;
-        ptr.filename = shard_id as u32; // todo: this is not correct. idea use 1 byte for level and remaining bytes for file number
+        ptr.filename = 0 as u32; // todo: this is not correct. idea use 1 byte for level and remaining bytes for file number
         ptr.length = size;
         ptr.offset = last_file_position;
         ptr
@@ -66,11 +80,13 @@ impl ShardWorker {
 
 
     /// Creates and starts up a shard with it's own IO thread.
-    pub fn new(shard_id:i32, create_testing_directory:bool) -> ShardWorker {
+    pub fn new(shard_id:u32, create_testing_directory:bool) -> ShardWorker {
         use std::fs;
         use std::env;
         use std::path;
         use std::io::*;
+        use std::mem;
+        use std::slice;
         use ::protobuf::Message;
 
         let (a,receiver) = mpsc::channel::<IO>();
@@ -83,6 +99,10 @@ impl ShardWorker {
                 // todo: allow specifying the directory when creating the shard
                 // to allow spreading shards across multiple physical disks
                 let dir = env::current_dir().unwrap().join(path::Path::new(&format!("shard-{}",shard_id)));
+
+                if create_testing_directory{
+                    fs::remove_dir_all(&dir).unwrap();
+                }
 
                 match fs::create_dir(&dir){
                     Ok(_) => Ok(()),
@@ -99,7 +119,8 @@ impl ShardWorker {
 
                 // todo: level files
                 // todo: index files
-                let file_name = format!("{}.0.a.level",_shard_id);
+                // filename should be = "{filenameInt}.{fileversion}"
+                let file_name = format!("{}.0",0);
                 let file_path_buf = dir.join(path::Path::new(&file_name));
                 let file_path = file_path_buf.as_path();
                 let file_error = format!("Could not open file: {}",&file_path.to_str().expect("valid path"));
@@ -111,17 +132,9 @@ impl ShardWorker {
 
                 let mut last_file_position = file_out.seek(SeekFrom::Start(0)).expect("Couldn't seek to current position");
 
-                let (file_read_pool_send, file_read_pool_receive) = mpsc::sync_channel(16);
-                for i in 1..12 {
-                    let fpbc = file_path_buf.clone().into_boxed_path();
-                    let path = fpbc.to_str().unwrap();
-                    let ppath = path::Path::new(&path);
-                    let err_message = file_error.clone();
-                    let mut file_in = OpenOptions::new().read(true).append(false).create(false).open(&ppath).expect(&err_message);
-                    file_read_pool_send.send(file_in);
-                }
 
-                let pool = ThreadPool::new(12);
+
+                let mut bufaio = BufferedAsync::new(5, 32, _shard_id);
 
                 loop {
                     let data = receiver.recv_timeout(Duration::from_millis(1));
@@ -260,114 +273,64 @@ impl ShardWorker {
                                 // todo: background work to link fragments
                             },
                             IO::ReadNodeFragments {nodeids, callback} => {
-                                // create  a channel to notify us us we read fragments from the pool
-                                let (tx,rx) = mpsc::channel();
-                                let file_read_pool_send_cp = file_read_pool_send.clone();
-                                let mut query =  || {
-                                    let movetx = move||{tx};
-                                    let tx = movetx();
-
-                                    // /////////////////////////////
-                                    // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
-                                    // /////////////////////////////
-                                    for nodeid in nodeids.iter() {
-
-                                        // flush the writer side... if we are going to read from it.
-                                        file_out.flush().unwrap();
-                                        let mut frag_pointers: Vec<Pointer> = Vec::new();
-                                        let mut from_index = false;
-                                        if nodeid.has_node_pointer() {
-                                            frag_pointers.push(nodeid.get_node_pointer().to_owned());
-                                        } else {
-                                            from_index = true;
-                                            {
-                                                let got = &index.node_index_get(&nodeid);
-                                                got.iter().for_each(|opts| {
-                                                    opts.iter().for_each(|pts| {
-                                                        pts.get_pointers().iter().for_each(|p| {
-                                                            frag_pointers.push(p.clone());
-                                                        })
+                                let mut all_rocks_time:Duration = Duration::new(0,0);
+                                let mut futures = Vec::new();
+                                // /////////////////////////////
+                                // WARNING:: If the client never closes their side of the nodeids channel, then we block here forever.
+                                // /////////////////////////////
+                                // flush the writer side... if we are going to read from it.
+                                // file_out should really be a block of memory that we just
+                                // write to disk when it fills up. And we should be reading
+                                // from all the files we have created that are "closed" and
+                                // not "superseded".
+                                file_out.flush().unwrap();
+                                for nodeid in nodeids.iter() {
+                                    let mut frag_pointers: Vec<Pointer> = Vec::new();
+                                    let mut from_index = false;
+                                    if nodeid.has_node_pointer() {
+                                        frag_pointers.push(nodeid.get_node_pointer().to_owned());
+                                    } else {
+                                        from_index = true;
+                                        {
+                                            let rocks_time = SystemTime::now();
+                                            let got = &index.node_index_get(&nodeid);
+                                            all_rocks_time = all_rocks_time + rocks_time.elapsed().unwrap();
+                                            got.iter().for_each(|opts| {
+                                                opts.iter().for_each(|pts| {
+                                                    pts.get_pointers().iter().for_each(|p| {
+                                                        frag_pointers.push(p.clone());
                                                     })
-                                                });
-                                            }
-                                        }
-
-
-                                        if from_index {
-                                            // we should have all the node_fragment pointers we know about
-                                            let n_frag = frag_pointers.len();
-                                            let fpi = frag_pointers.iter();
-                                            fpi.for_each(|p| {
-                                                let tx = tx.clone();
-                                                let offset = p.offset.clone();
-                                                let fpbc = file_path_buf.clone().into_boxed_path();
-
-                                                let err_message = file_error.clone();
-                                                let my_cb = callback.clone();
-                                                let file_in = file_read_pool_receive.recv().unwrap();
-
-                                                // this is super clumsy, but what is going on is we are using a file pool, and a thread pool, and trying to do all the reads as async as possible.
-                                                // likely can be done way better. :D But this does seem to be ok fast.
-
-                                                let file_read_pool_send_cp_cp = file_read_pool_send_cp.clone();
-
-                                                pool.execute(move || {
-                                                    // todo: most likely its a different file
-                                                    // TODO: Do async file IO like: And don't get POSIX AIO and Linux AIO mixed up, different things! seastar linux-aio seems the best so far.
-                                                    // In addition, you must use a filesystem that has good support for AIO. Today, and for the foreseeable future, this means XFS.
-                                                    // https://www.scylladb.com/2016/02/09/qualifying-filesystems/
-                                                    // https://github.com/avikivity/fsqual
-                                                    // http://tinyurl.com/msl-scylladb
-                                                    // https://github.com/scylladb/seastar/blob/72a729da6cb7f843334d515af2cfd791328f5275/core/linux-aio.cc
-                                                    // https://docs.rs/tokio-io/0.1/tokio_io/trait.AsyncRead.html
-                                                    // or https://lwn.net/Articles/743714/
-                                                    // or https://github.com/sile/linux_aio
-                                                    // ref https://www.ibm.com/developerworks/library/l-async/index.html
-
-                                                    let mut f = file_in;
-                                                    f.seek(SeekFrom::Start(offset)).map(|offset| {
-                                                        let opt = {
-                                                            let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut f);
-                                                            let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
-                                                            my_cb.send(fres)
-                                                        };
-                                                        if opt.is_err() {
-                                                            error!("Error A: {}", opt.expect_err("only if we have an error"));
-                                                        } else {
-                                                            let err = opt.map(|()| {
-                                                                file_read_pool_send_cp_cp.send(f)
-                                                                    .map(|()|{
-                                                                        tx.send(1).expect("channel will be there waiting for the pool");
-                                                                    })
-                                                            });
-                                                            if err.is_err(){
-                                                                error!("Error B: {}", err.expect_err("only if we have an error"));
-                                                            }
-
-                                                        }
-
-                                                    });
-
-
-                                                });
-                                                ()
+                                                })
                                             });
-
-
-                                            // todo: do we need to send something down callback to tell it we are done?
-                                        } else {
-                                            // as we load a fragment we either need to follow internal pointers
-                                            // or we need to go back to the index.
                                         }
                                     }
-                                };
-                                query();
-                                for done in rx.iter() {
-                                    // waiting for them all to be done reading.
+
+
+                                    if from_index {
+                                        // we should have all the node_fragment pointers we know about
+                                        let n_frag = frag_pointers.len();
+                                        let fpi = frag_pointers.iter();
+                                        fpi.for_each(|p| {
+
+                                            let my_cb = callback.clone();
+                                            let abc = bufaio.read_async(p.filename, p.offset, p.length, my_cb);
+                                            futures.push(abc);
+
+                                            ()
+                                        });
+                                    } else {
+                                        // as we load a fragment we either need to follow internal pointers
+                                        // or we need to go back to the index.
+                                    }
                                 }
+                                // Wait for completion
+                                let result = futures::future::join_all(futures).wait();
+                                info!("RocksTime in {}s {}ms", all_rocks_time.as_secs(), all_rocks_time.subsec_millis());
+                                assert!(result.is_ok());
                             }
                             IO::NoOP => debug!("Got NoOp"),
                             IO::Shutdown => {
+                                // index.db shutdown?
                                 // todo: if we have a thread pool running maintenance tasks or IO:Add tasks, we need to call shutdown on those.
                                 break;
                             }
@@ -375,6 +338,9 @@ impl ShardWorker {
                         Err(_e) => thread::sleep(Duration::from_millis(1))
                     }
                 }
+
+
+
             }),
             shard_id
         };

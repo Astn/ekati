@@ -1,4 +1,5 @@
 
+use std::*;
 use std::result;
 use std::sync::mpsc;
 use std::thread;
@@ -64,7 +65,9 @@ impl ShardIndex {
         use std::io::Write;
         let key = &mut self.fragments_requested.to_vec();
         key.write(&node.write_to_bytes().unwrap().as_slice()).unwrap();
-        batch.merge(key,pointers.write_to_bytes().unwrap().as_mut_slice()).unwrap();
+        let mut value = pointers.write_to_bytes().unwrap();
+        // info!("setting merge : {:x?} -> {:x?}", key, value);
+        batch.merge(key,value.as_mut_slice()).unwrap();
     }
     /// this only works if node_pointer is not set.
     pub fn node_index_get(&mut self, nodeid: &mytypes::types::NodeID) -> result::Result<Option<mytypes::types::Pointers>,String>  {
@@ -87,22 +90,26 @@ impl ShardIndex {
     pub fn merge_operator(_new_key: &[u8], existing_val: Option<&[u8]>, operands: &mut MergeOperands) -> Vec<u8> {
         use protobuf::Message;
 
-        let mut _values = mytypes::types::Pointers::new();
+        // let mut _values = mytypes::types::Pointers::new();
         let mut _result = mytypes::types::Pointers::new();
         // load exising value in if we have one
         for v in existing_val {
-            _values.merge_from_bytes(v).unwrap();
+            _result.merge_from_bytes(v).unwrap();
         }
-
+        // info!("merging start : {:x?} ev {:x?}", _new_key, existing_val);
         for op in operands {
-            let mut _new_val = mytypes::types::Pointers::new();
-            _new_val.merge_from_bytes(op).unwrap();
-            for p in _new_val.mut_pointers().as_mut_slice() {
-                _values.pointers.push(p.clone());
+            // info!("merging : {:x?} -> {:x?}", _new_key, op);
+            // let mut _new_val = mytypes::types::Pointers::new();
+            let merged = _result.merge_from_bytes(op);
+            if(merged.is_err()){
+                error!("Merge_operator failure: {:?}", merged.err().unwrap())
             }
+//            for p in _result.mut_pointers().as_mut_slice() {
+//                _result.pointers.push(p.clone());
+//            }
         }
         {
-            let mut v = _values.take_pointers();
+            let mut v = _result.take_pointers();
             {
                 v.sort_unstable_by_key(|f| { ((f.filename as u64) << 16) + f.offset });
             }
@@ -110,6 +117,8 @@ impl ShardIndex {
             vecv.dedup();
             _result.set_pointers(::protobuf::RepeatedField::from(vecv));
         }
-        _result.write_to_bytes().unwrap()
+        let finished = _result.write_to_bytes().unwrap();
+        // info!("merging finished : {:x?} -fin-> {:x?}", _new_key, finished);
+        finished
     }
 }
