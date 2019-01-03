@@ -12,6 +12,7 @@ extern crate tokio;
 extern crate memmap;
 extern crate libc;
 extern crate cart_cache;
+extern crate aligned_alloc;
 
 mod mytypes;
 mod fileio;

@@ -187,15 +187,15 @@ fn run_shard_thread(n_fragments:u32, some_shard_id: u32, add_data: bool) -> thre
         }
 
 
-            queryFrags(n_fragments, some_shard_id, &some_shard);
-            queryFrags(n_fragments, some_shard_id, &some_shard);
+            query_frags(n_fragments, some_shard_id, &some_shard);
+            query_frags(n_fragments, some_shard_id, &some_shard);
         });
 
 
     t
 }
 
-fn queryFrags(n_fragments: u32, some_shard_id: u32, some_shard: &ShardWorker) {
+fn query_frags(n_fragments: u32, some_shard_id: u32, some_shard: &ShardWorker) {
     use self::rand::*;
     let rnd_read_cnt = n_fragments / 10;
     info!("thread {} - Testing reading {} random nodes by logical address", some_shard_id, rnd_read_cnt);
@@ -219,7 +219,7 @@ fn queryFrags(n_fragments: u32, some_shard_id: u32, some_shard: &ShardWorker) {
         some_shard.post.send(IO::ReadNodeFragments {
             nodeids: recive_nids,
             callback: call_back_initiatior_b.clone()
-        });
+        }).unwrap();
         for _j in random_ids {
             let mut query_nid = NodeID::new();
             // todo: better way to make chars directly from a string maybe Chars::From<String>(...)

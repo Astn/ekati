@@ -101,7 +101,7 @@ impl ShardWorker {
                 let dir = env::current_dir().unwrap().join(path::Path::new(&format!("shard-{}",shard_id)));
 
                 if create_testing_directory{
-                    fs::remove_dir_all(&dir);
+                    fs::remove_dir_all(&dir).unwrap();
                 }
 
                 match fs::create_dir(&dir){
@@ -313,7 +313,7 @@ impl ShardWorker {
                                         fpi.for_each(|p| {
 
                                             let my_cb = callback.clone();
-                                            let abc = bufaio.ReadAsync(p.filename,p.offset,p.length, my_cb);
+                                            let abc = bufaio.read_async(p.filename, p.offset, p.length, my_cb);
                                             futures.push(abc);
 
                                             ()

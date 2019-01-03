@@ -1,34 +1,30 @@
 use ::protobuf::*;
 use mytypes::types::*;
-use ::threadpool::ThreadPool;
 use tokio_linux_aio::AioContext;
 use futures_cpupool::CpuPool;
 use std::convert;
 use std::mem;
 use memmap;
-use libc::{c_long, c_void, mlock};
-use libc::{close, open, O_DIRECT, O_RDONLY, O_RDWR};
+use libc::{c_void, mlock};
+use libc::{close, open, O_DIRECT, O_RDONLY};
 use std::os::unix::io::RawFd;
 use std::os::unix::ffi::OsStrExt;
 use futures::*;
 use futures;
 use std::sync;
-use tokio_linux_aio::AioPollFuture;
 use tokio_linux_aio::AioReadResultFuture;
 use std::slice;
 use std::path::Path;
 use std::collections::HashMap;
 use std::env;
 use std::ops::*;
-use futures::Map;
-use tokio_linux_aio::AioError;
 use std::sync::mpsc::SyncSender;
-use futures_cpupool::*;
 use protobuf::error::ProtobufError::IoError;
 use std::sync::mpsc::SendError;
 use bytes::{Bytes, BytesMut, Buf, BufMut};
 use cart_cache::CartCache;
-
+use std::path::PathBuf;
+use std::io::{BufRead, Cursor, Read};
 
 pub struct MemoryHandle {
     block: sync::Arc<sync::RwLock<memmap::MmapMut>>,
@@ -69,9 +65,15 @@ pub struct OwnedFd {
 }
 
 impl OwnedFd {
-
-    pub fn new_from_raw_fd(fd: RawFd) -> OwnedFd {
-        OwnedFd { fd }
+    pub fn new(path: &PathBuf) -> OwnedFd {
+        OwnedFd{
+          fd: unsafe {
+               open(
+              mem::transmute(path.clone().as_os_str().as_bytes().as_ptr()),
+              O_DIRECT | O_RDONLY
+                ) as RawFd
+          }
+        }
     }
 }
 
@@ -91,9 +93,9 @@ pub struct BufferedAsync{
 }
 impl BufferedAsync{
 
-    pub fn new(poolSize: u32, slots: usize, shard_id: u32) -> BufferedAsync
+    pub fn new(pool_size: u32, slots: usize, shard_id: u32) -> BufferedAsync
     {
-        let exec = CpuPool::new(poolSize as usize);
+        let exec = CpuPool::new(pool_size as usize);
         BufferedAsync {
             shard_id,
             files: HashMap::new(),
@@ -103,7 +105,7 @@ impl BufferedAsync{
         }
     }
 
-    pub fn ReadAsync(&mut self, fileid : u32, offset : u64, length : u64, callback: SyncSender<Result<Node_Fragment, ProtobufError>>) -> impl Future<Item = Result<(),SendError<Result<Node_Fragment, ProtobufError>>>, Error = Result<(), ProtobufError>>  {
+    pub fn read_async(&mut self, fileid : u32, offset : u64, length : u64, callback: SyncSender<Result<Node_Fragment, ProtobufError>>) -> impl Future<Item = Result<(),SendError<Result<Node_Fragment, ProtobufError>>>, Error = Result<(), ProtobufError>>  {
 
         let my_fd = if self.files.contains_key(&fileid) {
             self.files.get(&fileid).unwrap()
@@ -113,12 +115,7 @@ impl BufferedAsync{
             let dir = env::current_dir().unwrap().join(Path::new(&format!("shard-{}",self.shard_id)));
             let file_path_buf = dir.join(Path::new(&file_name));
             info!("creating FD: {}", file_path_buf.display());
-            let owned_fd: OwnedFd = OwnedFd::new_from_raw_fd(unsafe {
-                open(
-                    mem::transmute(file_path_buf.clone().as_os_str().as_bytes().as_ptr()),
-                    O_DIRECT | O_RDONLY,
-                )
-            });
+            let owned_fd: OwnedFd = OwnedFd::new(&file_path_buf);
             self.files.insert(fileid, owned_fd);
             self.files.get(&fileid).unwrap()
         };
@@ -139,7 +136,7 @@ impl BufferedAsync{
                 let page = reader.get(&key);
                 if page.is_some() {
                     let result_buffer = page.unwrap().to_owned();
-                    let pageSize = result_buffer.as_ref().len();
+                    let page_size = result_buffer.as_ref().len();
                     let mut data_at_offset: &[u8] =
                         unsafe {
                             let data = result_buffer.as_ref().as_ptr().add(inner_offset as usize);
@@ -150,12 +147,12 @@ impl BufferedAsync{
                     let mut cinp = ::protobuf::stream::CodedInputStream::new(&mut data_at_offset);
                     let fres: ProtobufResult<Node_Fragment> = cinp.read_message::<Node_Fragment>();
                     if fres.is_err() {
-                        error!("hit err: offset: {} aligned_size: {} pageSize: {}", offset_aligned, aligned_size, pageSize);
+                        error!("hit err: offset: {} aligned_size: {} page_size: {}", offset_aligned, aligned_size, page_size);
                     } else {
-                        // info!("hit: offset: {} aligned_size: {} pageSize: {}", offset_aligned, aligned_size, pageSize);
+                        // info!("hit: offset: {} aligned_size: {} page_size: {}", offset_aligned, aligned_size, page_size);
                     }
-                    let earlyRet = self.pool.spawn(futures::done(Ok(callback.send(fres))));
-                    return earlyRet;
+                    let early_ret = self.pool.spawn(futures::done(Ok(callback.send(fres))));
+                    return early_ret;
                 }
             }
         }
