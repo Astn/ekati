@@ -44,22 +44,53 @@ message AddressBlock {
     }
 }
 
-message TMD {
-    int64 time_stamp = 1;
-    Data meta_data = 2;
-    Data data = 3;
+message Value {
+    Data meta_data = 1;
+    Data data = 2;
+}
+message Key {
+    string name =1;
+    uint64 time_stamp = 2;
+    NodeID edge_attributes =3;
 }
 
-message KeyValue {
-    TMD key = 1;
-    TMD value = 2;
+message Node_Fragment { // this is a Node_Fragment, meaning multiple fragments per node. and Node is a logical collection of fragments with the same id.
+   AddressBlock id = 1;
+    // we need to test with the fragments inline here, vs external
+   repeated Pointer fragments = 2;
+   repeated Key keys = 3; // keys should be sorted
+   repeated Value values = 4; // values ordinal must match keys ordinal
 }
 
-message Node {
-    AddressBlock id = 1;
-    repeated Pointer fragments = 2;
-    repeated KeyValue attributes = 3;
-}
+// A
+// people/austin
+// frag = [B,,]
+// name = austin
+// friend = &B
+// location = 37
+// age = 37
+
+// B
+// frag = [,] // also going to log that I want to update A with [B], this needs to happen in background.
+// people/austin
+// age = 38
+
+// C
+// frag = [A,B,] // also going to log that I want to update B with [C], A with [C] this needs to happen in background.
+// people/austin
+// location = Denver
+
+// D
+// people/austin
+// location = Denver
+
+// E
+// people/austin
+// location = Denver
+
+// F
+// people/austin
+// location = Denver
 
 message Pointers {
     repeated Pointer pointers = 1; 

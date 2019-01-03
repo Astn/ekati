@@ -8,6 +8,11 @@ build = "build.rs"
 [dependencies]
 protobuf = { version = "~2.0", features = ["with-bytes"] }
 bytes =  "0.4.8"
+log4rs = "0.8.0"
+log = "0.4.4"
+parity-rocksdb = "0.5.0"
+rand = "0.5.5"
+threadpool = "1.7.1"
 
 [build-dependencies]
 protoc-rust = "2.0.2"
