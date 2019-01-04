@@ -8,6 +8,7 @@ jobs:
       - run:
           name: Apt
           command: |
+            apt update
             apt install -y build-essential bzip2 clang cmake
       - run:
           name: Build
