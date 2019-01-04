@@ -26,10 +26,10 @@ Status of the prototype F#
 Status of post prototype Rust
 
  - [x] Protocol Buffers data types
- - [ ] Stores Fragments
+ - [x] Stores Fragments
  - [ ] Links Fragments
  - [ ] Resolves Fragment Pointers
- - [ ] Entry Index uses RocksDb
+ - [x] Entry Index uses RocksDb
  - [ ] Single machine ingress tested at 50MB/s and 15m Fragments in 2.5 min. 
  - [ ] Map Reduce
  - [ ] Clustering
