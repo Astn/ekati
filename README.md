@@ -1,6 +1,6 @@
 # Ahghee - The Big Graph database
 
-[![Build status](https://ci.appveyor.com/api/projects/status/6581it232hdo2qa5?svg=true)](https://ci.appveyor.com/project/Astn/ahghee)
+[![CircleCI](https://circleci.com/gh/Astn/ahghee.svg?style=svg)](https://circleci.com/gh/Astn/ahghee)
 
 This project is still in it's early early stages, so click that *Watch* button.
 
