@@ -6,6 +6,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Apt
+          command: |
+            apt install -y bzip2 clang
+      - run:
           name: Build
           command: cargo build
       - run:
