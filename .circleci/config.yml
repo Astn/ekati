@@ -8,7 +8,7 @@ jobs:
       - run:
           name: Apt
           command: |
-            apt install -y bzip2 clang
+            apt install -y build-essential bzip2 clang cmake
       - run:
           name: Build
           command: cargo build
