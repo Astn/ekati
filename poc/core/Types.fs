@@ -148,7 +148,7 @@ module Utils =
         bb.Metabytes.Bytes <- bytes
         bb
     
-    let MetaBytes typ bytes = 
+    let MetaBytes typ (bytes: byte[]) = 
         MetaBytesNoCopy typ (Google.Protobuf.ByteString.CopyFrom(bytes))
     
     let NullMemoryPointer() = 
