@@ -64,11 +64,11 @@ type NodeIdIndex (indexFile:string) =
     member __.AddOrUpdateBatch (keys:byte[][]) (getValueForKey: byte[] -> Pointers) (update: (byte[] -> Pointers -> Pointers)) =
         let writeRP (rp:Pointers) = 
             let len = rp.CalculateSize()
-            let b = Array.zeroCreate<byte>(len)
+            let b = buffer.Rent(len)
             let outputStream = new CodedOutputStream(b)
             rp.WriteTo(outputStream) 
             outputStream.Flush() 
-            b
+            (b, len)
         
         //let wb = new ReadBatch()
         let keysBytes = keys
@@ -84,19 +84,24 @@ type NodeIdIndex (indexFile:string) =
         // for keys with values we do a Modify and Write. Eventually maybe do a rocksDb.merge instead of all of this
                 
         noValues
-            |> Array.iter (fun kvp -> writeBatch.Put(kvp.Key, getValueForKey(kvp.Key) |> writeRP ) |> ignore)
+            |> Array.iter (fun kvp ->
+                let (d, l) = getValueForKey(kvp.Key) |> writeRP
+                writeBatch.Put(kvp.Key, (uint64) kvp.Key.Length, d, (uint64) l ) |> ignore
+                buffer.Return(d)
+                )
         
         values
             |> Array.iter (fun kvp -> 
                     let mutable outValue:Pointers = null
                     let success = TryGetValueInternal kvp.Key (& outValue)
-                    let newVal = 
+                    let (newVal, l) = 
                         if success then
                             let updated = update kvp.Key outValue
                             updated |> writeRP
                         else
                             getValueForKey(kvp.Key) |> writeRP
-                    writeBatch.Put(kvp.Key, newVal) |> ignore
+                    writeBatch.Put(kvp.Key, (uint64) kvp.Key.LongLength, newVal, (uint64) l) |> ignore
+                    buffer.Return(newVal)
                 )    
         db.Write(writeBatch)
         
@@ -148,7 +153,7 @@ module Utils =
         bb.Metabytes.Bytes <- bytes
         bb
     
-    let MetaBytes typ bytes = 
+    let MetaBytes typ (bytes: byte[]) = 
         MetaBytesNoCopy typ (Google.Protobuf.ByteString.CopyFrom(bytes))
     
     let NullMemoryPointer() = 
