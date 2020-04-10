@@ -179,7 +179,7 @@ module Program =
             enu.MoveNext() |> ignore
             if t1.IsCompleted = false then
                 t1.Wait()
-            if ct % 6 = 2 then
+            if ct % 12 = 0 then
                 g.Flush()
             t1 <- t2
             t2 <- g.Add enu.Current
@@ -187,7 +187,7 @@ module Program =
         
         g.Flush()
         
-        System.Threading.Thread.Sleep(60000)
+        System.Threading.Thread.Sleep(30000)
         
         // now for the read test
         let readTimer = Stopwatch.StartNew()
