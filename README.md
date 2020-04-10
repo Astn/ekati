@@ -1,4 +1,4 @@
-# Ahghee - The Big Graph database
+# Ahghee - A Big Graph database
 
 [![CircleCI](https://circleci.com/gh/Astn/ahghee.svg?style=svg)](https://circleci.com/gh/Astn/ahghee)
 
