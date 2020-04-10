@@ -8,7 +8,6 @@ using Ahghee;
 using Ahghee.Grpc;
 using benchmark;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Columns;
 using BenchmarkDotNet.Running;
 using Google.Protobuf;
 using Google.Protobuf.Collections;

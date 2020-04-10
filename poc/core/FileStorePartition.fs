@@ -428,7 +428,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 |> Seq.map (fun x -> x.Id.Nodeid) 
                                 |> Array.ofSeq
                                 |> Seq.ofArray
-                                |> Index
+                                |> IndexMessage.Index
                                 |> IndexMaintainer.Post 
 
                             lastPosition <- int64 ownOffset
