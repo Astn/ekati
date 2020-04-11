@@ -264,12 +264,12 @@ module Program =
                         e ->
                             Console.WriteLine(e.Message)
                     ()
-                else if b.StartsWith("get") then
+                else if b.StartsWith("getf") then
                     try
                         
                         let mutable getmore = true
                         while getmore do
-                            Console.Write("get> ")
+                            Console.Write("getf> ")
                             let mutable line = Console.ReadLine()
                             getmore <- String.IsNullOrWhiteSpace(line) = false
                             let ab = Google.Protobuf.JsonParser.Default.Parse<AddressBlock>(line)
@@ -284,6 +284,27 @@ module Program =
                         e ->
                             Console.WriteLine(e.Message)
                     ()
+                else if b.StartsWith("get") then
+                    try
+                        
+                        let mutable getmore = true
+                        while getmore do
+                            Console.Write("get> ")
+                            let mutable line = Console.ReadLine()
+                            getmore <- String.IsNullOrWhiteSpace(line) = false
+                            let ab = Google.Protobuf.JsonParser.Default.Parse<AddressBlock>(line)
+                            if ab.AddressCase = AddressBlock.AddressOneofCase.Nodeid then
+                                ab.Nodeid.Pointer <- NullMemoryPointer()
+                            Console.WriteLine()
+                            let t = g.Items([ab])
+                            t.Result
+                                |> Seq.iter (fun (a,e) -> match e with
+                                                            | Left(node) -> Console.WriteLine("ok> " + Google.Protobuf.JsonFormatter.Default.Format(node))
+                                                            | Right(e) -> Console.WriteLine("err> " + e.Message) )                            
+                    with
+                        e ->
+                            Console.WriteLine(e.Message)
+                    ()    
                 else
                     Console.WriteLine("unexpected input. Expected put|get")
                 ()

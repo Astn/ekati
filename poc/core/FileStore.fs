@@ -196,14 +196,18 @@ type GrpcFileStore(config:Config) =
                         | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
                         | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
                         | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
-                    assert (nid.Pointer <> Utils.NullMemoryPointer())
-                    let (bc,t,part) = PartitionWriters.[int <| nid.Pointer.Partitionkey]
+                    
+                    let nodeHash = Utils.GetAddressBlockHash ab
+                    let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
+                    // this line is just plain wrong, we don't have a pointer with any of this data here.
+                    // if we did, then this would be ok to go I think.
+                    let (bc,t,part) = PartitionWriters.[int <| partition]
                     
                     // TODO: Read all the fragments, not just the first one.
                     let t = 
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
                             let mutable mp:Pointers = null
-                            if(part.Index().TryGetValue(Utils.GetNodeIdHash nid, &mp)) then 
+                            if(part.Index().TryGetValue(nodeHash, &mp)) then 
                                 while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Seq.take 1 |> Array.ofSeq)) = false do ()
                                 tcs.Task
                             else 
