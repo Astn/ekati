@@ -17,7 +17,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let tags = MetricTags([| "partition_id" |],
                           [| i.ToString() |]) 
         
-
+    let dir = match config.CreateTestingDataDirectory with 
+                      | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+ Path.GetRandomFileName())))
+                      | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
     // TODO: These next two indexes may be able to be specific to a particular thread writer, and then they wouldn't need to be concurrent if that is the case.
     // The idea behind this index is to know which connections we do not need to make as they are already made
     let FragmentLinksConnected = new System.Collections.Generic.Dictionary<Grpc.MemoryPointer, List<Grpc.MemoryPointer>>()
@@ -35,7 +37,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
 
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
-    let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(Path.GetTempPath(),Path.GetRandomFileName()))
+    let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
     
     let IndexMaintainer =
@@ -356,9 +358,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             // TODO: If we cannot access this file, we need to mark this parition as offline, so it can be written to remotely
             // TODO: log file access failures
             
-            let dir = match config.CreateTestingDataDirectory with 
-                      | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+ Path.GetRandomFileName())))
-                      | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
+            
             let fileNameid = i 
             let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
             let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)

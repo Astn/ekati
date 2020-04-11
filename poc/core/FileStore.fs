@@ -189,13 +189,14 @@ type GrpcFileStore(config:Config) =
             let requestsMade =
                 addressBlock
                 |> Seq.map (fun ab ->
+                    
                     let tcs = new TaskCompletionSource<Node[]>()
                     let nid = 
                         match ab.AddressCase with 
                         | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
                         | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
                         | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
-                    
+                    assert (nid.Pointer <> Utils.NullMemoryPointer())
                     let (bc,t,part) = PartitionWriters.[int <| nid.Pointer.Partitionkey]
                     
                     // TODO: Read all the fragments, not just the first one.
