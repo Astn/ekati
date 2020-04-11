@@ -258,11 +258,10 @@ module Program =
                             let adding = g.Add ( [node] )
                             Console.WriteLine("ok> " + Google.Protobuf.JsonFormatter.Default.Format(node))
                             adding.Wait()
-                            g.Flush ()
-                            
                     with
                         e ->
                             Console.WriteLine(e.Message)
+                    g.Flush()
                     ()
                 else if b.StartsWith("getf") then
                     try

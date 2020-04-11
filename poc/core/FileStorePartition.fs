@@ -228,6 +228,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             | DataBlock.DataOneofCase.Address ->
                                 tmd.Data.Address |> NodeIdFromAddress |> AttachMemoryPointer
                                 | _ -> false,false)
+        // todo: only iterate the updated seq once
         let anyChanged = 
             updated |> Seq.contains (true,true)
         let anyMissed =
@@ -458,6 +459,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 let readIOTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadIOTimer, tags)
                                 if stream.Position <> int64 batchStart then
                                     stream.Position <- int64 batchStart //TODO: make sure the offset is less than the end of the file
+                                
+                                // read a buffer that spans all of the data for every requested pointer
+                                // TODO: this doesn't work for large files, or multiple files. Be smarter.
                                 let readResult = stream.Read(buffer,0,int bufferLen)
                                 readIOTimer.Dispose()
                                 
@@ -465,6 +469,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                     raise (new Exception("wtf"))
                                 if(buffer.[0] = byte 0) then
                                     raise (new Exception(sprintf "Read null data @ %A - %A\n%A" fileName requests buffer))    
+                                // for every pointer requested to be read, merge them all into their own nodes
                                 let outNodes = 
                                     requests
                                     |> Array.map(fun req ->

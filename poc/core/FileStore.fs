@@ -208,7 +208,7 @@ type GrpcFileStore(config:Config) =
                         if (nid.Pointer = Utils.NullMemoryPointer()) then
                             let mutable mp:Pointers = null
                             if(part.Index().TryGetValue(nodeHash, &mp)) then 
-                                while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Seq.take 1 |> Array.ofSeq)) = false do ()
+                                while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
                                 tcs.Task
                             else 
                                 tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
@@ -232,7 +232,9 @@ type GrpcFileStore(config:Config) =
                         let (ab,eith) = ts.Result
                         yield 
                             match eith with 
-                            | Left(nodes) -> (ab,Left(nodes.[0])) // TODO: Fix: Currently ignoring everything after first result.
+                            | Left(nodes) -> (ab,Left(nodes |> Array.reduce(fun n1 n2 ->
+                                                                                n1.MergeFrom(n2)
+                                                                                n1) )) // TODO: Fix: Currently ignoring everything after first result.
                             | Right(err) -> (ab,Right(err))
                 })  
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
