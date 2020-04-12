@@ -13,6 +13,8 @@ EndProject
 				EndProject
 				Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "benchmark", "benchmark\benchmark.csproj", "{06CF4BB6-C74D-4FFF-A7F1-AAED8154CFCE}"
 				EndProject
+				Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cli", "cli\cli.csproj", "{ABC01D6D-3358-4881-860D-5DAEF989A620}"
+				EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -86,5 +88,17 @@ Global
 		{06CF4BB6-C74D-4FFF-A7F1-AAED8154CFCE}.Release|x64.Build.0 = Release|Any CPU
 		{06CF4BB6-C74D-4FFF-A7F1-AAED8154CFCE}.Release|x86.ActiveCfg = Release|Any CPU
 		{06CF4BB6-C74D-4FFF-A7F1-AAED8154CFCE}.Release|x86.Build.0 = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Debug|x86.Build.0 = Debug|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|x64.Build.0 = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|x86.ActiveCfg = Release|Any CPU
+		{ABC01D6D-3358-4881-860D-5DAEF989A620}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
