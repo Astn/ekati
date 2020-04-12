@@ -184,19 +184,14 @@ type GrpcFileStore(config:Config) =
                 )
                 
                         
-        member x.Remove (nodes:seq<AddressBlock>) = raise (new NotImplementedException())
-        member x.Items (addressBlock:seq<AddressBlock>) = 
+        member x.Remove (nodes:seq<NodeID>) = raise (new NotImplementedException())
+        member x.Items (addressBlock:seq<NodeID>) = 
             let requestsMade =
                 addressBlock
                 |> Seq.map (fun ab ->
                     
-                    let tcs = new TaskCompletionSource<Node[]>()
-                    let nid = 
-                        match ab.AddressCase with 
-                        | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
-                        | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
-                        | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
-                    
+                    let tcs = TaskCompletionSource<Node[]>()
+                    let nid = ab
                     let nodeHash = Utils.GetAddressBlockHash ab
                     let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
                     // this line is just plain wrong, we don't have a pointer with any of this data here.

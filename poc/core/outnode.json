@@ -1,0 +1,224 @@
+{
+    "id": {
+        "nodeid": {
+            "graph": "mygraph",
+            "nodeid": "wat/123/bar/123",
+            "pointer": {
+                "partitionkey": 2,
+                "filename": 2,
+                "offset": "458",
+                "length": "231"
+            }
+        }
+    },
+    "fragments": [{
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "227",
+        "length": "231"
+    }, {}, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "length": "227"
+    }, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "458",
+        "length": "231"
+    }, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "227",
+        "length": "231"
+    }, {}, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "length": "227"
+    }, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "458",
+        "length": "231"
+    }, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "227",
+        "length": "231"
+    }, {}, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "length": "227"
+    }, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "458",
+        "length": "231"
+    }, {}, {
+        "partitionkey": 2,
+        "filename": 2,
+        "offset": "227",
+        "length": "231"
+    }, {}, {}],
+    "attributes": [{
+        "key": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "c3RhdGU="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "Q29sb3JhZG8="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "TmFtZQ=="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "QXVzdGluIEhhcnJpcw=="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "c3RhdGU="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "Q29sb3JhZG8="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "TmFtZQ=="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "QXVzdGluIEhhcnJpcw=="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "c3RhdGU="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489047433",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "Q29sb3JhZG8="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "TmFtZQ=="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907816489521261",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "QXVzdGluIEhhcnJpcw=="
+                    }
+                }
+            }
+        }
+    }, {
+        "key": {
+            "Timestamp": "5248907825747585003",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "TmFtZQ=="
+                    }
+                }
+            }
+        },
+        "value": {
+            "Timestamp": "5248907825747585003",
+            "Data": {
+                "binary": {
+                    "metabytes": {
+                        "type": "xs:string",
+                        "bytes": "QXVzdGluIEhhcnJpcw=="
+                    }
+                }
+            }
+        }
+    }]
+}

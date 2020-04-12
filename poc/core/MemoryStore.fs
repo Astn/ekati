@@ -15,23 +15,20 @@ type MemoryStore() =
         member this.Add (nodes:seq<Node>) = 
             _nodes <- Seq.append _nodes nodes
             Task.CompletedTask
-        member this.Remove (nodeIDs:seq<AddressBlock>) = 
+        member this.Remove (nodeIDs:seq<NodeID>) = 
             _nodes <- _nodes |> Seq.filter (fun n -> 
                                                     let head = n.Id 
                                                     nodeIDs |> Seq.contains head |> not)
             Task.CompletedTask    
-        member this.Items (addresses:seq<AddressBlock>) =
+        member this.Items (addresses:seq<NodeID>) =
             let matches = addresses |> Seq.map (fun addr -> 
-                                                match addr.AddressCase with 
-                                                | AddressBlock.AddressOneofCase.Nodeid -> 
-                                                                let isLocal = _nodes 
-                                                                              |> Seq.tryFind ( fun n -> n.Id = addr)
-                                                                match isLocal with 
-                                                                | Some node -> (addr, Left(node))
-                                                                | None -> (addr, Right (Failure "remote nodes not supported yet"))
-                                                | AddressBlock.AddressOneofCase.Globalnodeid -> raise (new NotImplementedException())
-                                                | AddressBlock.AddressOneofCase.None -> raise (new NotImplementedException())
-                                                | _ -> raise (new NotImplementedException())
+                                                        let isLocal = _nodes 
+                                                                      |> Seq.tryFind ( fun n -> n.Id = addr)
+                                                        let found = match isLocal with
+                                                            | Some(n) -> Left(n)
+                                                            | _ -> Right(new Exception("Not Found"))
+                                                        (addr, found)
+                                                                
                                                 )
             Task.FromResult matches      
         member this.First (predicate: (Node -> bool)) : System.Threading.Tasks.Task<Option<Node>> =

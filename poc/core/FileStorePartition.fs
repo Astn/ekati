@@ -29,11 +29,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // TODO: rename to IORequests
     let bc = System.Threading.Channels.Channel.CreateBounded<NodeIO>(1000)
         
-    let NodeIdFromAddress (addr:AddressBlock) =
-        match addr.AddressCase with 
-        | AddressBlock.AddressOneofCase.Nodeid -> addr.Nodeid
-        | AddressBlock.AddressOneofCase.Globalnodeid -> addr.Nodeid
-        | _ ->  raise (new NotSupportedException("AddresBlock did not contain a valid address"))
+    let NodeIdFromAddress (addr:NodeID) = addr
 
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
@@ -100,9 +96,9 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // also updates indexes (FragmentLinksRequested; FragmentLinksConnected) to reflect changes, and request 
     // bidirectional linking for this fragment and the pointer it links to
     let LinkFragmentTo (n:Node) (mp:MemoryPointer) =
-        if (mp.Partitionkey <> n.Id.Nodeid.Pointer.Partitionkey
-            || mp.Filename <> n.Id.Nodeid.Pointer.Filename
-            || mp.Offset <> n.Id.Nodeid.Pointer.Offset) then 
+        if (mp.Partitionkey <> n.Id.Pointer.Partitionkey
+            || mp.Filename <> n.Id.Pointer.Filename
+            || mp.Offset <> n.Id.Pointer.Offset) then 
             
             // Find the first null pointer and update it.
             // We don't use ADD because that would change the memory size for this fragment. 
@@ -120,37 +116,37 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                         n.Fragments.Item(i) <- mp
 
                         // Track that we have linked these fragments
-                        if FragmentLinksConnected.ContainsKey(n.Id.Nodeid.Pointer) = false then 
-                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- 
+                        if FragmentLinksConnected.ContainsKey(n.Id.Pointer) = false then 
+                            FragmentLinksConnected.Item(n.Id.Pointer) <- 
                                 let lst = new System.Collections.Generic.List<MemoryPointer>()
                                 lst.Add mp
                                 lst
                         else
-                            FragmentLinksConnected.Item(n.Id.Nodeid.Pointer) <- 
-                                let lst = FragmentLinksConnected.Item(n.Id.Nodeid.Pointer)
+                            FragmentLinksConnected.Item(n.Id.Pointer) <- 
+                                let lst = FragmentLinksConnected.Item(n.Id.Pointer)
                                 lst.Add(mp)
                                 lst   
 
                         // If this was a requested link, remove it from the requests
-                        if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) && FragmentLinksRequested.Item(n.Id.Nodeid.Pointer).Count > 1 then
-                            FragmentLinksRequested.Item(n.Id.Nodeid.Pointer) <- 
-                                let lst = FragmentLinksRequested.Item(n.Id.Nodeid.Pointer)
+                        if FragmentLinksRequested.ContainsKey(n.Id.Pointer) && FragmentLinksRequested.Item(n.Id.Pointer).Count > 1 then
+                            FragmentLinksRequested.Item(n.Id.Pointer) <- 
+                                let lst = FragmentLinksRequested.Item(n.Id.Pointer)
                                 lst.Remove mp |> ignore
                                 lst
-                        else if FragmentLinksRequested.ContainsKey(n.Id.Nodeid.Pointer) then  
-                            FragmentLinksRequested.Remove(n.Id.Nodeid.Pointer) |> ignore
+                        else if FragmentLinksRequested.ContainsKey(n.Id.Pointer) then  
+                            FragmentLinksRequested.Remove(n.Id.Pointer) |> ignore
                             
                                                    
                         // Track that we want to link it from the other direction, but only if that hasn't already been done
-                        if (FragmentLinksConnected.ContainsKey(mp) = false || FragmentLinksConnected.Item(mp).Contains(n.Id.Nodeid.Pointer) = false) then
+                        if (FragmentLinksConnected.ContainsKey(mp) = false || FragmentLinksConnected.Item(mp).Contains(n.Id.Pointer) = false) then
                             if FragmentLinksRequested.ContainsKey(mp) = false then
                                 let lst = new System.Collections.Generic.List<MemoryPointer>()
-                                lst.Add n.Id.Nodeid.Pointer 
+                                lst.Add n.Id.Pointer 
                                 FragmentLinksRequested.Add(mp, lst) 
-                            else if FragmentLinksRequested.Item(mp).Contains(n.Id.Nodeid.Pointer) = false then
+                            else if FragmentLinksRequested.Item(mp).Contains(n.Id.Pointer) = false then
                                 FragmentLinksRequested.Item(mp) <- 
                                     let lst = FragmentLinksRequested.Item(mp)
-                                    lst.Add n.Id.Nodeid.Pointer
+                                    lst.Add n.Id.Pointer
                                     lst 
 
                         true
@@ -170,7 +166,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             // If this node has links requested, then make those and exit
             let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
             let mutable outMpB:Pointers = null 
-            if FragmentLinksRequested.TryGetValue(n.Id.Nodeid.Pointer, & outMpA) && outMpA |> Seq.length > 0 then 
+            if FragmentLinksRequested.TryGetValue(n.Id.Pointer, & outMpA) && outMpA |> Seq.length > 0 then 
                 seq {
                     for mp in outMpA do
                         if LinkFragmentTo n mp then  
@@ -225,8 +221,8 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 [attr.Value; attr.Key])
             |> Seq.map (fun tmd ->
                             match  tmd.Data.DataCase with
-                            | DataBlock.DataOneofCase.Address ->
-                                tmd.Data.Address |> NodeIdFromAddress |> AttachMemoryPointer
+                            | DataBlock.DataOneofCase.Nodeid ->
+                                tmd.Data.Nodeid |> NodeIdFromAddress |> AttachMemoryPointer
                                 | _ -> false,false)
         // todo: only iterate the updated seq once
         let anyChanged = 
@@ -402,7 +398,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let x = System.IO.Pipelines.Pipe()
                             
                             for item in items do
-                                let mp = item.Id.Nodeid.Pointer
+                                let mp = item.Id.Pointer
                                 mp.Partitionkey <- uint32 i
                                 mp.Filename <- uint32 fileNameid
                                 mp.Offset <- ownOffset
@@ -419,14 +415,14 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
                                 
                             for item in items do    
-                                let id = item.Id.Nodeid
+                                let id = item.Id
                                 if (not (FixPointersWriteBuffer.ContainsKey id.Pointer.Offset)) then
                                     FixPointersWriteBuffer.Add(id.Pointer.Offset,id.Pointer)
                                 else
                                     ()
                              
                             items 
-                                |> Seq.map (fun x -> x.Id.Nodeid) 
+                                |> Seq.map (fun x -> x.Id) 
                                 |> Array.ofSeq
                                 |> Seq.ofArray
                                 |> IndexMessage.Index

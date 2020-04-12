@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+// TODO: support protobuff any
+// import google/protobuf/any.proto
+
 package ahghee.grpc;
 
 // MemoryPointer needs fixed fields, so we can update them
@@ -11,41 +14,32 @@ message MemoryPointer {
     fixed64 length = 4;
 }
 
-message TypeBytes{
-    string type = 1;
+message TypeBytes {
+    string typeiri = 1;
     bytes bytes = 2;
 }
 
 message NodeID {
-    string graph = 1;
-    string nodeid = 2;
+    string remote = 1;
+    string iri = 2;
     MemoryPointer pointer = 3; 
-}
-
-message GlobalNodeID {
-    string domain = 1;
-    string database = 2;
-    NodeID nodeid = 3;
-}
-
-message BinaryBlock {
-    oneof binary {
-        TypeBytes metabytes = 1;
-        MemoryPointer memorypointer = 2;
-    }
-}
-
-message AddressBlock {
-    oneof address {
-        NodeID nodeid = 1;
-        GlobalNodeID globalnodeid = 2;
-    }
 }
 
 message DataBlock {
     oneof data {
-        AddressBlock address = 1;
-        BinaryBlock binary = 2;
+        NodeID nodeid = 1;
+        TypeBytes metabytes = 2;
+        string str = 3;
+        int32 i32 = 4;
+        int64 i64 = 5;
+        uint32 ui32 = 6;
+        uint64 ui64 = 7;
+        double d = 8;
+        float f = 9;
+        bool b = 10;
+        MemoryPointer memorypointer = 11;
+        //todo: add support for protobuf any
+        //google.protobuf.Any any = 5;
     }
 }
 
@@ -61,9 +55,9 @@ message KeyValue {
 }
 
 message Node {
-    AddressBlock id = 1;
-    repeated MemoryPointer fragments = 2;
-    repeated KeyValue attributes = 3;
+    NodeID id = 1;
+    repeated MemoryPointer fragments = 3;
+    repeated KeyValue attributes = 4;
 }
 
 message Pointers {

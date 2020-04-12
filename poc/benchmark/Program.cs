@@ -37,8 +37,8 @@ namespace benchmark
             
             Nodeid = new NodeID();
             Nodeid.Pointer = Utils.NullMemoryPointer();
-            Nodeid.Graph = "graph";
-            Nodeid.Nodeid = "1";
+            Nodeid.Remote = "graph";
+            Nodeid.Iri = "1";
             
             rp = new Pointers();
             mp = Utils.NullMemoryPointer();
@@ -59,14 +59,14 @@ namespace benchmark
         [Benchmark]
         public void PutNodeIdIndex()
         {
-            Nodeid.Nodeid = Interlocked.Increment(ref ctr).ToString();
+            Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
             var idHash = Utils.GetNodeIdHash(Nodeid);
             var value = nodeIndex.AddOrUpdateCS(idHash, () => rp, (id, rp) => rp);   
         }
         [Benchmark]
         public void PutConcurrentDictionary()
         {
-            Nodeid.Nodeid = Interlocked.Increment(ref ctr).ToString();
+            Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
             var idHash = Utils.GetNodeIdHash(Nodeid);
             var value = cd.AddOrUpdate(idHash, rp, (id, rp) => rp);   
         }
@@ -93,7 +93,7 @@ namespace benchmark
     public class CreatingNodeEmpty
     {
         [Benchmark(Baseline = true)]
-        public Node MkNodeEmpty() => Ahghee.Utils.Node(new AddressBlock(), Array.Empty<KeyValue>());
+        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), Array.Empty<KeyValue>());
 
     }
 
@@ -143,8 +143,8 @@ namespace benchmark
         public KeyValue MkKvManual2()
         {
             var kv = new KeyValue();
-            kv.Key = Ahghee.Utils.TMDAuto(Ahghee.Utils.DBB(Ahghee.Utils.MetaBytes(Ahghee.Utils.metaPlainTextUtf8,_key1Bytes)));
-            kv.Value = Ahghee.Utils.TMDAuto(Ahghee.Utils.DBB(Ahghee.Utils.MetaBytes(Ahghee.Utils.metaPlainTextUtf8,_value1Bytes)));
+            kv.Key = Ahghee.Utils.TMDAuto(Ahghee.Utils.MetaBytes(Ahghee.Utils.metaPlainTextUtf8,_key1Bytes));
+            kv.Value = Ahghee.Utils.TMDAuto(Ahghee.Utils.MetaBytes(Ahghee.Utils.metaPlainTextUtf8,_value1Bytes));
             return kv;
         }
         
@@ -152,8 +152,8 @@ namespace benchmark
         public KeyValue MkKvManual3()
         {
             var kv = new KeyValue();
-            kv.Key = Ahghee.Utils.TMDAuto(Ahghee.Utils.DBB(Ahghee.Utils.MetaBytesNoCopy(Ahghee.Utils.metaPlainTextUtf8,_key1ProtoBytes)));
-            kv.Value = Ahghee.Utils.TMDAuto(Ahghee.Utils.DBB(Ahghee.Utils.MetaBytesNoCopy(Ahghee.Utils.metaPlainTextUtf8,_value1ProtoBytes)));
+            kv.Key = Ahghee.Utils.TMDAuto(Ahghee.Utils.MetaBytesNoCopy(Ahghee.Utils.metaPlainTextUtf8,_key1ProtoBytes));
+            kv.Value = Ahghee.Utils.TMDAuto(Ahghee.Utils.MetaBytesNoCopy(Ahghee.Utils.metaPlainTextUtf8,_value1ProtoBytes));
             return kv;
         }
     }
@@ -163,12 +163,6 @@ namespace benchmark
     {
         [Benchmark]
         public DataBlock MkBinaryBlockString() => Ahghee.Utils.DBBString(_key1);
-        
-        [Benchmark]
-        public BinaryBlock MkBinaryBlockEmpty() => new BinaryBlock();
-
-        [Benchmark]
-        public AddressBlock MkAddressBlockEmpty() => new AddressBlock();
 
         [Benchmark]
         public DataBlock MkDataBlockEmpty() => new DataBlock();
@@ -177,7 +171,7 @@ namespace benchmark
         public KeyValue MkKeyValueEmpty() => new KeyValue();
 
         [Benchmark]
-        public Node MkNodeEmpty() => Ahghee.Utils.Node(new AddressBlock(), Array.Empty<KeyValue>());
+        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), Array.Empty<KeyValue>());
 
         
         private static string _graph = "graph1";
@@ -186,7 +180,7 @@ namespace benchmark
         private static string _value1 = "Austin";
         
         [Benchmark]
-        public AddressBlock MkIdSimple() {
+        public NodeID MkIdSimple() {
             var id = Ahghee.Utils.Id(_graph, _id, Ahghee.Utils.NullMemoryPointer());
             return id;
         }

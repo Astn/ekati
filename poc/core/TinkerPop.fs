@@ -13,14 +13,13 @@ module TinkerPop =
     let TheCrew = lazy ( GraphML.Load("tinkerpop-modern.xml") )
 
     
-    let ABtoyId id : AddressBlock =
+    let ABtoyId id : NodeID =
             let ab graph i= 
-                let a = new AddressBlock()
-                a.Nodeid <- new NodeID()
-                a.Nodeid.Pointer <- NullMemoryPointer()
-                a.Nodeid.Graph <- graph
-                a.Nodeid.Nodeid <- i
-                a
+                let Nodeid = NodeID()
+                Nodeid.Pointer <- NullMemoryPointer()
+                Nodeid.Remote <- graph
+                Nodeid.Iri <- i
+                Nodeid
             ab "TheCrew" id
     
     let DABtoyId id : DataBlock =
@@ -74,7 +73,7 @@ module TinkerPop =
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- TMDAuto (DBB (MetaBytes valueMeta valueBytes))
+                                kv1.Value <- TMDAuto (MetaBytes valueMeta valueBytes)
                                 kv1
                             )
                             |> Seq.append (edges
@@ -127,7 +126,7 @@ module TinkerPop =
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- (MetaBytes valueMeta valueBytes) |> DBB |> TMDAuto
+                                kv1.Value <- (MetaBytes valueMeta valueBytes) |> TMDAuto
                                 kv1
                             )
                             |> Seq.append (edges

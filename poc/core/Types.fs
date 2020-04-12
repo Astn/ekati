@@ -23,8 +23,8 @@ type IStorage =
     abstract member Nodes: seq<Node>
     abstract member Flush: unit -> unit
     abstract member Add: seq<Node> -> System.Threading.Tasks.Task
-    abstract member Remove: seq<AddressBlock> -> System.Threading.Tasks.Task
-    abstract member Items: seq<AddressBlock> -> System.Threading.Tasks.Task<seq<AddressBlock * Either<Node, Exception>>>
+    abstract member Remove: seq<NodeID> -> System.Threading.Tasks.Task
+    abstract member Items: seq<NodeID> -> System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>>
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
 
@@ -133,12 +133,8 @@ module Utils =
     open Google.Protobuf
 
     let GetNodeIdHash (nodeid:NodeID) : NodeIdHash =  nodeid.GetHashCode() 
-    let GetAddressBlockHash (ab:AddressBlock) : NodeIdHash =
-        let nid = 
-            match ab.AddressCase with 
-            | AddressBlock.AddressOneofCase.Globalnodeid -> ab.Globalnodeid.Nodeid
-            | AddressBlock.AddressOneofCase.Nodeid -> ab.Nodeid
-            | _ -> raise (new NotImplementedException("AddressBlock did not contain a valid NodeID"))
+    let GetAddressBlockHash (ab:NodeID) : NodeIdHash =
+        let nid = ab
         GetNodeIdHash nid    
     let GetPartitionFromHash (partitionCount:int) (nodeHash:NodeIdHash) =
         int ((uint32 nodeHash) % uint32 partitionCount)
@@ -147,9 +143,9 @@ module Utils =
     let metaXmlInt = "xs:int"
     let metaXmlDouble = "xs:double"
     let MetaBytesNoCopy typ bytes = 
-        let bb = new BinaryBlock()
+        let bb = new DataBlock()
         bb.Metabytes <- new TypeBytes()
-        bb.Metabytes.Type <- typ
+        bb.Metabytes.Typeiri <- typ
         bb.Metabytes.Bytes <- bytes
         bb
     
@@ -165,35 +161,46 @@ module Utils =
         p
     
     let Id graph nodeId (pointer:MemoryPointer) = 
-        let ab = new AddressBlock()
-        ab.Nodeid <- new NodeID()
-        ab.Nodeid.Graph <- graph
-        ab.Nodeid.Nodeid <- nodeId
+        let Nodeid = new NodeID()
+        Nodeid.Remote <- graph
+        Nodeid.Iri <- nodeId
         if (pointer = null) then
-            ab.Nodeid.Pointer <- NullMemoryPointer () 
+            Nodeid.Pointer <- NullMemoryPointer () 
             ()
         else
-            ab.Nodeid.Pointer <- pointer
+            Nodeid.Pointer <- pointer
             ()    
-        ab       
+        Nodeid       
         
     let BBString (text:string) =  MetaBytesNoCopy metaPlainTextUtf8 (ByteString.CopyFromUtf8 text)
     let BBInt (value:int) =       MetaBytes metaXmlInt ( BitConverter.GetBytes value)
     let BBDouble (value:double) = MetaBytes metaXmlDouble (BitConverter.GetBytes value)
     let DBA address =
         let data = new DataBlock()
-        data.Address <- address
+        data.Nodeid <- address
         data
     let DBB binary =
         let data = new DataBlock()
-        data.Binary <- binary
+        data.Metabytes <- binary
         data        
     let DBBString (text:string) = 
-        DBB (BBString text)
-    let DBBInt (value:int) = 
-        DBB (BBInt value)
+        let data = new DataBlock()
+        data.Str <- text
+        data
+    let DBBInt (value:int) =
+        let data = new DataBlock()
+        data.I32 <- value
+        data
     let DBBDouble (value:double) = 
-        DBB (BBDouble value)
+        let data = new DataBlock()
+        data.D <- value
+        data
+        
+    let DBBFloat (value: float32) =
+        let data = new DataBlock()
+        data.F <- value
+        data
+     
     let TMDAuto data = 
         let tmd = new TMD()
         tmd.Data <- data
