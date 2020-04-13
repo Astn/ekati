@@ -11,6 +11,7 @@ open Ahghee.Grpc
 open RocksDbSharp
 open System
 open System.Buffers
+open System.Linq
 
 type Either<'L, 'R> =
     | Left of 'L
@@ -37,7 +38,18 @@ type NodeIdIndex (indexFile:string) =
     let codec = FieldCodec.ForMessage<MemoryPointer>(18u, Ahghee.Grpc.MemoryPointer.Parser)
     let cleanup() = db.Dispose()
 
-    let TryGetValueInternal (keybytes:array<byte>) (value: Pointers byref) = 
+    let writeRP (rp:Pointers) = 
+        let d = rp.Pointers_ |> Enumerable.Distinct
+        rp.Pointers_.Clear()
+        rp.Pointers_.AddRange(d)
+        let len = rp.CalculateSize()
+        let b = buffer.Rent(len)
+        let outputStream = new CodedOutputStream(b)
+        rp.WriteTo(outputStream) 
+        outputStream.Flush() 
+        (b, len)
+    
+    let TryGetValueInternal (keybytes:array<byte>) (value: Pointers byref) =
         let valueBytes = db.Get(keybytes)
         if valueBytes = null || valueBytes.Length = 0 then 
             value <- null
@@ -57,18 +69,27 @@ type NodeIdIndex (indexFile:string) =
             cleanup()
             GC.SuppressFinalize(__);
 
+    member __.Iter() =
+        seq {
+            use mutable it = db.NewIterator()
+            it.SeekToFirst()
+            while it.Valid() do
+                let repeatedField = new Pointers()
+                let bytes = it.Value()
+                let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
+                repeatedField.MergeFrom(codedinputStream)
+                yield repeatedField
+                it.Next()
+        }
+        
+    
     member __.TryGetValue (key:NodeIdHash, value: Pointers byref) = 
+        Console.WriteLine("Get hash " + key.ToString())
         let keybytes = BitConverter.GetBytes key
         TryGetValueInternal keybytes &value 
-    
+
     member __.AddOrUpdateBatch (keys:byte[][]) (getValueForKey: byte[] -> Pointers) (update: (byte[] -> Pointers -> Pointers)) =
-        let writeRP (rp:Pointers) = 
-            let len = rp.CalculateSize()
-            let b = buffer.Rent(len)
-            let outputStream = new CodedOutputStream(b)
-            rp.WriteTo(outputStream) 
-            outputStream.Flush() 
-            (b, len)
+        
         
         //let wb = new ReadBatch()
         let keysBytes = keys
@@ -106,28 +127,9 @@ type NodeIdIndex (indexFile:string) =
         db.Write(writeBatch)
         
         ()
-             
-    member __.AddOrUpdate (key:NodeIdHash) (value: (Unit -> Pointers)) (update: (NodeIdHash -> Pointers -> Pointers)) =
-        let keybytes = BitConverter.GetBytes key
-        let writeRP (rp:Pointers) = 
-            let len = rp.CalculateSize()
-            let b = buffer.Rent(len)
-            let outputStream = new CodedOutputStream(b)
-            rp.WriteTo(outputStream) 
-            outputStream.Flush() 
-            db.Put(keybytes,keybytes.LongLength,b,int64 len)
-            buffer.Return b
-            rp
-       
-        let mutable outValue:Pointers = null
-        let success = TryGetValueInternal keybytes (& outValue)
-        if success then
-            let updated = update key outValue
-            writeRP updated
-        else
-            writeRP (value())
-    member __.AddOrUpdateCS (key:NodeIdHash) (value: Func<Pointers>) (update: Func<NodeIdHash,Pointers,Pointers>) =
-        __.AddOrUpdate key (fun () -> value.Invoke()) (fun a b -> update.Invoke(a,b))
+            
+    member __.AddOrUpdateCS (key:NodeIdHash) (value: Func<byte[],Pointers>) (update: Func<byte[],Pointers,Pointers>) =
+        __.AddOrUpdateBatch [|BitConverter.GetBytes(key)|] (fun a -> value.Invoke(a)) (fun a b -> update.Invoke(a,b))
 
 module Utils =
     open Google.Protobuf

@@ -1,13 +1,14 @@
 put
-{"id":{"nodeid":{"graph":"mygraph","nodeid":"wat/123/bar/123"}},"attributes":[{"key": {"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"TmFtZQ=="}}}},"value":{"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"QXVzdGluIEhhcnJpcw=="}}}}}]}
+{"id":{"iri":"wat/123/bar/123"},"attributes":[{"key": {"Data":{"str":"hi"}},"value":{"Data":{"str":"wat"}}}]}
+{"id":{"iri":"wat/123/bar/123"},"attributes":[{"key": {"Data":{"metabytes":{"typeiri":"xs:string","bytes":"TmFtZQ=="}}},"value":{"Data":{"metabytes":{"typeiri":"xs:string","bytes":"QXVzdGluIEhhcnJpcw=="}}}}]}
 
 get
-{"nodeid":{"graph":"mygraph","nodeid":"wat/123/bar/123"}}
+{"iri":"wat/123/bar/123"}
 
 put
-{"id":{"nodeid":{"graph":"mygraph","nodeid":"wat/123/bar/123"}},"attributes":[{"key": {"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"c3RhdGU="}}}},"value":{"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"Q29sb3JhZG8="}}}}}]}
-{"id":{"nodeid":{"graph":"mygraph","nodeid":"wat/123/bar/123"}},"attributes":[{"key": {"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"TmFtZQ=="}}}},"value":{"Data":{"binary":{"metabytes":{"type":"xs:string","bytes":"QXVzdGluIEhhcnJpcw=="}}}}}]}
+{"id":{"iri":"wat/123/bar/123"},"attributes":[{"key": {"Data":{"metabytes":{"type":"xs:string","bytes":"c3RhdGU="}}},"value":{"Data":{"metabytes":{"type":"xs:string","bytes":"Q29sb3JhZG8="}}}}]}
+{"id":{"iri":"wat/123/bar/123"},"attributes":[{"key": {"Data":{"metabytes":{"type":"xs:string","bytes":"TmFtZQ=="}}},"value":{"Data":{"metabytes":{"type":"xs:string","bytes":"QXVzdGluIEhhcnJpcw=="}}}}]}
 
 get
-{"nodeid":{"graph":"mygraph","nodeid":"wat/123/bar/123"}}
+{"iri":"wat/123/bar/123"}
 

@@ -34,63 +34,71 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
     let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
-    let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
     
-    let IndexMaintainer =
-        MailboxProcessor<IndexMessage>.Start(fun inbox ->
-            let mutable scanIndexChunk = new List<Grpc.MemoryPointer>(1000)
-            scanIndex.AddLast(scanIndexChunk) |> ignore
-            
-            let rec messageLoop() = 
-                async{
-                    let! message = inbox.Receive()
-                    match message with 
-                    | Index(nids) ->
-                        for nid in nids do 
-                            // Assumption: Index messages and their nids always come in sequential order
-                            if scanIndexChunk.Count = scanIndexChunk.Capacity then
-                                // make a new chunk
-                                scanIndexChunk <- new List<Grpc.MemoryPointer>(1000)
-                                scanIndex.AddLast(scanIndexChunk) |> ignore
-                            else
-                                scanIndexChunk.Add (nid.Pointer)
-                        
-                        let lookup = 
-                            nids
-                            |> Seq.map(fun x -> Utils.GetNodeIdHash x |> BitConverter.GetBytes, x.Pointer)
-                            |> Map.ofSeq
-                             
-                        let keys =
-                            lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
+    // this is a linked list with lists size 1000 that we add all memory pointers to
+    // in the order they are created. This should be fully sorted and contain all the
+    // pointers to every node
+//    let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
+//    
+//    let AddPointerToScanIndex pointer =
+//        if scanIndex.First = null then
+//            // todo is 1000 the right size to keep pressure off the GC? LOB and such?
+//            scanIndex.AddLast(new List<Grpc.MemoryPointer>(1000)) |> ignore
+//        
+//        let scanIndexChunk = scanIndex.Last.Value
+//        if scanIndexChunk.Count <> scanIndexChunk.Capacity then
+//            scanIndexChunk.Add (pointer)
+//        else
+//            // make a new chunk
+//            scanIndex.AddLast(new List<Grpc.MemoryPointer>(1000)) |> ignore
+//            let scanIndexChunk = scanIndex.Last.Value
+//            scanIndexChunk.Add (pointer)
+//            scanIndex.AddLast(scanIndexChunk) |> ignore
+    
+    let IndexNodeIds nids =
+        let lookup = 
+            nids
+            |> Seq.map(fun x ->
+                let hash = Utils.GetNodeIdHash x
+                Console.WriteLine("Indexing hash " + hash.ToString())
+                hash
+                |> BitConverter.GetBytes, x.Pointer)
+            |> Map.ofSeq
+             
+        let keys =
+            lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
 
-                        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
-                            (fun x -> 
-                                let ptr = lookup.Item(x) 
-                                let mp = new Pointers()
-                                mp.Pointers_.Add ptr
-                                mp
-                                )
-                            (fun x old ->
-                                let ptr = lookup.Item(x)
-                                old.Pointers_.Add ptr
-                                old
-                            )         
-//                            ``Index of NodeID -> MemoryPointer``.AddOrUpdate(Utils.GetNodeIdHash nid) 
-//                                (fun () -> 
-//                                    let newlst = new Pointers()
-//                                    newlst.Pointers_.Add nid.Pointer
-//                                    newlst)  
-//                                (fun x y -> 
-//                                    y.Pointers_.Add nid.Pointer
-//                                    y
-//                                    ) |> ignore
-                    | Flush(replyChannel)->
-                        replyChannel.Reply(true)
-                        
-                    return! messageLoop()
-                }    
-            messageLoop()    
-        )
+        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
+            (fun x -> 
+                let ptr = lookup.Item(x) 
+                let mp = new Pointers()
+                mp.Pointers_.Add ptr
+                mp
+                )
+            (fun x old ->
+                let ptr = lookup.Item(x)
+                old.Pointers_.Add ptr
+                old
+            )       
+    
+//    let IndexMaintainer =
+//        MailboxProcessor<IndexMessage>.Start(fun inbox ->
+////            let mutable scanIndexChunk = new List<Grpc.MemoryPointer>(1000)
+////            scanIndex.AddLast(scanIndexChunk) |> ignore
+////            
+//            let rec messageLoop() = 
+//                async{
+//                    let! message = inbox.Receive()
+//                    match message with 
+//                    | Index(nids) ->
+//                        IndexNodeIds (nids)   
+//                    | Flush(replyChannel)->
+//                        replyChannel.Reply(true)
+//                        
+//                    return! messageLoop()
+//                }    
+//            messageLoop()    
+//        )
     
     // returns true if the node is or was linked to the pointer
     // also updates indexes (FragmentLinksRequested; FragmentLinksConnected) to reflect changes, and request 
@@ -358,7 +366,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             
             let fileNameid = i 
             let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
+            let fileNamePos = Path.Combine(dir.FullName, (sprintf "ahghee.%i.pos" i))
+            let fileNameScanIndex = Path.Combine(dir.FullName, (sprintf "ahghee.%i.scan.index" i))
             let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+            let scanIndexFile = new IO.FileStream(fileNameScanIndex,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+            
+            
             // PRE-ALLOCATE the file to reduce fragmentation https://arxiv.org/pdf/cs/0502012.pdf
             let PreAllocSize = int64 (1024 * 100000 )
             stream.SetLength(PreAllocSize)
@@ -366,10 +379,38 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
             let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
             let mutable lastOpIsWrite = false
-            let mutable lastPosition = 0L 
+            let mutable lastPosition = 0L
+            
+//            let loadScanIndex() =
+//                scanIndexFile.Seek(0L, SeekOrigin.Begin)
+//                while scanIndexFile.Position < scanIndexFile.Length do 
+//                    let mp = new MemoryPointer()
+//                    mp.MergeDelimitedFrom(scanIndexFile)
+//                    AddPointerToScanIndex (mp)
+//                ()
+//            loadScanIndex()
+            
+            let loadLastPos () =
+                // this cannot be called after we create a writer a few lines after we initially call loadLastPos
+                // because we hold open the file.
+                use posStream = new IO.FileStream(fileNamePos,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,8,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+                posStream.SetLength(int64 8)
+                use br = new BinaryReader(posStream)
+                lastPosition <- br.ReadInt64()
+            loadLastPos()
+            
+            let posStream = new IO.FileStream(fileNamePos,IO.FileMode.Open,IO.FileAccess.Write,IO.FileShare.Read,8,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
+            use bw = new BinaryWriter(posStream)                
+            
+            // todo: make this async
+            let writeLastPos (pos : int64) =
+                bw.Seek (0, SeekOrigin.Begin) |> ignore
+                bw.Write (pos)
+
             let FLUSHWRITES () =   
                 if lastOpIsWrite then 
                     stream.Flush()
+                    writeLastPos(lastPosition)
             try
                 let reader = bc.Reader
                 let alldone = reader.Completion
@@ -387,7 +428,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     | Add(tcs,items) -> 
                         try
                             use writeTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.AddTimer, tags)
-
+                            Console.WriteLine("Adding to shard "+ fileNameid.ToString())
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
                                 lastOpIsWrite <- true
@@ -425,8 +466,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                                 |> Seq.map (fun x -> x.Id) 
                                 |> Array.ofSeq
                                 |> Seq.ofArray
-                                |> IndexMessage.Index
-                                |> IndexMaintainer.Post 
+                                |> IndexNodeIds
 
                             lastPosition <- int64 ownOffset
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
@@ -443,7 +483,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     | Read (tcs,requests) ->  
                         try 
                             let ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
-                            
+                            Console.WriteLine("Reading from shard "+ fileNameid.ToString())
                             FLUSHWRITES()                          
                             lastOpIsWrite <- false
                             if requests.Length > 0 then
@@ -494,7 +534,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let groups = BuildGroups FixPointersWriteBuffer        
                             FixPointersWriteBuffer.Clear()
                             
-                            let reply = IndexMaintainer.PostAndReply(Flush)
+                            //let reply = IndexMaintainer.PostAndReply(Flush)
                             
                             let anySize = float 0
                             let movedOrFlushed, iostat =writeGroups groups anySize stream (WriteGroupsOperation.FixPointers ||| WriteGroupsOperation.LinkFragments) 
@@ -524,7 +564,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             // And read, and update each of those fragments calling LinkFragments.
                             
                             
-                            let reply = IndexMaintainer.PostAndReply(Flush)
+                            //let reply = IndexMaintainer.PostAndReply(Flush)
                             
                             // Try to use a single pass to update everything                           
                             // for everything in FragmentLinksRequested, If it's inverse is not already contained
@@ -590,4 +630,3 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
     member __.Index() = ``Index of NodeID -> MemoryPointer``
-    member __.ScanIndex() = scanIndex

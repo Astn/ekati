@@ -6,9 +6,11 @@ open Xunit.Abstractions
 open Ahghee
 open Ahghee
 open Ahghee.Grpc
+open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
 open App.Metrics
+open System
 open System
 open System.Collections
 open System.Diagnostics
@@ -74,15 +76,15 @@ type MyTests(output:ITestOutputHelper) =
     member __.``Can create an InternalIRI type`` () =
         let id = DBA ( ABtoyId "1" ) 
         let success = match id.DataCase with 
-                        | DataBlock.DataOneofCase.Address-> true
+                        | DataBlock.DataOneofCase.Nodeid -> true
                         | _ -> false 
         Assert.True(success)  
         
     [<Fact>]
     member __.``Can create a Binary type`` () =
-        let d = DBB ( MetaBytes metaPlainTextUtf8 (Array.Empty<byte>()))
+        let d = Utils.BBString "stuff"
         let success = match d.DataCase with 
-                        | DataBlock.DataOneofCase.Binary -> true
+                        | DataBlock.DataOneofCase.Str -> true
                         | _ -> false
         Assert.True(success)   
     
@@ -93,7 +95,7 @@ type MyTests(output:ITestOutputHelper) =
         let pair = PropString "firstName" "Richard"
         let md = pair.Key.Data
         let success = match md.DataCase with
-                        | DataBlock.DataOneofCase.Binary when md.Binary.Metabytes.Type = metaPlainTextUtf8 -> true 
+                        | DataBlock.DataOneofCase.Str when md.Str = "firstName" -> true 
                         | _ -> false
         Assert.True success     
         
@@ -211,7 +213,7 @@ type MyTests(output:ITestOutputHelper) =
                                          |> Seq.collect (fun n -> n.Attributes) 
                                          |> Seq.map (fun y -> 
                                                             match y.Value.Data.DataCase with  
-                                                            | DataBlock.DataOneofCase.Address -> Some(y.Value.Data.Address) 
+                                                            | DataBlock.DataOneofCase.Nodeid -> Some(y.Value.Data.Nodeid) 
                                                             | _ -> None)   
                                          |> Seq.filter (fun x -> match x with 
                                                                  | Some id -> true 
@@ -242,10 +244,8 @@ type MyTests(output:ITestOutputHelper) =
          
          let actual = n1
                          |> Seq.map (fun id -> 
-                                               let headId = id.Id  
-                                               match headId.AddressCase with    
-                                               | AddressBlock.AddressOneofCase.Nodeid -> Some(headId.Nodeid.Nodeid)
-                                               | _ -> None
+                                               let headId = id.Id
+                                               Some(headId.Iri)
                                                )  
                          |> Seq.filter (fun x -> x.IsSome)
                          |> Seq.map (fun x -> x.Value)        
@@ -273,11 +273,11 @@ type MyTests(output:ITestOutputHelper) =
                   
          
          
-         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
          let task = g.Add nodes 
          task.Wait()
          g.Flush()
-         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
+         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
          output.WriteLine(sprintf "node in: %A" nodes )
          output.WriteLine(sprintf "node out: %A" n1 )
          Assert.Equal<Node>(nodes,n1)
@@ -298,69 +298,22 @@ type MyTests(output:ITestOutputHelper) =
 
       let n1 = g.Nodes 
                 |> List.ofSeq 
-                |> List.sortBy (fun x -> x.Id.Nodeid.Nodeid)
+                |> List.sortBy (fun x -> x.Id.Iri)
                 |> Seq.map (fun n -> 
                             let valuePointers = n.Attributes
                                                 |> Seq.map (fun attr -> attr.Value)
                                                 |> Seq.filter (fun tmd ->
                                                                 match  tmd.Data.DataCase with
-                                                                | DataBlock.DataOneofCase.Address -> true
+                                                                | DataBlock.DataOneofCase.Nodeid -> true
                                                                 | _ -> false)
-                                                |> Seq.map (fun tmd ->
-                                                                match tmd.Data.Address.AddressCase with 
-                                                                | AddressBlock.AddressOneofCase.Nodeid -> tmd.Data.Address.Nodeid
-                                                                | AddressBlock.AddressOneofCase.Globalnodeid -> tmd.Data.Address.Globalnodeid.Nodeid
-                                                                | _ -> raise (new Exception("Invalid address case")))
-                            n.Id.Nodeid, valuePointers                                                                                
+                                                |> Seq.map (fun tmd -> tmd.Data.Nodeid)
+                            n.Id, valuePointers                                                                                
                             )
       
       Assert.All<NodeID * seq<NodeID>>(n1, (fun (nid,mps) -> 
             Assert.All<NodeID>(mps, (fun mp -> Assert.NotEqual(mp.Pointer, NullMemoryPointer())))
         ))
 
-// TODO: Put all benchmarking somewhere else, so unit tests are fast.        
-//    [<Theory>]
-//    [<InlineData("StorageType.GrpcFile", 1000, 1)>]
-//    [<InlineData("StorageType.GrpcFile", 10000, 1)>]
-//    [<InlineData("StorageType.GrpcFile", 100000, 1)>]
-//    [<InlineData("StorageType.GrpcFile", 1000, 10)>]
-//    [<InlineData("StorageType.GrpcFile", 10000, 10)>]
-//    [<InlineData("StorageType.GrpcFile", 100000, 10)>]  
-//    member __.``We can nodes in 30 seconds`` storeType count followsCount=
-//        let config = testConfig()
-//        let report() =
-//            let snap = config.Metrics.Snapshot.Get()
-//            let root = config.Metrics :?> IMetricsRoot
-//            for formatter in  root.OutputMetricsFormatters do
-//                if formatter.MediaType.Type = "application" then 
-//                    use mem = new IO.FileStream((sprintf "./report-%s-%A-%A.%A.json" storeType count followsCount (DateTime.Now.ToFileTime()) ) ,IO.FileMode.Create)
-//                    use ms = new MemoryStream()
-//                    formatter.WriteAsync(ms,snap).Wait()
-//                    let arr = ms.ToArray()
-//                    mem.Write( arr, 0, arr.Length)
-//                    mem.Flush()
-//                
-//        let g:Graph = 
-//          match storeType with 
-//          | "StorageType.Memory" ->   new Graph(new MemoryStore())
-//          | "StorageType.GrpcFile" -> new Graph(new GrpcFileStore(config))
-//          | _ -> raise <| new NotImplementedException() 
-//        let staticNodes = (__.buildLotsNodes count followsCount) |> List.ofSeq
-//        for iter in  0 .. 5 do 
-//        
-//            let startTime = Stopwatch.StartNew()
-//            let task = g.Add staticNodes
-//            task.Wait()
-//            let stopTime = startTime.Stop()
-//            let startFlush = Stopwatch.StartNew()
-//            g.Flush()
-//            let stopFlush = startFlush.Stop()
-//            output.WriteLine(sprintf "Duration for %A nodes added: %A" count startTime.Elapsed )
-//            output.WriteLine(sprintf "Duration for %A nodes Pointer rewrite: %A" count startFlush.Elapsed )
-//        
-//        report()
-            //Assert.InRange<TimeSpan>(startTime.Elapsed,TimeSpan.Zero,TimeSpan.FromSeconds(float 30)) 
- 
     [<Theory>]
     [<InlineData("StorageType.GrpcFile", 2)>]
     [<InlineData("StorageType.GrpcFile", 3)>]
@@ -413,7 +366,7 @@ type MyTests(output:ITestOutputHelper) =
             let links = 
                 otherPotentialFragments 
                 |> List.except newCollected 
-                |> List.filter (fun frag ->  aFragment.Fragments.Contains(frag.Id.Nodeid.Pointer))
+                |> List.filter (fun frag ->  aFragment.Fragments.Contains(frag.Id.Pointer))
             
             if (links.IsEmpty) then 
                 newCollected
@@ -433,19 +386,14 @@ type MyTests(output:ITestOutputHelper) =
         graph.Nodes
              |> Seq.collect (fun n -> n.Attributes 
                                       |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with 
-                                                                 | DataBlock.DataOneofCase.Binary when 
-                                                                    attr.Key.Data.Binary.BinaryCase = BinaryBlock.BinaryOneofCase.Metabytes -> 
-                                                                        ( key , Encoding.UTF8.GetString (attr.Key.Data.Binary.Metabytes.Bytes.ToByteArray())) 
-                                                                        |> String.Equals 
+                                                                 | DataBlock.DataOneofCase.Metabytes when 
+                                                                    ( key , Encoding.UTF8.GetString (attr.Key.Data.Metabytes.Bytes.ToByteArray())) 
+                                                                    |> String.Equals
+                                                                    -> true
                                                                  | _ -> false
                                                     )
                                       |> Seq.map (fun attr -> 
-                                                    let _id = n.Id 
-                                                                |> (fun id -> match id.AddressCase with    
-                                                                              | AddressBlock.AddressOneofCase.Nodeid -> id.Nodeid.Nodeid
-                                                                              | _ -> String.Empty
-                                                                              )  
-                                                                                                          
+                                                    let _id = n.Id.Iri                                           
                                                     _id,key,attr.Value
                                                  )                                                           
                              )
@@ -619,12 +567,7 @@ type MyTests(output:ITestOutputHelper) =
             data 
             |> List.sortBy (fun (a,b,c) -> 
                                 let h1 = c 
-                                a , match h1.Data.DataCase with 
-                                    | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Nodeid ->
-                                        h1.Data.Address.Nodeid.Nodeid
-                                    | DataBlock.DataOneofCase.Address when h1.Data.Address.AddressCase = AddressBlock.AddressOneofCase.Globalnodeid ->
-                                                                            h1.Data.Address.Globalnodeid.Nodeid.Nodeid                                        
-                                    | _ ->  "")
+                                a , h1.Data.Nodeid.Iri)
         let g = __.toyGraph (dbtype db)
         let attrName = "in.created"
         let actual = __.CollectValues attrName g
@@ -703,12 +646,11 @@ type MyTests(output:ITestOutputHelper) =
         mp.Length <- 200UL
         fp.Pointers_.Add(mp)
         
-        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+        let value = nodeIndex.AddOrUpdateBatch [|BitConverter.GetBytes idHash|] (fun (has) -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
         let mutable outvalue : Pointers = (new Pointers())
         let success = nodeIndex.TryGetValue (idHash, &outvalue)
         Assert.True success
-        Assert.Equal<MemoryPointer>(fp.Pointers_,value.Pointers_)
-        Assert.Equal<MemoryPointer>(fp.Pointers_,outvalue.Pointers_)
+        Assert.Equal<MemoryPointer>(fp.Pointers_,    outvalue.Pointers_)
         ()
 
     [<Fact>]
@@ -748,21 +690,22 @@ type MyTests(output:ITestOutputHelper) =
         mp5.Length <- 200UL
         fp5.Pointers_.Add(mp5)
         
-        let value = nodeIndex.AddOrUpdate idHash (fun () -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+        let idHashBytes = idHash |> BitConverter.GetBytes
+        
+        let value = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
 
-        let value2 = nodeIndex.AddOrUpdate idHash (fun () -> fp2) (fun id rp -> rp.Pointers_.Add mp2; rp)
+        let value2 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp2) (fun id rp -> rp.Pointers_.Add mp2; rp)
 
-        let value3 = nodeIndex.AddOrUpdate idHash (fun () -> fp3) (fun id rp -> rp.Pointers_.Add mp3; rp)
+        let value3 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp3) (fun id rp -> rp.Pointers_.Add mp3; rp)
 
-        let value4 = nodeIndex.AddOrUpdate idHash (fun () -> fp4) (fun id rp -> rp.Pointers_.Add mp4; rp)
+        let value4 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp4) (fun id rp -> rp.Pointers_.Add mp4; rp)
 
-        let value5 = nodeIndex.AddOrUpdate idHash (fun () -> fp5) (fun id rp -> rp.Pointers_.Add mp5; rp)
+        let value5 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp5) (fun id rp -> rp.Pointers_.Add mp5; rp)
 
 
         let mutable outvalue : Pointers = (new Pointers())
         let success = nodeIndex.TryGetValue (idHash, &outvalue)
         Assert.True success
-        Assert.Equal<MemoryPointer>(fp.Pointers_,value.Pointers_)
         Assert.Equal<MemoryPointer>([mp;mp2;mp3;mp4;mp5],outvalue.Pointers_)
         ()
       

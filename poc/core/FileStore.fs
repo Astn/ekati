@@ -85,55 +85,23 @@ type GrpcFileStore(config:Config) =
         member x.Nodes = 
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
-            let numWriters = PartitionWriters.Length
-            let scanners = 
-                seq {
-                    for bc,t,part in PartitionWriters do
-                        yield part.ScanIndex()
-                } |> Array.ofSeq
-            let currentChunks = 
-                scanners 
-                |> Array.map (fun scanner -> scanner.First)
-
-            let currentPositions = Array.zeroCreate<int> numWriters 
-                
-
-            // todo: We could improve throughput by quite a bit if we requested batches of contigious nodes
-            let requests () = 
-                seq { 
-                  for i in 0 .. numWriters - 1 do
-                    if currentChunks.[i] <> null && currentPositions.[i] = currentChunks.[i].Value.Count then
-                        // reset currentPosition
-                        currentPositions.[i] <- 0
-                        // move CurrentChunk to next chunk
-                        currentChunks.[i] <- currentChunks.[i].Next   
-                    
-                    // if we still have data.    
-                    if currentChunks.[i] <> null && currentPositions.[i] < currentChunks.[i].Value.Count then 
-                        yield  i,  currentChunks.[i].Value.Item(currentPositions.[i])
-                        
-                    currentPositions.[i] <- currentPositions.[i] + 1    
-                } 
-             
             seq {
                 let mutable finished = false
                 while not finished do
-                    let req = 
-                        seq { for i in 0 .. 256 do yield requests() }
-                        |> Seq.collect (fun x -> x ) 
-                        |> Seq.map (fun x -> x )
-                        |> Seq.groupBy ( fun (i,x) -> i)
-                        |> Seq.map(fun (i,xs) -> 
-                            let tcs = new TaskCompletionSource<Node[]>()
-                            let bc,_,_ = PartitionWriters.[i]
-                            let written = bc.Writer.WriteAsync(Read(tcs,xs |> Seq.map(fun (i,x)->x) |> Array.ofSeq))
-                            written, tcs.Task)
-                        |> Array.ofSeq
+                    let req =
+                        seq {
+                                for bc,t,part in PartitionWriters do
+                                    yield part.Index().Iter()
+                                        |> Seq.map(fun ptrs ->
+                                                let tcs = new TaskCompletionSource<Node[]>()
+                                                let written = bc.Writer.WriteAsync(Read(tcs, ptrs.Pointers_.ToArray()))
+                                                written, tcs.Task)
+                            } |> Array.ofSeq
                             
                     if req.Length = 0 then
                         finished <- true
                     else
-                        for (written, result) in req do
+                        for (written, result) in req |> Seq.collect(fun x -> x) do
                             if written.IsCompletedSuccessfully then 
                                 yield result.Result
                             else 
@@ -141,7 +109,8 @@ type GrpcFileStore(config:Config) =
                                 yield result.Result    
                 
             }
-            |> Seq.collect(fun x->x)
+            |> Seq.collect(fun x -> x)
+            
             // todo return remote nodes
             
         member x.Flush () = Flush()
@@ -196,6 +165,7 @@ type GrpcFileStore(config:Config) =
                     let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
                     // this line is just plain wrong, we don't have a pointer with any of this data here.
                     // if we did, then this would be ok to go I think.
+                    Console.WriteLine("About to query shard "+ partition.ToString())
                     let (bc,t,part) = PartitionWriters.[int <| partition]
                     
                     // TODO: Read all the fragments, not just the first one.
@@ -229,7 +199,7 @@ type GrpcFileStore(config:Config) =
                             match eith with 
                             | Left(nodes) -> (ab,Left(nodes |> Array.reduce(fun n1 n2 ->
                                                                                 n1.MergeFrom(n2)
-                                                                                n1) )) // TODO: Fix: Currently ignoring everything after first result.
+                                                                                n1) ))
                             | Right(err) -> (ab,Right(err))
                 })  
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
