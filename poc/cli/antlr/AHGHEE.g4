@@ -9,18 +9,17 @@ command
    ;
 
 put  
-    : 'put' node (',' node)*
-    ;         // match keyword hello followed by an identifier
+    : 'put' json (',' json)*
+    ;   
+         
 get  
     : 'get' nodeid (',' nodeid)*
     ;
+    
 getf  
     : 'getf' nodeid (',' nodeid)*
     ;
-
-node
-    : json ;
-      
+     
 nodeid
     : json
     | dburi 

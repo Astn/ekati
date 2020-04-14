@@ -39,7 +39,7 @@ type NodeIdIndex (indexFile:string) =
     let cleanup() = db.Dispose()
 
     let writeRP (rp:Pointers) = 
-        let d = rp.Pointers_ |> Enumerable.Distinct
+        let d = rp.Pointers_ |> Enumerable.Distinct |> Enumerable.ToList
         rp.Pointers_.Clear()
         rp.Pointers_.AddRange(d)
         let len = rp.CalculateSize()

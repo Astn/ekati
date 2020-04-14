@@ -9,6 +9,10 @@ open System.Data.SqlTypes
 open System.Diagnostics
 open System.IO
 open System.Linq
+open System.Linq
+open System.Linq
+open System.Linq
+open System.Linq
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
@@ -56,7 +60,15 @@ type GrpcFileStore(config:Config) =
             
             
         writers                     
-
+    let mergeNodesById (node:Node[]) =
+        node
+        |> Seq.groupBy(fun n -> n.Id)
+        |> Seq.map(fun (m1,m2) -> m2 |> Seq.reduce(fun i1 i2 ->
+                                                        i1.MergeFrom(i2)
+                                                        let noDuplicates = i1.Attributes.Distinct().ToList()
+                                                        i1.Attributes.Clear()
+                                                        i1.Attributes.AddRange(noDuplicates)
+                                                        i1))
     
     let setTimestamps (node:Node) (nowInt:Int64) =
         for kv in node.Attributes do
@@ -86,27 +98,27 @@ type GrpcFileStore(config:Config) =
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
             seq {
-                let mutable finished = false
-                while not finished do
-                    let req =
-                        seq {
-                                for bc,t,part in PartitionWriters do
-                                    yield part.Index().Iter()
-                                        |> Seq.map(fun ptrs ->
-                                                let tcs = new TaskCompletionSource<Node[]>()
-                                                let written = bc.Writer.WriteAsync(Read(tcs, ptrs.Pointers_.ToArray()))
-                                                written, tcs.Task)
-                            } |> Array.ofSeq
+                let req =
+                    seq {
+                            for bc,t,part in PartitionWriters do
+                                yield part.Index().Iter()
+                                    |> Seq.map(fun ptrs ->
+                                            let tcs = new TaskCompletionSource<Node[]>()
+                                            let written = bc.Writer.WriteAsync(Read(tcs, ptrs.Pointers_.ToArray()))
+                                            written, tcs.Task)
+                        } |> Array.ofSeq
                             
-                    if req.Length = 0 then
-                        finished <- true
-                    else
-                        for (written, result) in req |> Seq.collect(fun x -> x) do
-                            if written.IsCompletedSuccessfully then 
-                                yield result.Result
-                            else 
-                                written.AsTask().Wait()
-                                yield result.Result    
+
+                for (written, result) in req |> Seq.collect(fun x -> x) do
+                    if written.IsCompletedSuccessfully then
+                        result.Wait()
+                        yield result.Result |> mergeNodesById
+                                  
+                                  
+                    else 
+                        written.AsTask().Wait()
+                        result.Wait()
+                        yield result.Result |> mergeNodesById
                 
             }
             |> Seq.collect(fun x -> x)

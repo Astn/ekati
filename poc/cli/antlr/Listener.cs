@@ -20,9 +20,9 @@ namespace cli.antlr
         }
 
         public override void ExitPut(AHGHEEParser.PutContext context){
-            foreach(var nc in context.node()){
+            foreach(var nc in context.json()){
                 
-                var n = JsonParser.Default.Parse<Node>( nc.json().GetText() );
+                var n = JsonParser.Default.Parse<Node>( nc.GetText() );
                 n.Id.Pointer = Utils.NullMemoryPointer();
                 n.Fragments.Add(Utils.NullMemoryPointer());
                 n.Fragments.Add(Utils.NullMemoryPointer());
