@@ -6,7 +6,9 @@ using System.Linq;
 using System.Threading;
 using Ahghee;
 using Ahghee.Grpc;
+using cli_grammer;
 using Google.Protobuf;
+
 
 namespace cli.antlr
 {
@@ -28,18 +30,19 @@ namespace cli.antlr
                 n.Fragments.Add(Utils.NullMemoryPointer());
                 n.Fragments.Add(Utils.NullMemoryPointer());
                // n.Attributes.Add();
-                Console.WriteLine($"status> put({n.Id.Iri})");
+                Console.WriteLine($"\nstatus> put({n.Id.Iri})");
                 
                 var adding = _store.Add(new [] {n}).ContinueWith(adding =>
                 {
                     if (adding.IsCompletedSuccessfully)
                     {
-                        Console.WriteLine($"status> put({n.Id.Iri}).done");
+                        Console.WriteLine($"\nstatus> put({n.Id.Iri}).done");
                     }
                     else
                     {
-                        Console.WriteLine($"status> put({n.Id.Iri}).err({adding?.Exception?.InnerException?.Message})");
+                        Console.WriteLine($"\nstatus> put({n.Id.Iri}).err({adding?.Exception?.InnerException?.Message})");
                     }
+                    Console.WriteLine("\nwat> ");
                 });
                 flushed = false;
             }
@@ -49,13 +52,13 @@ namespace cli.antlr
         {
             if (!flushed)
             {
-                Console.WriteLine($"status> flushing writes (todo: cmd autoflush false to disable)");
+                Console.WriteLine($"\nstatus> flushing writes (todo: cmd autoflush false to disable)");
                 _store.Flush();
                 flushed = true;
             }
             void getNodes(IEnumerable<NodeID> ab)
             {
-                Console.WriteLine($"status> get(...)");
+                Console.WriteLine($"\nstatus> get(...)");
                 var t = _store.Items(ab)
                     .ContinueWith(get =>
                     {
@@ -65,18 +68,19 @@ namespace cli.antlr
                             {
                                 if (result.Item2 is Either<Node, Exception>.Left _n)
                                 {
-                                    Console.WriteLine($"status> get({result.Item1.Iri}).done\n{JsonFormatter.Default.Format(_n.Item)}");
+                                    Console.WriteLine($"\nstatus> get({result.Item1.Iri}).done\n{JsonFormatter.Default.Format(_n.Item)}");
                                 };
                                 if (result.Item2 is Either<Node, Exception>.Right _e)
                                 {
-                                    Console.WriteLine($"status> get({result.Item1.Iri}).err({_e.Item.Message})");
+                                    Console.WriteLine($"\nstatus> get({result.Item1.Iri}).err({_e.Item.Message})");
                                 }
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"status> get(...).err({get?.Exception?.InnerException?.Message})");
+                            Console.WriteLine($"\nstatus> get(...).err({get?.Exception?.InnerException?.Message})");
                         }
+                        Console.WriteLine("\nwat> ");
                     });
             };
 
@@ -113,7 +117,7 @@ namespace cli.antlr
     }
 
     public class CommandVisitor : AHGHEEBaseVisitor<bool>{
-        public override bool VisitCommand(AHGHEEParser.CommandContext context){
+        public bool VisitCommand(AHGHEEParser.CommandContext context){
             return true;
         }
     }

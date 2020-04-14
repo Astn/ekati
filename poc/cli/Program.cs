@@ -7,6 +7,7 @@ using Antlr4.Runtime;
 using cli.antlr;
 using Ahghee;
 using App.Metrics;
+using cli_grammer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.FSharp.Core;
 using Unit = Microsoft.FSharp.Core.Unit;
@@ -29,7 +30,22 @@ put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""b
 get {""iri"":""wat/2""}
 get wat/2
 get wat/1
-        ";        
+        ";
+        
+        static UnbufferedTokenStream makeStream(string text)
+        {
+            var sr = new StringReader(text);
+            var ins  = new AntlrInputStream(sr);
+            var lex = new AHGHEELexer(ins);
+            return new UnbufferedTokenStream(lex);
+        }
+        
+        static UnbufferedTokenStream makeStream(TextReader reader)
+        {
+            var ins  = new AntlrInputStream(reader);
+            var lex = new AHGHEELexer(ins);
+            return new UnbufferedTokenStream(lex);
+        }
         static async Task Main(string[] args)
         {
             Console.WriteLine("Starting up...");
@@ -43,50 +59,36 @@ get wat/1
                     .CreateDefaultBuilder()
                     .Build())) as IStorage;
 
-            var ms = new MemoryStream();
-            var sw = new StreamWriter(ms);
-            sw.Write(test1);
-            sw.Flush();
-            ms.Seek(0, SeekOrigin.Begin);
-            //ms.Seek(0, SeekOrigin.Begin);
-            var instr = new StreamReader(ms);
-            
-
-            //TextReader tx
-            var ins  = new Antlr4.Runtime.AntlrInputStream(instr);
-            var lex = new AHGHEELexer(ins);
-            
-            var parser = new AHGHEEParser(new BufferedTokenStream(lex));
+          //TextReader tx
+            var parser = new AHGHEEParser(makeStream(test1));
             parser.BuildParseTree = true;
             parser.AddParseListener(listener: new Listener(store));
             parser.AddErrorListener(new ErrorListener());
             AHGHEEParser.CommandContext cc = null;
-            
-            for (; ; cc = parser.command())
+
+            for (;; cc = parser.command())
             {
-                
-                
-                Console.Write("wat> ");
-                if(cc?.exception!=null 
-                   //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
-                   //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
-                   ){
-                    Console.WriteLine(cc.exception.Message);
-                    Console.WriteLine($"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
-                }
-                await Task.Delay(30);
-                var str = "";
-                var pos = ms.Position;
-                do
+                if (cc?.exception != null
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
+                )
                 {
-                    if (!String.IsNullOrWhiteSpace(str))
+                    Console.WriteLine(cc.exception.Message);
+                    Console.WriteLine(
+                        $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+                }
+
+                // we got no more, so jump into console input
+                if (parser.CurrentToken.Type == TokenConstants.Eof)
+                {
+                    Console.Write("wat> ");
+                    await Task.Delay(30);
+                    var line = await Console.In.ReadLineAsync();
+                    if (line != null)
                     {
-                        sw.Write(str);
+                        parser.SetInputStream(makeStream(line));
                     }
-                    str = Console.ReadLine();
-                } while (str != "!");
-                sw.Flush();
-                ms.Seek(pos, SeekOrigin.Begin);
+                }
             }
         }
     }

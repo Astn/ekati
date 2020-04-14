@@ -10,11 +10,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="antlr\.antlr" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
+      <ProjectReference Include="..\cli-grammer\cli-grammer.csproj" />
       <ProjectReference Include="..\core\ahghee.fsproj" />
       <ProjectReference Include="..\report\report.fsproj" />
     </ItemGroup>
