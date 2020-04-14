@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Antlr4" Version="4.6.6" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="antlr\.antlr" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
+      <ProjectReference Include="..\core\ahghee.fsproj" />
+      <ProjectReference Include="..\report\report.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="antlr\generated\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="antlr\generated\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="antlr\generated\**" />
+    </ItemGroup>
+
+</Project>

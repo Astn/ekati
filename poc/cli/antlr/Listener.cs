@@ -51,7 +51,7 @@ namespace cli.antlr
             {
                 Console.WriteLine($"status> flushing writes (todo: cmd autoflush false to disable)");
                 _store.Flush();
-                Thread.Sleep(5000);
+                flushed = true;
             }
             void getNodes(IEnumerable<NodeID> ab)
             {
