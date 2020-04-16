@@ -6,24 +6,26 @@ grammar AHGHEE;
 command
    : put
    | get
-   | getf
    ;
 
 put  
-    : 'put' json (',' json)*
+    : 'put' flags? json (',' json)*
     ;   
          
 get  
-    : 'get' nodeid (',' nodeid)*
-    ;
-    
-getf  
-    : 'getf' nodeid (',' nodeid)*
+    : 'get' flags? nodeid (',' nodeid)*
     ;
      
 nodeid
     : obj 
+    | remote? id
     ;
+
+remote: (WORD | STRING);
+id: (WORD | STRING) ;
+
+flags
+    : '-' WORD; 
 
 /// JSON GRAMMER
 
@@ -56,10 +58,8 @@ value
    | 'null'
    ;
 
-
-
 STRING
-   : '"' (ESC | SAFECODEPOINT)* '"'
+   : '"' (ESC | SAFECODEPOINT | WORD)* '"'
    ;
 
 fragment ESC
@@ -78,6 +78,8 @@ fragment SAFECODEPOINTNOSPACE
    : ~ ["\\\u0000-\u0020]
    ;
 
+WORD
+    : [A-Za-z]+[A-Za-z/0-9#?&:.=]*;
 
 NUMBER
    : '-'? INT ('.' [0-9] +)? EXP?

@@ -177,7 +177,7 @@ type GrpcFileStore(config:Config) =
                     let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
                     // this line is just plain wrong, we don't have a pointer with any of this data here.
                     // if we did, then this would be ok to go I think.
-                    Console.WriteLine("About to query shard "+ partition.ToString())
+                    // Console.WriteLine("About to query shard "+ partition.ToString())
                     let (bc,t,part) = PartitionWriters.[int <| partition]
                     
                     // TODO: Read all the fragments, not just the first one.

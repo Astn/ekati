@@ -84,7 +84,7 @@ type NodeIdIndex (indexFile:string) =
         
     
     member __.TryGetValue (key:NodeIdHash, value: Pointers byref) = 
-        Console.WriteLine("Get hash " + key.ToString())
+        //Console.WriteLine("Get hash " + key.ToString())
         let keybytes = BitConverter.GetBytes key
         TryGetValueInternal keybytes &value 
 

@@ -483,7 +483,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     | Read (tcs,requests) ->  
                         try 
                             let ReadTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.ReadTimer, tags)
-                            Console.WriteLine("Reading from shard "+ fileNameid.ToString())
+                            //Console.WriteLine("Reading from shard "+ fileNameid.ToString())
                             FLUSHWRITES()                          
                             lastOpIsWrite <- false
                             if requests.Length > 0 then
