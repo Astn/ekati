@@ -20,16 +20,15 @@ namespace cli
         static string test1 = @"
 put {""id"":{""iri"":""wat/1""},""attributes"":[{""key"": {""Data"":{""str"":""hi""}},""value"":{""Data"":{""str"":""wat""}}}]}
 get {""iri"":""wat/1""}
-
 put {""id"":{""iri"":""wat/1""},""attributes"":[{""key"": {""Data"":{""str"":""bye""}},""value"":{""Data"":{""str"":""watter""}}}]} 
 get {""iri"":""wat/1""}
-get wat/1
+get {""iri"":""wat/1""}
 
 put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""hi""}},""value"":{""Data"":{""str"":""bat""}}}]}
 put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""bye""}},""value"":{""Data"":{""str"":""batter""}}}]} 
 get {""iri"":""wat/2""}
-get wat/2
-get wat/1
+get {""iri"":""wat/2""}
+get {""iri"":""wat/1""}
         ";
         
         static UnbufferedTokenStream makeStream(string text)

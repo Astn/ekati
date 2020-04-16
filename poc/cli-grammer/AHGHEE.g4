@@ -2,6 +2,7 @@
 
 grammar AHGHEE;
 
+
 command
    : put
    | get
@@ -21,24 +22,11 @@ getf
     ;
      
 nodeid
-    : json
-    | dburi 
+    : obj 
     ;
 
 /// JSON GRAMMER
 
-
-dburi
-    : 'db://' dburigraph '/' dburitail 
-    ;
-
-dburigraph
-    : SAFECODEPOINT+
-    ;
-
-dburitail
-    : SAFECODEPOINT+
-    ;
 
 json
    : value
@@ -85,6 +73,9 @@ fragment HEX
    ;
 fragment SAFECODEPOINT
    : ~ ["\\\u0000-\u001F]
+   ;
+fragment SAFECODEPOINTNOSPACE
+   : ~ ["\\\u0000-\u0020]
    ;
 
 
