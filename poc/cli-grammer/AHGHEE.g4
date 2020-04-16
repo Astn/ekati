@@ -9,7 +9,7 @@ command
    ;
 
 put  
-    : 'put' flags? json (',' json)*
+    : 'put' flags? node (';' node)*
     ;   
          
 get  
@@ -20,6 +20,7 @@ nodeid
     : obj 
     | remote? id
     ;
+    
 
 remote: (WORD | STRING);
 id: (WORD | STRING) ;
@@ -29,15 +30,17 @@ flags
 
 /// JSON GRAMMER
 
-
-json
-   : value
+node
+   : obj
+   | nodeid (obj|kvps)
    ;
 
 obj
-   : '{' pair (',' pair)* '}'
+   : '{' kvps '}'
    | '{' '}'
    ;
+
+kvps: pair (',' pair)*;
 
 pair
    : STRING ':' value

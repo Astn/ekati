@@ -26,29 +26,172 @@ namespace cli.antlr
 
         public override void ExitPut(AHGHEEParser.PutContext context){
             var pm = GetPrintMode(context.flags());  
-            foreach(var nc in context.json()){
+            foreach(var nc in context.node()){
+
+                List<Node> _nodes = new List<Node>();
+                if (nc.obj() != null)
+                {
+                    var n = JsonParser.Default.Parse<Node>( nc.GetText() );
+                    n.Id.Pointer = Utils.NullMemoryPointer();
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    _nodes.Add(n);
+                }
+                else if(nc.nodeid()!= null && nc.kvps() != null)
+                {
+                    var n = new Node();
+                    n.Id = new NodeID();
+                    if (nc.nodeid().obj() != null)
+                    {
+                        n.Id = JsonParser.Default.Parse<NodeID>(nc.nodeid().obj().GetText());
+                    }
+                    else
+                    {
+                        if (nc.nodeid().remote() != null)
+                        {
+                            n.Id.Remote = nc.nodeid().remote().GetText();
+                        }
+
+                        n.Id.Iri = nc.nodeid().id().GetText();
+                    }
+
+                    var vs = new List<KeyValue>();
+                    if (nc.kvps() != null)
+                    {
+                        var kvps = nc.kvps();
+                        if (kvps == null)
+                        {
+                            kvps = nc.obj()?.kvps();
+                        }
+
+                        foreach (var pair in kvps.pair())
+                        {
+                            var kv = new KeyValue();
+                            kv.Key = new TMD();
+                            kv.Key.Data = new DataBlock();
+                            kv.Value = new TMD();
+                            kv.Value.Data = new DataBlock();
+                            kv.Key.Data.Str = pair.STRING().GetText();
+                            var v = pair.value();
+                            if (v.STRING() != null)
+                            {
+                                kv.Value.Data.Str = v.STRING().GetText();
+                            } else if (v.NUMBER() != null)
+                            {
+                                var numberstr = v.NUMBER().GetText();
+                                if (Int32.TryParse(numberstr, out var i32))
+                                {
+                                    kv.Value.Data.I32 = i32;
+                                } else if (Int64.TryParse(numberstr, out var i64))
+                                {
+                                    kv.Value.Data.I64 = i64;
+                                } else if (UInt64.TryParse(numberstr, out var ui64))
+                                {
+                                    kv.Value.Data.Ui64 = ui64;
+                                } else if (Single.TryParse(numberstr, out var sing))
+                                {
+                                    kv.Value.Data.F = sing;
+                                }
+                                else if(Double.TryParse(numberstr, out var doub))
+                                {
+                                    kv.Value.Data.D = doub;
+                                }
+                            } else if (v.obj() != null)
+                            {
+                                var obj = v.obj().GetText();
+                                try
+                                {
+                                    var nid = JsonParser.Default.Parse<NodeID>(obj);
+                                    if (nid != null)
+                                    {
+                                        kv.Value.Data.Nodeid = nid;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                }
+                                try
+                                {
+                                    var mp = JsonParser.Default.Parse<MemoryPointer>(obj);
+                                    if (mp != null)
+                                    {
+                                        kv.Value.Data.Memorypointer = mp;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                }
+                                try
+                                {
+                                    var tb = JsonParser.Default.Parse<TypeBytes>(obj);
+                                    if (tb != null)
+                                    {
+                                        kv.Value.Data.Metabytes = tb;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                }
+                                // json object is not a native value type
+                                
+                            } else if (v.arr() != null)
+                            {
+                                // array is not a native value type.
+                                
+                            } else if (!string.IsNullOrWhiteSpace(v.GetText()))
+                            {
+                                var t = v.GetText();
+                                if (Boolean.TryParse(t, out var boo))
+                                {
+                                    kv.Value.Data.B = boo;
+                                } else if (t == "null")
+                                {
+                                    // do nothing.    
+                                }
+                            }
+
+                            // handle json array or json object as typebytes
+                            if (kv.Value.Data.DataCase == DataBlock.DataOneofCase.None)
+                            {
+                                var jsonstuff = v.GetText(); // must be some kind of json at this point.. (I hope :P)
+                                
+                                var tb = new TypeBytes();
+                                tb.Typeiri = "application/json";
+                                tb.Bytes = ByteString.CopyFromUtf8(jsonstuff);
+                                kv.Value.Data.Metabytes = tb;
+                            }
+                            
+                            vs.Add(kv);
+                        }
+                        
+                    }
+                    
+                    n.Attributes.AddRange(vs);
+                    
+                    n.Id.Pointer = Utils.NullMemoryPointer();
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    n.Fragments.Add(Utils.NullMemoryPointer());
+                    _nodes.Add(n);
+                }
                 
-                var n = JsonParser.Default.Parse<Node>( nc.GetText() );
-                n.Id.Pointer = Utils.NullMemoryPointer();
-                n.Fragments.Add(Utils.NullMemoryPointer());
-                n.Fragments.Add(Utils.NullMemoryPointer());
-                n.Fragments.Add(Utils.NullMemoryPointer());
                 // n.Attributes.Add();
                 if ((pm & PrintMode.Verbose) != 0)
                 {
-                    Console.WriteLine($"\nstatus> put({n.Id.Iri})");
+                    Console.WriteLine($"\nstatus> put({String.Join(", ", _nodes.Select(_=>_.Id.Iri))})");
                 }
                 var sw = Stopwatch.StartNew();
-                var adding = _store.Add(new [] {n}).ContinueWith(adding =>
+                var adding = _store.Add(_nodes).ContinueWith(adding =>
                 {
                     if (adding.IsCompletedSuccessfully)
                     {
                         sw.Stop();
-                        Console.WriteLine($"\nstatus> put({n.Id.Iri}).done in {sw.ElapsedMilliseconds}ms");
+                        Console.WriteLine($"\nstatus> put({String.Join(", ", _nodes.Select(_=>_.Id.Iri))}).done in {sw.ElapsedMilliseconds}ms");
                     }
                     else
                     {
-                        Console.WriteLine($"\nstatus> put({n.Id.Iri}).err({adding?.Exception?.InnerException?.Message})");
+                        Console.WriteLine($"\nstatus> put({String.Join(", ", _nodes.Select(_=>_.Id.Iri))}).err({adding?.Exception?.InnerException?.Message})");
                     }
                     Console.Write("\nwat> ");
                 });
