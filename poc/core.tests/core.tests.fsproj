@@ -20,6 +20,7 @@
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\cli\cli.csproj" />
     <ProjectReference Include="..\core\ahghee.fsproj" />
   </ItemGroup>
   <ItemGroup>

@@ -1,15 +1,16 @@
 namespace report
 
+open System.Text
 open FSharp.Data
 open XPlot.GoogleCharts
-
+open System.IO
+open System
+open XPlot.GoogleCharts
+open XPlot.GoogleCharts.Configuration
 type JsonReport = JsonProvider<"report-example.json">
 
 module Program =
-    open System.IO
-    open System
-    open XPlot.GoogleCharts
-    open XPlot.GoogleCharts.Configuration
+
 
     let exitCode = 0
 
@@ -37,7 +38,7 @@ module Program =
 
     let metricGroups (context) (metric: JsonReport.Context -> 'a[]) (metricName: 'a -> string) (filter: 'a -> bool) (input: JsonReport.Root[])= 
         input
-        |> Seq.collect( fun x ->  x.Contexts |> Seq.map (fun y -> x.Timestamp, y))
+        |> Seq.collect( fun x ->  x.Contexts |> Seq.map (fun y -> x.Timestamp.DateTime, y))
         |> Seq.filter (fun (t, x) -> x.Context = context)
         |> Seq.collect (fun (t, x) -> metric x |> Seq.map (fun y -> t, y))
         |> Seq.filter (fun (t, x) -> filter x)
@@ -61,10 +62,8 @@ module Program =
                             let t, data = (points |> Seq.head)
                             labelBy data)    
 
-    [<EntryPoint>]
-    let main args =
+    let main (inFile:string, outSB:StringBuilder)  =
         
-        let inFile = args |> Seq.head
         let inEnvFile = IO.Path.Combine(Path.GetDirectoryName(inFile),"env.info")   
         let envInfo = File.ReadAllText(IO.Path.Combine( Environment.CurrentDirectory,  inEnvFile))   
         let input = JsonReport.Load(IO.Path.Combine( Environment.CurrentDirectory,  inFile))
@@ -77,6 +76,7 @@ module Program =
             o.isStacked <- true    
             data
             |> metricMeasure (fun meter -> meter.Value)
+            |> Seq.collect(fun x -> x)
             |> Chart.SteppedArea
             |> Chart.WithLabels (data |> metricLabels (fun data -> "Process"))
             |> Chart.WithOptions o
@@ -787,10 +787,9 @@ module Program =
             ]
 
         
-        printf "%s" htmlHead
-        
-        printf "<pre>%s</pre>" envInfo
+        outSB.Append(htmlHead).Append("\n").Append("<pre>").Append(envInfo).Append("</pre>\n") |> ignore 
+
         for chart in charts do
-            printf "%s" (chart.GetInlineHtml())
-        printf "%s" htmlFoot
+            outSB.AppendLine(chart.GetInlineHtml()) |> ignore
+        outSB.AppendLine(htmlFoot) |> ignore
         exitCode

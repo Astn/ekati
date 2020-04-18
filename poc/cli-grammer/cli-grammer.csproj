@@ -9,27 +9,5 @@
       <PackageReference Include="Antlr4" Version="4.6.6" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEEBaseListener.cs" />
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEEBaseVisitor.cs" />
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEELexer.cs" />
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEEListener.cs" />
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEEParser.cs" />
-      <Compile Include="obj\Debug\netcoreapp3.1\AHGHEEVisitor.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="obj\Debug\netcoreapp3.1\AHGHEE.tokens" />
-      <Content Include="obj\Debug\netcoreapp3.1\AHGHEELexer.tokens" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="generated\AHGHEEBaseListener.cs" />
-      <Compile Remove="generated\AHGHEEBaseVisitor.cs" />
-      <Compile Remove="generated\AHGHEELexer.cs" />
-      <Compile Remove="generated\AHGHEEListener.cs" />
-      <Compile Remove="generated\AHGHEEParser.cs" />
-      <Compile Remove="generated\AHGHEEVisitor.cs" />
-    </ItemGroup>
 
 </Project>

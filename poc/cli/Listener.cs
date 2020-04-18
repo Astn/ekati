@@ -146,19 +146,20 @@ namespace cli.antlr
                              var sb = new StringBuilder();
                              foreach (var result in get.Result)
                              {
-                                 if (result.Item2 is Either<Node, Exception>.Left _n)
+                                 if (result.Item2.IsLeft)
                                  {
                                      sb.Append("\nstatus> get(");
                                      sb.Append(result.Item1.Iri);
                                      sb.Append(").done");
 
-                                     sb.NodePrinter(_n.Item,0,pm);
+                                     sb.NodePrinter(result.Item2.left,0,pm);
+                                     Console.Write(sb.ToString());
                                      sb.Clear();
                                  }
 
-                                 if (result.Item2 is Either<Node, Exception>.Right _e)
+                                 if (result.Item2.IsRight)
                                  {
-                                     Console.WriteLine($"\nstatus> get({result.Item1.Iri}).err({_e.Item.Message})");
+                                     Console.WriteLine($"\nstatus> get({result.Item1.Iri}).err({result.Item2.right.Message})");
                                  }
                              }
 

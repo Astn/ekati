@@ -185,7 +185,7 @@ type GrpcFileStore(config:Config) =
                 
             
     
-    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>> =
+    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
         // a where(filter) and then a follow can be handled in the same iteration, though
         // not true for the inverse
         // additionally multiple where filters in a sequence all need to be merged as ANDed
@@ -279,7 +279,7 @@ type GrpcFileStore(config:Config) =
                             
                             let _matched = (not stepIsFilter) || FilterNode(node, fixedStep.Where.Compare)
                                 
-                            (ab,Left(node)), _matched
+                            struct (ab,Left(node)), _matched
                         | Right(err) -> (ab,Right(err)), true
                        
                     if matched then

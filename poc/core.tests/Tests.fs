@@ -20,6 +20,7 @@ open System.Threading.Tasks
 open FSharp.Data
 open Google.Protobuf.Collections
 open RocksDbSharp
+open cli;
 
 type StorageType =
     | Memory
@@ -82,9 +83,9 @@ type MyTests(output:ITestOutputHelper) =
         
     [<Fact>]
     member __.``Can create a Binary type`` () =
-        let d = Utils.BBString "stuff"
+        let d = Utils.BBString "This will be converted to binary with type xs:string"
         let success = match d.DataCase with 
-                        | DataBlock.DataOneofCase.Str -> true
+                        | DataBlock.DataOneofCase.Metabytes -> true
                         | _ -> false
         Assert.True(success)   
     
@@ -175,7 +176,7 @@ type MyTests(output:ITestOutputHelper) =
                                       
     [<Theory>]
     [<InlineData("mem")>]
-    //[<InlineData("file")>] 
+    [<InlineData("file")>] 
     member __.``Can Remove nodes from graph`` db =
         let g = __.buildGraph (dbtype db)
 
@@ -220,8 +221,19 @@ type MyTests(output:ITestOutputHelper) =
                                                                  | _ -> false)
                                          |> Seq.map    (fun x -> x.Value )
                                          |> Seq.distinct
-                                         |> g.Items 
+                                         |> (fun ids -> g.Items(ids, Step() ))
 
+        let sb = new StringBuilder()
+        sb.ResultsPrinter(nodesWithIncomingEdges.Result)
+        nodesWithIncomingEdges.Result
+            |> Seq.iter (fun struct (nid, res) ->
+                            match res with
+                                | Left(found) -> sb.NodePrinter(found, 1, PrintMode.History)
+                                | Right(ex) -> sb.AppendLine(ex.Message)
+                            ())
+            
+        output.WriteLine <| sb.ToString() 
+        
         Assert.NotEmpty nodesWithIncomingEdges.Result
     
     [<Theory>]

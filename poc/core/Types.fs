@@ -13,19 +13,20 @@ open System
 open System.Buffers
 open System.Linq
 
+[<Struct>]
 type Either<'L, 'R> =
-    | Left of 'L
-    | Right of 'R
+    | Left of left : 'L 
+    | Right of right : 'R
 
 
-type NodeIdHash = int //{ hash:int }
+type NodeIdHash = int
 
 type IStorage =
     abstract member Nodes: seq<Node>
     abstract member Flush: unit -> unit
     abstract member Add: seq<Node> -> System.Threading.Tasks.Task
     abstract member Remove: seq<NodeID> -> System.Threading.Tasks.Task
-    abstract member Items: seq<NodeID> * Step -> System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>>
+    abstract member Items: seq<NodeID> * Step -> System.Threading.Tasks.Task<seq<struct (NodeID * Either<Node, Exception>)>>
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
 

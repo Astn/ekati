@@ -60,7 +60,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             nids
             |> Seq.map(fun x ->
                 let hash = Utils.GetNodeIdHash x
-                Console.WriteLine("Indexing hash " + hash.ToString())
+                //Console.WriteLine("Indexing hash " + hash.ToString())
                 hash
                 |> BitConverter.GetBytes, x.Pointer)
             |> Map.ofSeq
@@ -428,7 +428,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     | Add(tcs,items) -> 
                         try
                             use writeTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.AddTimer, tags)
-                            Console.WriteLine("Adding to shard "+ fileNameid.ToString())
+                            // Console.WriteLine("Adding to shard "+ fileNameid.ToString())
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
                                 lastOpIsWrite <- true

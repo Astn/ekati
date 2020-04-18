@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Ahghee;
 using Ahghee.Grpc;
 using cli.antlr;
 
@@ -19,6 +20,23 @@ namespace cli
     
     public static class Printers
     {
+        public static StringBuilder ResultsPrinter(this StringBuilder sb,
+            IEnumerable<(NodeID, Either<Node, Exception>)> results)
+        {
+            foreach (var (nid,res) in results)
+            {
+                if (res.IsLeft)
+                {
+                    sb.NodePrinter(res.left, 1, PrintMode.History);
+                }
+                else
+                {
+                    sb.AppendLine(res.right.Message);
+                }
+            }
+
+            return sb;
+        }
         public static StringBuilder NodeIdPrinter(this StringBuilder sb, NodeID nid, int tabs)
         {
             sb.AppendLine();
@@ -118,7 +136,7 @@ namespace cli
             };
         }
 
-        public static void NodePrinter(this StringBuilder sb, Node n, int tabs, PrintMode pm)
+        public static StringBuilder NodePrinter(this StringBuilder sb, Node n, int tabs, PrintMode pm)
         {
             sb = NodeIdPrinter(sb, n.Id, tabs);
 
@@ -146,7 +164,8 @@ namespace cli
                 sb = DataPrinter(sb, attr.Value.Data, tabs+2);
                 sb.AppendLine();
             }
-            Console.Write(sb.ToString());
+
+            return sb;
         }
     }
 }

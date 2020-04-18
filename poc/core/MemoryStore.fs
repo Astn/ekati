@@ -28,7 +28,7 @@ type MemoryStore() =
                                                         let found = match isLocal with
                                                             | Some(n) -> Left(n)
                                                             | _ -> Right(new Exception("Not Found"))
-                                                        (addr, found)
+                                                        struct (addr, found)
                                                                 
                                                 )
             Task.FromResult matches      
