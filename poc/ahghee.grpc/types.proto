@@ -63,3 +63,62 @@ message Node {
 message Pointers {
     repeated MemoryPointer pointers = 1; 
 }
+message Range {
+    int32 from = 1;
+    int32 to = 2;
+}
+message FollowOperator {
+    message FollowAny {
+        Range range = 1;
+    }
+    message EdgeRange{
+        DataBlock edge =1;
+        Range range = 2;
+    }
+    message EdgeCMP {
+        EdgeNum left = 1;
+        string BOOLOP = 2;
+        EdgeNum right = 3;
+    }
+    message EdgeNum {
+        oneof op {
+            EdgeRange edgeRange= 1;
+            EdgeCMP edgeCmp= 2;
+        }
+    }    
+    oneof Follow {
+        FollowAny followAny = 1;
+        EdgeNum followEdge = 2;
+    }
+}
+message FilterOperator {
+    message Compare {
+        oneof cmpType {
+            CompareKeyValue kevValueCmp= 1;
+            CompareCompound compoundCmp= 2;
+        }
+    }
+    message CompareKeyValue{
+        DataBlock Property = 1;
+        string MATHOP =2;
+        DataBlock Value = 3;
+    }
+    message CompareCompound{
+        Compare left = 1;
+        string BOOLOP = 2;
+        Compare right = 3;
+    }
+    Compare compare = 1;
+}
+
+message Step {
+    oneof operator {
+        FollowOperator follow = 1;
+        FilterOperator where = 2;
+    }
+    Step next = 3;
+}
+
+message Query {
+    Step step = 1;
+}

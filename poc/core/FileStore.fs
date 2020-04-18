@@ -13,6 +13,7 @@ open System.Linq
 open System.Linq
 open System.Linq
 open System.Linq
+open System.Net.NetworkInformation
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
@@ -92,6 +93,82 @@ type GrpcFileStore(config:Config) =
             ))
         parentTask.Wait()        
         ()
+    
+    let rec QueryNodes(addressBlock:seq<NodeID>, follow: IDictionary<DataBlock, int>) : System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>> =
+        let requestsMade =
+            addressBlock
+            |> Seq.map (fun ab ->
+                let tcs = TaskCompletionSource<Node[]>()
+                let nid = ab
+                let nodeHash = Utils.GetAddressBlockHash ab
+                let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
+                // this line is just plain wrong, we don't have a pointer with any of this data here.
+                // if we did, then this would be ok to go I think.
+                // Console.WriteLine("About to query shard "+ partition.ToString())
+                let (bc,t,part) = PartitionWriters.[int <| partition]
+                
+                // TODO: Read all the fragments, not just the first one.
+                let t = 
+                    if (nid.Pointer = Utils.NullMemoryPointer()) then
+                        let mutable mp:Pointers = null
+                        if(part.Index().TryGetValue(nodeHash, &mp)) then 
+                            while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
+                            tcs.Task
+                        else 
+                            tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
+                            tcs.Task   
+                    else 
+                        while bc.Writer.TryWrite (Read(tcs, [|nid.Pointer|])) = false do ()
+                        tcs.Task
+                        
+                let res = t.ContinueWith(fun (isdone:Task<Node[]>) ->
+                            if (isdone.IsCompletedSuccessfully) then
+                                config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
+                                ab,Left(isdone.Result)
+                            else 
+                                ab,Right(isdone.Exception :> Exception)
+                            )
+                res)
+            
+        Task.FromResult 
+            (seq {
+                use itemTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.ItemTimer)
+                let nextLevel: List<NodeID> = List<NodeID>()
+                for ts in requestsMade do
+                    let (ab,eith) = ts.Result
+                    let toyield = 
+                        match eith with 
+                        | Left(nodes) -> (ab,Left(nodes |> Array.reduce(fun n1 n2 ->
+                                                                            n1.MergeFrom(n2)
+                                                                            n1) ))
+                        | Right(err) -> (ab,Right(err))
+                    yield toyield
+                    let (_, n) = toyield
+                    match n with
+                        | Left(data) ->
+                            data.Attributes
+                                |> Seq.iter (fun a ->
+                                    let mutable depth:int = 0
+                                    if a.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid && follow.ContainsKey(a.Key.Data) then
+                                        // TODO: we need to unique and merge nodeids and make a reqest to load them than yields them inside here
+                                        // should be able to make a recursive call to the function we are in.
+                                        // we need to collect all the nodeids, and build a new dictionary to call it.
+                                        nextLevel.Add(a.Value.Data.Nodeid)
+                                    ()
+                                    )
+                            ()
+                        | _ -> ()
+                    ()
+                    
+                let recFollow = follow
+                                |> Seq.map (fun item -> (item.Key , (item.Value - 1)))
+                                |> Map.ofSeq
+                                
+                for recData in QueryNodes(nextLevel, recFollow).Result do
+                    yield recData
+                ()    
+            })
+    
                     
     interface IStorage with
         member x.Nodes = 
@@ -166,54 +243,7 @@ type GrpcFileStore(config:Config) =
                 
                         
         member x.Remove (nodes:seq<NodeID>) = raise (new NotImplementedException())
-        member x.Items (addressBlock:seq<NodeID>) = 
-            let requestsMade =
-                addressBlock
-                |> Seq.map (fun ab ->
-                    
-                    let tcs = TaskCompletionSource<Node[]>()
-                    let nid = ab
-                    let nodeHash = Utils.GetAddressBlockHash ab
-                    let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
-                    // this line is just plain wrong, we don't have a pointer with any of this data here.
-                    // if we did, then this would be ok to go I think.
-                    // Console.WriteLine("About to query shard "+ partition.ToString())
-                    let (bc,t,part) = PartitionWriters.[int <| partition]
-                    
-                    // TODO: Read all the fragments, not just the first one.
-                    let t = 
-                        if (nid.Pointer = Utils.NullMemoryPointer()) then
-                            let mutable mp:Pointers = null
-                            if(part.Index().TryGetValue(nodeHash, &mp)) then 
-                                while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
-                                tcs.Task
-                            else 
-                                tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
-                                tcs.Task   
-                        else 
-                            while bc.Writer.TryWrite (Read(tcs, [|nid.Pointer|])) = false do ()
-                            tcs.Task
-                            
-                    let res = t.ContinueWith(fun (isdone:Task<Node[]>) ->
-                                if (isdone.IsCompletedSuccessfully) then
-                                    config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
-                                    ab,Left(isdone.Result)
-                                else 
-                                    ab,Right(isdone.Exception :> Exception)
-                                )
-                    res)
-            
-            Task.FromResult 
-                (seq { use itemTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.ItemTimer)
-                       for ts in requestsMade do
-                        let (ab,eith) = ts.Result
-                        yield 
-                            match eith with 
-                            | Left(nodes) -> (ab,Left(nodes |> Array.reduce(fun n1 n2 ->
-                                                                                n1.MergeFrom(n2)
-                                                                                n1) ))
-                            | Right(err) -> (ab,Right(err))
-                })  
+        member x.Items (addressBlock:seq<NodeID>, follow: IDictionary<DataBlock, int>) = QueryNodes(addressBlock, follow)
         member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
         member x.Stop () =  
             Flush()

@@ -216,92 +216,19 @@ module Program =
 
     [<EntryPoint>]
     let main args =
-        let config =
-            {
-                Config.ParitionCount = Convert.ToInt32( 0.75m * Convert.ToDecimal( Environment.ProcessorCount) ); 
-                log = (fun msg -> printf "%s\n" msg)
-                CreateTestingDataDirectory=false
-                Metrics = AppMetrics
-                              .CreateDefaultBuilder()
-                              .Build()
-            }
-        let g:IStorage = new GrpcFileStore(config) :> IStorage 
-        // let reader = new StreamReader(new MemoryStream());
-        // Console.SetIn reader
-        let bpool = ArrayPool<char>.Create()
-        while true do
-            Console.Write("ahghee>");
-            let b = Console.ReadLine()
-            if b.StartsWith("benchmark") then
-                printf "starting benchmark\n"
-                let reportFile = benchmark 1000 2
-                printf "benchmark finished, run report against\n"
-                printf "%s" reportFile
-            if b.StartsWith("put") then
-                try
-                     
-                    
-                    let mutable putmore = true
-                    
-                    while putmore  do
-                        Console.Write("put> ")
-                        let mutable line = Console.ReadLine()
-                        putmore <- String.IsNullOrWhiteSpace(line) = false
-                        let node = Google.Protobuf.JsonParser.Default.Parse<Node>(line)
-                        node.Id.Pointer <- NullMemoryPointer()
-                        node.Fragments.Add (NullMemoryPointer())
-                        node.Fragments.Add (NullMemoryPointer())
-                        node.Fragments.Add (NullMemoryPointer())
-                            
-                        let adding = g.Add ( [node] )
-                        Console.WriteLine("ok> " + Google.Protobuf.JsonFormatter.Default.Format(node))
-                        adding.Wait()
-                with
-                    e ->
-                        Console.WriteLine(e.Message)
-                g.Flush()
-                ()
-            else if b.StartsWith("getf") then
-                try
-                    
-                    let mutable getmore = true
-                    while getmore do
-                        Console.Write("getf> ")
-                        let mutable line = Console.ReadLine()
-                        getmore <- String.IsNullOrWhiteSpace(line) = false
-                        let ab = Google.Protobuf.JsonParser.Default.Parse<NodeID>(line)
-                        ab.Pointer <- NullMemoryPointer()
-                        Console.WriteLine()
-                        g.Nodes
-                            |> Seq.filter (fun n -> n.Id.Iri = ab.Iri)
-                            |> Seq.iter (fun n -> Console.WriteLine("ok> " + Google.Protobuf.JsonFormatter.Default.Format(n)))
-                        
-                with
-                    e ->
-                        Console.WriteLine(e.Message)
-                ()
-            else if b.StartsWith("get") then
-                try
-                    
-                    let mutable getmore = true
-                    while getmore do
-                        Console.Write("get> ")
-                        let mutable line = Console.ReadLine()
-                        getmore <- String.IsNullOrWhiteSpace(line) = false
-                        let ab = Google.Protobuf.JsonParser.Default.Parse<NodeID>(line)
-                        ab.Pointer <- NullMemoryPointer()
-                        Console.WriteLine()
-                        let t = g.Items([ab])
-                        t.Result
-                            |> Seq.iter (fun (a,e) -> match e with
-                                                        | Left(node) -> Console.WriteLine("ok> " + Google.Protobuf.JsonFormatter.Default.Format(node))
-                                                        | Right(e) -> Console.WriteLine("err> " + e.Message) )                            
-                with
-                    e ->
-                        Console.WriteLine(e.Message)
-                ()    
-            else
-                Console.WriteLine("unexpected input. Expected put|get")
-            ()
+//        let config =
+//            {
+//                Config.ParitionCount = Convert.ToInt32( 0.75m * Convert.ToDecimal( Environment.ProcessorCount) ); 
+//                log = (fun msg -> printf "%s\n" msg)
+//                CreateTestingDataDirectory=false
+//                Metrics = AppMetrics
+//                              .CreateDefaultBuilder()
+//                              .Build()
+//            }
+//        let g:IStorage = new GrpcFileStore(config) :> IStorage 
+//        // let reader = new StreamReader(new MemoryStream());
+//        // Console.SetIn reader
+//        let bpool = ArrayPool<char>.Create()
+//        
                 
         exitCode

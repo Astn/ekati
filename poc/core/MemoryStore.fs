@@ -3,6 +3,7 @@ namespace Ahghee
 open Google.Protobuf
 open Google.Protobuf.Collections
 open System
+open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
@@ -20,7 +21,7 @@ type MemoryStore() =
                                                     let head = n.Id 
                                                     nodeIDs |> Seq.contains head |> not)
             Task.CompletedTask    
-        member this.Items (addresses:seq<NodeID>) =
+        member this.Items (addresses:seq<NodeID>, follow: IDictionary<DataBlock, int>) =
             let matches = addresses |> Seq.map (fun addr -> 
                                                         let isLocal = _nodes 
                                                                       |> Seq.tryFind ( fun n -> n.Id = addr)

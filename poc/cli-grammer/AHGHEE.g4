@@ -2,7 +2,6 @@
 
 grammar AHGHEE;
 
-
 command
    : put
    | get
@@ -13,13 +12,14 @@ put
     ;   
          
 get  
-    : 'get' flags? nodeid (',' nodeid)*
+    : 'get' flags? nodeid (',' nodeid)* pipe?
     ;
      
 nodeid
     : obj 
     | remote? id
     ;
+
     
 
 remote: (WORD | STRING);
@@ -39,6 +39,8 @@ obj
    : '{' kvps '}'
    | '{' '}'
    ;
+
+
 
 kvps: pair (',' pair)*;
 
@@ -61,10 +63,62 @@ value
    | 'null'
    ;
 
+pipe
+    : PIPESTART pipecmd pipe?
+    ;
+    
+pipecmd
+    : follow
+    | wherefilter
+    ;   
+
+wherefilter
+    : 'filter' compare
+    ;
+follow
+    : 'follow' (anynum | edgenum )
+    ;         
+compare
+    : wfkey MATHOP wfvalue
+    | '(' wfkey MATHOP wfvalue ')'
+    | '(' compare BOOLOP compare ')'
+    ;    
+edgenum
+    : value range?
+    | '(' value range? ')'
+    | '(' edgenum BOOLOP edgenum ')'
+    ;    
+wfkey: value;
+wfvalue: value;
+range
+    : ((from '..')? to)
+    ;
+from: NUMBER;
+to: NUMBER;    
+
+
+anynum
+    : '*' range?
+    ;    
+        
+MATHOP
+    : '=='|'<'|'<='|'>='|'>' ;    
+BOOLOP
+    : '&&' | '||' ;
+
+PIPESTART : '|>' ;
+
 STRING
    : '"' (ESC | SAFECODEPOINT | WORD)* '"'
    ;
+   
+WORD
+    : [A-Za-z]+[A-Za-z/0-9#?&:.=]*;
 
+NUMBER
+   : '-'? INT ('.' [0-9] +)? EXP?
+   ;
+   
 fragment ESC
    : '\\' (["\\/bfnrt] | UNICODE)
    ;
@@ -80,27 +134,18 @@ fragment SAFECODEPOINT
 fragment SAFECODEPOINTNOSPACE
    : ~ ["\\\u0000-\u0020]
    ;
-
-WORD
-    : [A-Za-z]+[A-Za-z/0-9#?&:.=]*;
-
-NUMBER
-   : '-'? INT ('.' [0-9] +)? EXP?
-   ;
-
-
+   
 fragment INT
    : '0' | [1-9] [0-9]*
    ;
 
-// no leading zeros
-
 fragment EXP
    : [Ee] [+\-]? INT
    ;
-
-// \- since - means "range" inside [...]
-
+   
 WS
    : [ \t\n\r] + -> skip
    ;
+//mode ARROW;
+
+   

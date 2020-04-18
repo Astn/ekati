@@ -12,45 +12,65 @@ using scg = global::System.Collections.Generic;
 
 namespace Ahghee.Grpc
 {
-    public sealed partial class MemoryPointer : pb::IMessage<MemoryPointer>
+    public sealed partial class MemoryPointer : IComparable<MemoryPointer>
     {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-            public void WriteTo(pb::CodedOutputStream output) {
-              //if (Partitionkey != 0) {
-                output.WriteRawTag(13);
-                output.WriteFixed32(Partitionkey);
-              //}
-              //if (Filename != 0) {
-                output.WriteRawTag(21);
-                output.WriteFixed32(Filename);
-              //}
-              //if (Offset != 0UL) {
-                output.WriteRawTag(25);
-                output.WriteFixed64(Offset);
-              //}
-              //if (Length != 0UL) {
-                output.WriteRawTag(33);
-                output.WriteFixed64(Length);
-              //}
+        public void WriteTo(pb::CodedOutputStream output) {
+          //if (Partitionkey != 0) {
+            output.WriteRawTag(13);
+            output.WriteFixed32(Partitionkey);
+          //}
+          //if (Filename != 0) {
+            output.WriteRawTag(21);
+            output.WriteFixed32(Filename);
+          //}
+          //if (Offset != 0UL) {
+            output.WriteRawTag(25);
+            output.WriteFixed64(Offset);
+          //}
+          //if (Length != 0UL) {
+            output.WriteRawTag(33);
+            output.WriteFixed64(Length);
+          //}
+        }
+    
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          //if (Partitionkey != 0) {
+            size += 1 + 4;
+          //}
+          //if (Filename != 0) {
+            size += 1 + 4;
+          //}
+          //if (Offset != 0UL) {
+            size += 1 + 8;
+          //}
+          //if (Length != 0UL) {
+            size += 1 + 8;
+          //}
+          return size;
+        }
+
+        public int CompareTo(MemoryPointer other)
+        {
+            if (other == null) return 1;
+
+            var byPK = this.partitionkey_.CompareTo(other.partitionkey_);
+            if (byPK != 0)
+            {
+                return byPK;
             }
-        
-            [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-            public int CalculateSize() {
-              int size = 0;
-              //if (Partitionkey != 0) {
-                size += 1 + 4;
-              //}
-              //if (Filename != 0) {
-                size += 1 + 4;
-              //}
-              //if (Offset != 0UL) {
-                size += 1 + 8;
-              //}
-              //if (Length != 0UL) {
-                size += 1 + 8;
-              //}
-              return size;
+
+            var byfile = filename_.CompareTo(other.filename_);
+            if (byfile != 0)
+            {
+                return byfile;
             }
+            
+            var byoffset = filename_.CompareTo(other.offset_);
+            return byoffset != 0 ? byoffset : length_.CompareTo(other.length_);
+        }
     }
 
     public sealed partial class NodeID : IComparable, IComparable<NodeID>, scg.IEqualityComparer<NodeID>
@@ -112,6 +132,58 @@ namespace Ahghee.Grpc
             System.Text.Encoding.UTF8.GetBytes(obj.iri_,0,obj.iri_.Length,array,written);
             var hash = hasher.ComputeHash(array);
             return BitConverter.ToInt32(hash.Hash, 0);
+        }
+    }
+
+    public sealed partial class DataBlock : IComparable<DataBlock>, IComparable
+    {
+        public int CompareTo(object obj)
+        {
+            if (obj == null) return 1;
+            if(obj is DataBlock db)
+            {
+                return CompareTo(db);
+            }
+
+            return 1;
+        }
+
+        public int CompareTo(DataBlock other)
+        {
+            if (other == null) return 1;
+
+            if (other.DataCase != this.DataCase)
+            {
+                return this.DataCase - other.DataCase;
+            }
+
+            return DataCase switch
+            {
+                DataOneofCase.Nodeid => Nodeid.CompareTo(other.Nodeid),
+                DataOneofCase.Metabytes => Metabytes.CompareTo(other.Metabytes),
+                DataOneofCase.Memorypointer => Memorypointer.CompareTo(other.Memorypointer),
+                DataOneofCase.B => B.CompareTo(other.B),
+                DataOneofCase.D => D.CompareTo(other.D),
+                DataOneofCase.F => F.CompareTo(other.F),
+                DataOneofCase.I32 => I32.CompareTo(other.I32),
+                DataOneofCase.I64 => I64.CompareTo(other.I64),
+                DataOneofCase.Ui32 => Ui32.CompareTo(other.Ui32),
+                DataOneofCase.Ui64 => Ui64.CompareTo(other.Ui64),
+                DataOneofCase.Str => Str.CompareTo(other.Str),
+                DataOneofCase.None => 0,
+                _ => 1
+            };
+        }
+    }
+
+    public sealed partial class TypeBytes : IComparable<TypeBytes>
+    {
+        public int CompareTo(TypeBytes other)
+        {
+            if (other == null) return 1;
+
+            var byType = String.Compare(Typeiri, other.Typeiri, StringComparison.Ordinal); 
+            return byType != 0 ? byType : Bytes.Span.SequenceCompareTo(other.Bytes.Span);
         }
     }
 }

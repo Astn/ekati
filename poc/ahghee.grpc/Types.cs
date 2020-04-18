@@ -43,7 +43,35 @@ namespace Ahghee.Grpc {
             "KAsyEy5haGdoZWUuZ3JwYy5Ob2RlSUQSLQoJZnJhZ21lbnRzGAMgAygLMhou",
             "YWhnaGVlLmdycGMuTWVtb3J5UG9pbnRlchIpCgphdHRyaWJ1dGVzGAQgAygL",
             "MhUuYWhnaGVlLmdycGMuS2V5VmFsdWUiOAoIUG9pbnRlcnMSLAoIcG9pbnRl",
-            "cnMYASADKAsyGi5haGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVyYgZwcm90bzM="));
+            "cnMYASADKAsyGi5haGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVyIiEKBVJhbmdl",
+            "EgwKBGZyb20YASABKAUSCgoCdG8YAiABKAUioAQKDkZvbGxvd09wZXJhdG9y",
+            "EjoKCWZvbGxvd0FueRgBIAEoCzIlLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJh",
+            "dG9yLkZvbGxvd0FueUgAEjkKCmZvbGxvd0VkZ2UYAiABKAsyIy5haGdoZWUu",
+            "Z3JwYy5Gb2xsb3dPcGVyYXRvci5FZGdlTnVtSAAaLgoJRm9sbG93QW55EiEK",
+            "BXJhbmdlGAEgASgLMhIuYWhnaGVlLmdycGMuUmFuZ2UaVAoJRWRnZVJhbmdl",
+            "EiQKBGVkZ2UYASABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSIQoFcmFu",
+            "Z2UYAiABKAsyEi5haGdoZWUuZ3JwYy5SYW5nZRqAAQoHRWRnZUNNUBIxCgRs",
+            "ZWZ0GAEgASgLMiMuYWhnaGVlLmdycGMuRm9sbG93T3BlcmF0b3IuRWRnZU51",
+            "bRIOCgZCT09MT1AYAiABKAkSMgoFcmlnaHQYAyABKAsyIy5haGdoZWUuZ3Jw",
+            "Yy5Gb2xsb3dPcGVyYXRvci5FZGdlTnVtGoMBCgdFZGdlTnVtEjoKCWVkZ2VS",
+            "YW5nZRgBIAEoCzIlLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkVkZ2VS",
+            "YW5nZUgAEjYKB2VkZ2VDbXAYAiABKAsyIy5haGdoZWUuZ3JwYy5Gb2xsb3dP",
+            "cGVyYXRvci5FZGdlQ01QSABCBAoCb3BCCAoGRm9sbG93IuQDCg5GaWx0ZXJP",
+            "cGVyYXRvchI0Cgdjb21wYXJlGAEgASgLMiMuYWhnaGVlLmdycGMuRmlsdGVy",
+            "T3BlcmF0b3IuQ29tcGFyZRqcAQoHQ29tcGFyZRJCCgtrZXZWYWx1ZUNtcBgB",
+            "IAEoCzIrLmFoZ2hlZS5ncnBjLkZpbHRlck9wZXJhdG9yLkNvbXBhcmVLZXlW",
+            "YWx1ZUgAEkIKC2NvbXBvdW5kQ21wGAIgASgLMisuYWhnaGVlLmdycGMuRmls",
+            "dGVyT3BlcmF0b3IuQ29tcGFyZUNvbXBvdW5kSABCCQoHY21wVHlwZRpyCg9D",
+            "b21wYXJlS2V5VmFsdWUSKAoIUHJvcGVydHkYASABKAsyFi5haGdoZWUuZ3Jw",
+            "Yy5EYXRhQmxvY2sSDgoGTUFUSE9QGAIgASgJEiUKBVZhbHVlGAMgASgLMhYu",
+            "YWhnaGVlLmdycGMuRGF0YUJsb2NrGogBCg9Db21wYXJlQ29tcG91bmQSMQoE",
+            "bGVmdBgBIAEoCzIjLmFoZ2hlZS5ncnBjLkZpbHRlck9wZXJhdG9yLkNvbXBh",
+            "cmUSDgoGQk9PTE9QGAIgASgJEjIKBXJpZ2h0GAMgASgLMiMuYWhnaGVlLmdy",
+            "cGMuRmlsdGVyT3BlcmF0b3IuQ29tcGFyZSKQAQoEU3RlcBItCgZmb2xsb3cY",
+            "ASABKAsyGy5haGdoZWUuZ3JwYy5Gb2xsb3dPcGVyYXRvckgAEiwKBXdoZXJl",
+            "GAIgASgLMhsuYWhnaGVlLmdycGMuRmlsdGVyT3BlcmF0b3JIABIfCgRuZXh0",
+            "GAMgASgLMhEuYWhnaGVlLmdycGMuU3RlcEIKCghvcGVyYXRvciIoCgVRdWVy",
+            "eRIfCgRzdGVwGAEgASgLMhEuYWhnaGVlLmdycGMuU3RlcGIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -54,7 +82,17 @@ namespace Ahghee.Grpc {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TMD), global::Ahghee.Grpc.TMD.Parser, new[]{ "Timestamp", "MetaData", "Data" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.KeyValue), global::Ahghee.Grpc.KeyValue.Parser, new[]{ "Key", "Value" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Id", "Fragments", "Attributes" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Pointers), global::Ahghee.Grpc.Pointers.Parser, new[]{ "Pointers_" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Pointers), global::Ahghee.Grpc.Pointers.Parser, new[]{ "Pointers_" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Range), global::Ahghee.Grpc.Range.Parser, new[]{ "From", "To" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FollowOperator), global::Ahghee.Grpc.FollowOperator.Parser, new[]{ "FollowAny", "FollowEdge" }, new[]{ "Follow" }, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FollowOperator.Types.FollowAny), global::Ahghee.Grpc.FollowOperator.Types.FollowAny.Parser, new[]{ "Range" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FollowOperator.Types.EdgeRange), global::Ahghee.Grpc.FollowOperator.Types.EdgeRange.Parser, new[]{ "Edge", "Range" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP), global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP.Parser, new[]{ "Left", "BOOLOP", "Right" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FollowOperator.Types.EdgeNum), global::Ahghee.Grpc.FollowOperator.Types.EdgeNum.Parser, new[]{ "EdgeRange", "EdgeCmp" }, new[]{ "Op" }, null, null, null)}),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator), global::Ahghee.Grpc.FilterOperator.Parser, new[]{ "Compare" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.Compare), global::Ahghee.Grpc.FilterOperator.Types.Compare.Parser, new[]{ "KevValueCmp", "CompoundCmp" }, new[]{ "CmpType" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue), global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue.Parser, new[]{ "Property", "MATHOP", "Value" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.CompareCompound), global::Ahghee.Grpc.FilterOperator.Types.CompareCompound.Parser, new[]{ "Left", "BOOLOP", "Right" }, null, null, null, null)}),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Step), global::Ahghee.Grpc.Step.Parser, new[]{ "Follow", "Where", "Next" }, new[]{ "Operator" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Query), global::Ahghee.Grpc.Query.Parser, new[]{ "Step" }, null, null, null, null)
           }));
     }
     #endregion
@@ -1705,6 +1743,2192 @@ namespace Ahghee.Grpc {
             break;
           case 10: {
             pointers_.AddEntriesFrom(input, _repeated_pointers_codec);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Range : pb::IMessage<Range> {
+    private static readonly pb::MessageParser<Range> _parser = new pb::MessageParser<Range>(() => new Range());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Range> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[8]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Range() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Range(Range other) : this() {
+      from_ = other.from_;
+      to_ = other.to_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Range Clone() {
+      return new Range(this);
+    }
+
+    /// <summary>Field number for the "from" field.</summary>
+    public const int FromFieldNumber = 1;
+    private int from_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int From {
+      get { return from_; }
+      set {
+        from_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "to" field.</summary>
+    public const int ToFieldNumber = 2;
+    private int to_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int To {
+      get { return to_; }
+      set {
+        to_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Range);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Range other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (From != other.From) return false;
+      if (To != other.To) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (From != 0) hash ^= From.GetHashCode();
+      if (To != 0) hash ^= To.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (From != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(From);
+      }
+      if (To != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(To);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (From != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(From);
+      }
+      if (To != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(To);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Range other) {
+      if (other == null) {
+        return;
+      }
+      if (other.From != 0) {
+        From = other.From;
+      }
+      if (other.To != 0) {
+        To = other.To;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            From = input.ReadInt32();
+            break;
+          }
+          case 16: {
+            To = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class FollowOperator : pb::IMessage<FollowOperator> {
+    private static readonly pb::MessageParser<FollowOperator> _parser = new pb::MessageParser<FollowOperator>(() => new FollowOperator());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<FollowOperator> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[9]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FollowOperator() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FollowOperator(FollowOperator other) : this() {
+      switch (other.FollowCase) {
+        case FollowOneofCase.FollowAny:
+          FollowAny = other.FollowAny.Clone();
+          break;
+        case FollowOneofCase.FollowEdge:
+          FollowEdge = other.FollowEdge.Clone();
+          break;
+      }
+
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FollowOperator Clone() {
+      return new FollowOperator(this);
+    }
+
+    /// <summary>Field number for the "followAny" field.</summary>
+    public const int FollowAnyFieldNumber = 1;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.FollowOperator.Types.FollowAny FollowAny {
+      get { return followCase_ == FollowOneofCase.FollowAny ? (global::Ahghee.Grpc.FollowOperator.Types.FollowAny) follow_ : null; }
+      set {
+        follow_ = value;
+        followCase_ = value == null ? FollowOneofCase.None : FollowOneofCase.FollowAny;
+      }
+    }
+
+    /// <summary>Field number for the "followEdge" field.</summary>
+    public const int FollowEdgeFieldNumber = 2;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.FollowOperator.Types.EdgeNum FollowEdge {
+      get { return followCase_ == FollowOneofCase.FollowEdge ? (global::Ahghee.Grpc.FollowOperator.Types.EdgeNum) follow_ : null; }
+      set {
+        follow_ = value;
+        followCase_ = value == null ? FollowOneofCase.None : FollowOneofCase.FollowEdge;
+      }
+    }
+
+    private object follow_;
+    /// <summary>Enum of possible cases for the "Follow" oneof.</summary>
+    public enum FollowOneofCase {
+      None = 0,
+      FollowAny = 1,
+      FollowEdge = 2,
+    }
+    private FollowOneofCase followCase_ = FollowOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FollowOneofCase FollowCase {
+      get { return followCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void ClearFollow() {
+      followCase_ = FollowOneofCase.None;
+      follow_ = null;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as FollowOperator);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(FollowOperator other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(FollowAny, other.FollowAny)) return false;
+      if (!object.Equals(FollowEdge, other.FollowEdge)) return false;
+      if (FollowCase != other.FollowCase) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (followCase_ == FollowOneofCase.FollowAny) hash ^= FollowAny.GetHashCode();
+      if (followCase_ == FollowOneofCase.FollowEdge) hash ^= FollowEdge.GetHashCode();
+      hash ^= (int) followCase_;
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (followCase_ == FollowOneofCase.FollowAny) {
+        output.WriteRawTag(10);
+        output.WriteMessage(FollowAny);
+      }
+      if (followCase_ == FollowOneofCase.FollowEdge) {
+        output.WriteRawTag(18);
+        output.WriteMessage(FollowEdge);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (followCase_ == FollowOneofCase.FollowAny) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(FollowAny);
+      }
+      if (followCase_ == FollowOneofCase.FollowEdge) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(FollowEdge);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(FollowOperator other) {
+      if (other == null) {
+        return;
+      }
+      switch (other.FollowCase) {
+        case FollowOneofCase.FollowAny:
+          if (FollowAny == null) {
+            FollowAny = new global::Ahghee.Grpc.FollowOperator.Types.FollowAny();
+          }
+          FollowAny.MergeFrom(other.FollowAny);
+          break;
+        case FollowOneofCase.FollowEdge:
+          if (FollowEdge == null) {
+            FollowEdge = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+          }
+          FollowEdge.MergeFrom(other.FollowEdge);
+          break;
+      }
+
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            global::Ahghee.Grpc.FollowOperator.Types.FollowAny subBuilder = new global::Ahghee.Grpc.FollowOperator.Types.FollowAny();
+            if (followCase_ == FollowOneofCase.FollowAny) {
+              subBuilder.MergeFrom(FollowAny);
+            }
+            input.ReadMessage(subBuilder);
+            FollowAny = subBuilder;
+            break;
+          }
+          case 18: {
+            global::Ahghee.Grpc.FollowOperator.Types.EdgeNum subBuilder = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+            if (followCase_ == FollowOneofCase.FollowEdge) {
+              subBuilder.MergeFrom(FollowEdge);
+            }
+            input.ReadMessage(subBuilder);
+            FollowEdge = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+
+    #region Nested types
+    /// <summary>Container for nested types declared in the FollowOperator message type.</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static partial class Types {
+      public sealed partial class FollowAny : pb::IMessage<FollowAny> {
+        private static readonly pb::MessageParser<FollowAny> _parser = new pb::MessageParser<FollowAny>(() => new FollowAny());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<FollowAny> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FollowOperator.Descriptor.NestedTypes[0]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public FollowAny() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public FollowAny(FollowAny other) : this() {
+          range_ = other.range_ != null ? other.range_.Clone() : null;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public FollowAny Clone() {
+          return new FollowAny(this);
+        }
+
+        /// <summary>Field number for the "range" field.</summary>
+        public const int RangeFieldNumber = 1;
+        private global::Ahghee.Grpc.Range range_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.Range Range {
+          get { return range_; }
+          set {
+            range_ = value;
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as FollowAny);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(FollowAny other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(Range, other.Range)) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (range_ != null) hash ^= Range.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (range_ != null) {
+            output.WriteRawTag(10);
+            output.WriteMessage(Range);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (range_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Range);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(FollowAny other) {
+          if (other == null) {
+            return;
+          }
+          if (other.range_ != null) {
+            if (range_ == null) {
+              Range = new global::Ahghee.Grpc.Range();
+            }
+            Range.MergeFrom(other.Range);
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                if (range_ == null) {
+                  Range = new global::Ahghee.Grpc.Range();
+                }
+                input.ReadMessage(Range);
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+      public sealed partial class EdgeRange : pb::IMessage<EdgeRange> {
+        private static readonly pb::MessageParser<EdgeRange> _parser = new pb::MessageParser<EdgeRange>(() => new EdgeRange());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<EdgeRange> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FollowOperator.Descriptor.NestedTypes[1]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeRange() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeRange(EdgeRange other) : this() {
+          edge_ = other.edge_ != null ? other.edge_.Clone() : null;
+          range_ = other.range_ != null ? other.range_.Clone() : null;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeRange Clone() {
+          return new EdgeRange(this);
+        }
+
+        /// <summary>Field number for the "edge" field.</summary>
+        public const int EdgeFieldNumber = 1;
+        private global::Ahghee.Grpc.DataBlock edge_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.DataBlock Edge {
+          get { return edge_; }
+          set {
+            edge_ = value;
+          }
+        }
+
+        /// <summary>Field number for the "range" field.</summary>
+        public const int RangeFieldNumber = 2;
+        private global::Ahghee.Grpc.Range range_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.Range Range {
+          get { return range_; }
+          set {
+            range_ = value;
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as EdgeRange);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(EdgeRange other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(Edge, other.Edge)) return false;
+          if (!object.Equals(Range, other.Range)) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (edge_ != null) hash ^= Edge.GetHashCode();
+          if (range_ != null) hash ^= Range.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (edge_ != null) {
+            output.WriteRawTag(10);
+            output.WriteMessage(Edge);
+          }
+          if (range_ != null) {
+            output.WriteRawTag(18);
+            output.WriteMessage(Range);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (edge_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Edge);
+          }
+          if (range_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Range);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(EdgeRange other) {
+          if (other == null) {
+            return;
+          }
+          if (other.edge_ != null) {
+            if (edge_ == null) {
+              Edge = new global::Ahghee.Grpc.DataBlock();
+            }
+            Edge.MergeFrom(other.Edge);
+          }
+          if (other.range_ != null) {
+            if (range_ == null) {
+              Range = new global::Ahghee.Grpc.Range();
+            }
+            Range.MergeFrom(other.Range);
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                if (edge_ == null) {
+                  Edge = new global::Ahghee.Grpc.DataBlock();
+                }
+                input.ReadMessage(Edge);
+                break;
+              }
+              case 18: {
+                if (range_ == null) {
+                  Range = new global::Ahghee.Grpc.Range();
+                }
+                input.ReadMessage(Range);
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+      public sealed partial class EdgeCMP : pb::IMessage<EdgeCMP> {
+        private static readonly pb::MessageParser<EdgeCMP> _parser = new pb::MessageParser<EdgeCMP>(() => new EdgeCMP());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<EdgeCMP> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FollowOperator.Descriptor.NestedTypes[2]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeCMP() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeCMP(EdgeCMP other) : this() {
+          left_ = other.left_ != null ? other.left_.Clone() : null;
+          bOOLOP_ = other.bOOLOP_;
+          right_ = other.right_ != null ? other.right_.Clone() : null;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeCMP Clone() {
+          return new EdgeCMP(this);
+        }
+
+        /// <summary>Field number for the "left" field.</summary>
+        public const int LeftFieldNumber = 1;
+        private global::Ahghee.Grpc.FollowOperator.Types.EdgeNum left_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FollowOperator.Types.EdgeNum Left {
+          get { return left_; }
+          set {
+            left_ = value;
+          }
+        }
+
+        /// <summary>Field number for the "BOOLOP" field.</summary>
+        public const int BOOLOPFieldNumber = 2;
+        private string bOOLOP_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public string BOOLOP {
+          get { return bOOLOP_; }
+          set {
+            bOOLOP_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        /// <summary>Field number for the "right" field.</summary>
+        public const int RightFieldNumber = 3;
+        private global::Ahghee.Grpc.FollowOperator.Types.EdgeNum right_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FollowOperator.Types.EdgeNum Right {
+          get { return right_; }
+          set {
+            right_ = value;
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as EdgeCMP);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(EdgeCMP other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(Left, other.Left)) return false;
+          if (BOOLOP != other.BOOLOP) return false;
+          if (!object.Equals(Right, other.Right)) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (left_ != null) hash ^= Left.GetHashCode();
+          if (BOOLOP.Length != 0) hash ^= BOOLOP.GetHashCode();
+          if (right_ != null) hash ^= Right.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (left_ != null) {
+            output.WriteRawTag(10);
+            output.WriteMessage(Left);
+          }
+          if (BOOLOP.Length != 0) {
+            output.WriteRawTag(18);
+            output.WriteString(BOOLOP);
+          }
+          if (right_ != null) {
+            output.WriteRawTag(26);
+            output.WriteMessage(Right);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (left_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Left);
+          }
+          if (BOOLOP.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(BOOLOP);
+          }
+          if (right_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Right);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(EdgeCMP other) {
+          if (other == null) {
+            return;
+          }
+          if (other.left_ != null) {
+            if (left_ == null) {
+              Left = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+            }
+            Left.MergeFrom(other.Left);
+          }
+          if (other.BOOLOP.Length != 0) {
+            BOOLOP = other.BOOLOP;
+          }
+          if (other.right_ != null) {
+            if (right_ == null) {
+              Right = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+            }
+            Right.MergeFrom(other.Right);
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                if (left_ == null) {
+                  Left = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+                }
+                input.ReadMessage(Left);
+                break;
+              }
+              case 18: {
+                BOOLOP = input.ReadString();
+                break;
+              }
+              case 26: {
+                if (right_ == null) {
+                  Right = new global::Ahghee.Grpc.FollowOperator.Types.EdgeNum();
+                }
+                input.ReadMessage(Right);
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+      public sealed partial class EdgeNum : pb::IMessage<EdgeNum> {
+        private static readonly pb::MessageParser<EdgeNum> _parser = new pb::MessageParser<EdgeNum>(() => new EdgeNum());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<EdgeNum> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FollowOperator.Descriptor.NestedTypes[3]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeNum() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeNum(EdgeNum other) : this() {
+          switch (other.OpCase) {
+            case OpOneofCase.EdgeRange:
+              EdgeRange = other.EdgeRange.Clone();
+              break;
+            case OpOneofCase.EdgeCmp:
+              EdgeCmp = other.EdgeCmp.Clone();
+              break;
+          }
+
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public EdgeNum Clone() {
+          return new EdgeNum(this);
+        }
+
+        /// <summary>Field number for the "edgeRange" field.</summary>
+        public const int EdgeRangeFieldNumber = 1;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FollowOperator.Types.EdgeRange EdgeRange {
+          get { return opCase_ == OpOneofCase.EdgeRange ? (global::Ahghee.Grpc.FollowOperator.Types.EdgeRange) op_ : null; }
+          set {
+            op_ = value;
+            opCase_ = value == null ? OpOneofCase.None : OpOneofCase.EdgeRange;
+          }
+        }
+
+        /// <summary>Field number for the "edgeCmp" field.</summary>
+        public const int EdgeCmpFieldNumber = 2;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP EdgeCmp {
+          get { return opCase_ == OpOneofCase.EdgeCmp ? (global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP) op_ : null; }
+          set {
+            op_ = value;
+            opCase_ = value == null ? OpOneofCase.None : OpOneofCase.EdgeCmp;
+          }
+        }
+
+        private object op_;
+        /// <summary>Enum of possible cases for the "op" oneof.</summary>
+        public enum OpOneofCase {
+          None = 0,
+          EdgeRange = 1,
+          EdgeCmp = 2,
+        }
+        private OpOneofCase opCase_ = OpOneofCase.None;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public OpOneofCase OpCase {
+          get { return opCase_; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void ClearOp() {
+          opCase_ = OpOneofCase.None;
+          op_ = null;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as EdgeNum);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(EdgeNum other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(EdgeRange, other.EdgeRange)) return false;
+          if (!object.Equals(EdgeCmp, other.EdgeCmp)) return false;
+          if (OpCase != other.OpCase) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (opCase_ == OpOneofCase.EdgeRange) hash ^= EdgeRange.GetHashCode();
+          if (opCase_ == OpOneofCase.EdgeCmp) hash ^= EdgeCmp.GetHashCode();
+          hash ^= (int) opCase_;
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (opCase_ == OpOneofCase.EdgeRange) {
+            output.WriteRawTag(10);
+            output.WriteMessage(EdgeRange);
+          }
+          if (opCase_ == OpOneofCase.EdgeCmp) {
+            output.WriteRawTag(18);
+            output.WriteMessage(EdgeCmp);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (opCase_ == OpOneofCase.EdgeRange) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(EdgeRange);
+          }
+          if (opCase_ == OpOneofCase.EdgeCmp) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(EdgeCmp);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(EdgeNum other) {
+          if (other == null) {
+            return;
+          }
+          switch (other.OpCase) {
+            case OpOneofCase.EdgeRange:
+              if (EdgeRange == null) {
+                EdgeRange = new global::Ahghee.Grpc.FollowOperator.Types.EdgeRange();
+              }
+              EdgeRange.MergeFrom(other.EdgeRange);
+              break;
+            case OpOneofCase.EdgeCmp:
+              if (EdgeCmp == null) {
+                EdgeCmp = new global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP();
+              }
+              EdgeCmp.MergeFrom(other.EdgeCmp);
+              break;
+          }
+
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                global::Ahghee.Grpc.FollowOperator.Types.EdgeRange subBuilder = new global::Ahghee.Grpc.FollowOperator.Types.EdgeRange();
+                if (opCase_ == OpOneofCase.EdgeRange) {
+                  subBuilder.MergeFrom(EdgeRange);
+                }
+                input.ReadMessage(subBuilder);
+                EdgeRange = subBuilder;
+                break;
+              }
+              case 18: {
+                global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP subBuilder = new global::Ahghee.Grpc.FollowOperator.Types.EdgeCMP();
+                if (opCase_ == OpOneofCase.EdgeCmp) {
+                  subBuilder.MergeFrom(EdgeCmp);
+                }
+                input.ReadMessage(subBuilder);
+                EdgeCmp = subBuilder;
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+    }
+    #endregion
+
+  }
+
+  public sealed partial class FilterOperator : pb::IMessage<FilterOperator> {
+    private static readonly pb::MessageParser<FilterOperator> _parser = new pb::MessageParser<FilterOperator>(() => new FilterOperator());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<FilterOperator> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[10]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FilterOperator() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FilterOperator(FilterOperator other) : this() {
+      compare_ = other.compare_ != null ? other.compare_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public FilterOperator Clone() {
+      return new FilterOperator(this);
+    }
+
+    /// <summary>Field number for the "compare" field.</summary>
+    public const int CompareFieldNumber = 1;
+    private global::Ahghee.Grpc.FilterOperator.Types.Compare compare_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.FilterOperator.Types.Compare Compare {
+      get { return compare_; }
+      set {
+        compare_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as FilterOperator);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(FilterOperator other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Compare, other.Compare)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (compare_ != null) hash ^= Compare.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (compare_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Compare);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (compare_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Compare);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(FilterOperator other) {
+      if (other == null) {
+        return;
+      }
+      if (other.compare_ != null) {
+        if (compare_ == null) {
+          Compare = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+        }
+        Compare.MergeFrom(other.Compare);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (compare_ == null) {
+              Compare = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+            }
+            input.ReadMessage(Compare);
+            break;
+          }
+        }
+      }
+    }
+
+    #region Nested types
+    /// <summary>Container for nested types declared in the FilterOperator message type.</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static partial class Types {
+      public sealed partial class Compare : pb::IMessage<Compare> {
+        private static readonly pb::MessageParser<Compare> _parser = new pb::MessageParser<Compare>(() => new Compare());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<Compare> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FilterOperator.Descriptor.NestedTypes[0]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public Compare() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public Compare(Compare other) : this() {
+          switch (other.CmpTypeCase) {
+            case CmpTypeOneofCase.KevValueCmp:
+              KevValueCmp = other.KevValueCmp.Clone();
+              break;
+            case CmpTypeOneofCase.CompoundCmp:
+              CompoundCmp = other.CompoundCmp.Clone();
+              break;
+          }
+
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public Compare Clone() {
+          return new Compare(this);
+        }
+
+        /// <summary>Field number for the "kevValueCmp" field.</summary>
+        public const int KevValueCmpFieldNumber = 1;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue KevValueCmp {
+          get { return cmpTypeCase_ == CmpTypeOneofCase.KevValueCmp ? (global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue) cmpType_ : null; }
+          set {
+            cmpType_ = value;
+            cmpTypeCase_ = value == null ? CmpTypeOneofCase.None : CmpTypeOneofCase.KevValueCmp;
+          }
+        }
+
+        /// <summary>Field number for the "compoundCmp" field.</summary>
+        public const int CompoundCmpFieldNumber = 2;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FilterOperator.Types.CompareCompound CompoundCmp {
+          get { return cmpTypeCase_ == CmpTypeOneofCase.CompoundCmp ? (global::Ahghee.Grpc.FilterOperator.Types.CompareCompound) cmpType_ : null; }
+          set {
+            cmpType_ = value;
+            cmpTypeCase_ = value == null ? CmpTypeOneofCase.None : CmpTypeOneofCase.CompoundCmp;
+          }
+        }
+
+        private object cmpType_;
+        /// <summary>Enum of possible cases for the "cmpType" oneof.</summary>
+        public enum CmpTypeOneofCase {
+          None = 0,
+          KevValueCmp = 1,
+          CompoundCmp = 2,
+        }
+        private CmpTypeOneofCase cmpTypeCase_ = CmpTypeOneofCase.None;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CmpTypeOneofCase CmpTypeCase {
+          get { return cmpTypeCase_; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void ClearCmpType() {
+          cmpTypeCase_ = CmpTypeOneofCase.None;
+          cmpType_ = null;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as Compare);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(Compare other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(KevValueCmp, other.KevValueCmp)) return false;
+          if (!object.Equals(CompoundCmp, other.CompoundCmp)) return false;
+          if (CmpTypeCase != other.CmpTypeCase) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (cmpTypeCase_ == CmpTypeOneofCase.KevValueCmp) hash ^= KevValueCmp.GetHashCode();
+          if (cmpTypeCase_ == CmpTypeOneofCase.CompoundCmp) hash ^= CompoundCmp.GetHashCode();
+          hash ^= (int) cmpTypeCase_;
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (cmpTypeCase_ == CmpTypeOneofCase.KevValueCmp) {
+            output.WriteRawTag(10);
+            output.WriteMessage(KevValueCmp);
+          }
+          if (cmpTypeCase_ == CmpTypeOneofCase.CompoundCmp) {
+            output.WriteRawTag(18);
+            output.WriteMessage(CompoundCmp);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (cmpTypeCase_ == CmpTypeOneofCase.KevValueCmp) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(KevValueCmp);
+          }
+          if (cmpTypeCase_ == CmpTypeOneofCase.CompoundCmp) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(CompoundCmp);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(Compare other) {
+          if (other == null) {
+            return;
+          }
+          switch (other.CmpTypeCase) {
+            case CmpTypeOneofCase.KevValueCmp:
+              if (KevValueCmp == null) {
+                KevValueCmp = new global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue();
+              }
+              KevValueCmp.MergeFrom(other.KevValueCmp);
+              break;
+            case CmpTypeOneofCase.CompoundCmp:
+              if (CompoundCmp == null) {
+                CompoundCmp = new global::Ahghee.Grpc.FilterOperator.Types.CompareCompound();
+              }
+              CompoundCmp.MergeFrom(other.CompoundCmp);
+              break;
+          }
+
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue subBuilder = new global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue();
+                if (cmpTypeCase_ == CmpTypeOneofCase.KevValueCmp) {
+                  subBuilder.MergeFrom(KevValueCmp);
+                }
+                input.ReadMessage(subBuilder);
+                KevValueCmp = subBuilder;
+                break;
+              }
+              case 18: {
+                global::Ahghee.Grpc.FilterOperator.Types.CompareCompound subBuilder = new global::Ahghee.Grpc.FilterOperator.Types.CompareCompound();
+                if (cmpTypeCase_ == CmpTypeOneofCase.CompoundCmp) {
+                  subBuilder.MergeFrom(CompoundCmp);
+                }
+                input.ReadMessage(subBuilder);
+                CompoundCmp = subBuilder;
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+      public sealed partial class CompareKeyValue : pb::IMessage<CompareKeyValue> {
+        private static readonly pb::MessageParser<CompareKeyValue> _parser = new pb::MessageParser<CompareKeyValue>(() => new CompareKeyValue());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<CompareKeyValue> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FilterOperator.Descriptor.NestedTypes[1]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareKeyValue() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareKeyValue(CompareKeyValue other) : this() {
+          property_ = other.property_ != null ? other.property_.Clone() : null;
+          mATHOP_ = other.mATHOP_;
+          value_ = other.value_ != null ? other.value_.Clone() : null;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareKeyValue Clone() {
+          return new CompareKeyValue(this);
+        }
+
+        /// <summary>Field number for the "Property" field.</summary>
+        public const int PropertyFieldNumber = 1;
+        private global::Ahghee.Grpc.DataBlock property_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.DataBlock Property {
+          get { return property_; }
+          set {
+            property_ = value;
+          }
+        }
+
+        /// <summary>Field number for the "MATHOP" field.</summary>
+        public const int MATHOPFieldNumber = 2;
+        private string mATHOP_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public string MATHOP {
+          get { return mATHOP_; }
+          set {
+            mATHOP_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        /// <summary>Field number for the "Value" field.</summary>
+        public const int ValueFieldNumber = 3;
+        private global::Ahghee.Grpc.DataBlock value_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.DataBlock Value {
+          get { return value_; }
+          set {
+            value_ = value;
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as CompareKeyValue);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(CompareKeyValue other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(Property, other.Property)) return false;
+          if (MATHOP != other.MATHOP) return false;
+          if (!object.Equals(Value, other.Value)) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (property_ != null) hash ^= Property.GetHashCode();
+          if (MATHOP.Length != 0) hash ^= MATHOP.GetHashCode();
+          if (value_ != null) hash ^= Value.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (property_ != null) {
+            output.WriteRawTag(10);
+            output.WriteMessage(Property);
+          }
+          if (MATHOP.Length != 0) {
+            output.WriteRawTag(18);
+            output.WriteString(MATHOP);
+          }
+          if (value_ != null) {
+            output.WriteRawTag(26);
+            output.WriteMessage(Value);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (property_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Property);
+          }
+          if (MATHOP.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(MATHOP);
+          }
+          if (value_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Value);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(CompareKeyValue other) {
+          if (other == null) {
+            return;
+          }
+          if (other.property_ != null) {
+            if (property_ == null) {
+              Property = new global::Ahghee.Grpc.DataBlock();
+            }
+            Property.MergeFrom(other.Property);
+          }
+          if (other.MATHOP.Length != 0) {
+            MATHOP = other.MATHOP;
+          }
+          if (other.value_ != null) {
+            if (value_ == null) {
+              Value = new global::Ahghee.Grpc.DataBlock();
+            }
+            Value.MergeFrom(other.Value);
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                if (property_ == null) {
+                  Property = new global::Ahghee.Grpc.DataBlock();
+                }
+                input.ReadMessage(Property);
+                break;
+              }
+              case 18: {
+                MATHOP = input.ReadString();
+                break;
+              }
+              case 26: {
+                if (value_ == null) {
+                  Value = new global::Ahghee.Grpc.DataBlock();
+                }
+                input.ReadMessage(Value);
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+      public sealed partial class CompareCompound : pb::IMessage<CompareCompound> {
+        private static readonly pb::MessageParser<CompareCompound> _parser = new pb::MessageParser<CompareCompound>(() => new CompareCompound());
+        private pb::UnknownFieldSet _unknownFields;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pb::MessageParser<CompareCompound> Parser { get { return _parser; } }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public static pbr::MessageDescriptor Descriptor {
+          get { return global::Ahghee.Grpc.FilterOperator.Descriptor.NestedTypes[2]; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        pbr::MessageDescriptor pb::IMessage.Descriptor {
+          get { return Descriptor; }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareCompound() {
+          OnConstruction();
+        }
+
+        partial void OnConstruction();
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareCompound(CompareCompound other) : this() {
+          left_ = other.left_ != null ? other.left_.Clone() : null;
+          bOOLOP_ = other.bOOLOP_;
+          right_ = other.right_ != null ? other.right_.Clone() : null;
+          _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public CompareCompound Clone() {
+          return new CompareCompound(this);
+        }
+
+        /// <summary>Field number for the "left" field.</summary>
+        public const int LeftFieldNumber = 1;
+        private global::Ahghee.Grpc.FilterOperator.Types.Compare left_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FilterOperator.Types.Compare Left {
+          get { return left_; }
+          set {
+            left_ = value;
+          }
+        }
+
+        /// <summary>Field number for the "BOOLOP" field.</summary>
+        public const int BOOLOPFieldNumber = 2;
+        private string bOOLOP_ = "";
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public string BOOLOP {
+          get { return bOOLOP_; }
+          set {
+            bOOLOP_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+          }
+        }
+
+        /// <summary>Field number for the "right" field.</summary>
+        public const int RightFieldNumber = 3;
+        private global::Ahghee.Grpc.FilterOperator.Types.Compare right_;
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public global::Ahghee.Grpc.FilterOperator.Types.Compare Right {
+          get { return right_; }
+          set {
+            right_ = value;
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override bool Equals(object other) {
+          return Equals(other as CompareCompound);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public bool Equals(CompareCompound other) {
+          if (ReferenceEquals(other, null)) {
+            return false;
+          }
+          if (ReferenceEquals(other, this)) {
+            return true;
+          }
+          if (!object.Equals(Left, other.Left)) return false;
+          if (BOOLOP != other.BOOLOP) return false;
+          if (!object.Equals(Right, other.Right)) return false;
+          return Equals(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override int GetHashCode() {
+          int hash = 1;
+          if (left_ != null) hash ^= Left.GetHashCode();
+          if (BOOLOP.Length != 0) hash ^= BOOLOP.GetHashCode();
+          if (right_ != null) hash ^= Right.GetHashCode();
+          if (_unknownFields != null) {
+            hash ^= _unknownFields.GetHashCode();
+          }
+          return hash;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public override string ToString() {
+          return pb::JsonFormatter.ToDiagnosticString(this);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void WriteTo(pb::CodedOutputStream output) {
+          if (left_ != null) {
+            output.WriteRawTag(10);
+            output.WriteMessage(Left);
+          }
+          if (BOOLOP.Length != 0) {
+            output.WriteRawTag(18);
+            output.WriteString(BOOLOP);
+          }
+          if (right_ != null) {
+            output.WriteRawTag(26);
+            output.WriteMessage(Right);
+          }
+          if (_unknownFields != null) {
+            _unknownFields.WriteTo(output);
+          }
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public int CalculateSize() {
+          int size = 0;
+          if (left_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Left);
+          }
+          if (BOOLOP.Length != 0) {
+            size += 1 + pb::CodedOutputStream.ComputeStringSize(BOOLOP);
+          }
+          if (right_ != null) {
+            size += 1 + pb::CodedOutputStream.ComputeMessageSize(Right);
+          }
+          if (_unknownFields != null) {
+            size += _unknownFields.CalculateSize();
+          }
+          return size;
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(CompareCompound other) {
+          if (other == null) {
+            return;
+          }
+          if (other.left_ != null) {
+            if (left_ == null) {
+              Left = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+            }
+            Left.MergeFrom(other.Left);
+          }
+          if (other.BOOLOP.Length != 0) {
+            BOOLOP = other.BOOLOP;
+          }
+          if (other.right_ != null) {
+            if (right_ == null) {
+              Right = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+            }
+            Right.MergeFrom(other.Right);
+          }
+          _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+        }
+
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        public void MergeFrom(pb::CodedInputStream input) {
+          uint tag;
+          while ((tag = input.ReadTag()) != 0) {
+            switch(tag) {
+              default:
+                _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+                break;
+              case 10: {
+                if (left_ == null) {
+                  Left = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+                }
+                input.ReadMessage(Left);
+                break;
+              }
+              case 18: {
+                BOOLOP = input.ReadString();
+                break;
+              }
+              case 26: {
+                if (right_ == null) {
+                  Right = new global::Ahghee.Grpc.FilterOperator.Types.Compare();
+                }
+                input.ReadMessage(Right);
+                break;
+              }
+            }
+          }
+        }
+
+      }
+
+    }
+    #endregion
+
+  }
+
+  public sealed partial class Step : pb::IMessage<Step> {
+    private static readonly pb::MessageParser<Step> _parser = new pb::MessageParser<Step>(() => new Step());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Step> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[11]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Step() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Step(Step other) : this() {
+      next_ = other.next_ != null ? other.next_.Clone() : null;
+      switch (other.OperatorCase) {
+        case OperatorOneofCase.Follow:
+          Follow = other.Follow.Clone();
+          break;
+        case OperatorOneofCase.Where:
+          Where = other.Where.Clone();
+          break;
+      }
+
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Step Clone() {
+      return new Step(this);
+    }
+
+    /// <summary>Field number for the "follow" field.</summary>
+    public const int FollowFieldNumber = 1;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.FollowOperator Follow {
+      get { return operatorCase_ == OperatorOneofCase.Follow ? (global::Ahghee.Grpc.FollowOperator) operator_ : null; }
+      set {
+        operator_ = value;
+        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Follow;
+      }
+    }
+
+    /// <summary>Field number for the "where" field.</summary>
+    public const int WhereFieldNumber = 2;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.FilterOperator Where {
+      get { return operatorCase_ == OperatorOneofCase.Where ? (global::Ahghee.Grpc.FilterOperator) operator_ : null; }
+      set {
+        operator_ = value;
+        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Where;
+      }
+    }
+
+    /// <summary>Field number for the "next" field.</summary>
+    public const int NextFieldNumber = 3;
+    private global::Ahghee.Grpc.Step next_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.Step Next {
+      get { return next_; }
+      set {
+        next_ = value;
+      }
+    }
+
+    private object operator_;
+    /// <summary>Enum of possible cases for the "operator" oneof.</summary>
+    public enum OperatorOneofCase {
+      None = 0,
+      Follow = 1,
+      Where = 2,
+    }
+    private OperatorOneofCase operatorCase_ = OperatorOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public OperatorOneofCase OperatorCase {
+      get { return operatorCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void ClearOperator() {
+      operatorCase_ = OperatorOneofCase.None;
+      operator_ = null;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Step);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Step other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Follow, other.Follow)) return false;
+      if (!object.Equals(Where, other.Where)) return false;
+      if (!object.Equals(Next, other.Next)) return false;
+      if (OperatorCase != other.OperatorCase) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (operatorCase_ == OperatorOneofCase.Follow) hash ^= Follow.GetHashCode();
+      if (operatorCase_ == OperatorOneofCase.Where) hash ^= Where.GetHashCode();
+      if (next_ != null) hash ^= Next.GetHashCode();
+      hash ^= (int) operatorCase_;
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (operatorCase_ == OperatorOneofCase.Follow) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Follow);
+      }
+      if (operatorCase_ == OperatorOneofCase.Where) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Where);
+      }
+      if (next_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Next);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (operatorCase_ == OperatorOneofCase.Follow) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Follow);
+      }
+      if (operatorCase_ == OperatorOneofCase.Where) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Where);
+      }
+      if (next_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Next);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Step other) {
+      if (other == null) {
+        return;
+      }
+      if (other.next_ != null) {
+        if (next_ == null) {
+          Next = new global::Ahghee.Grpc.Step();
+        }
+        Next.MergeFrom(other.Next);
+      }
+      switch (other.OperatorCase) {
+        case OperatorOneofCase.Follow:
+          if (Follow == null) {
+            Follow = new global::Ahghee.Grpc.FollowOperator();
+          }
+          Follow.MergeFrom(other.Follow);
+          break;
+        case OperatorOneofCase.Where:
+          if (Where == null) {
+            Where = new global::Ahghee.Grpc.FilterOperator();
+          }
+          Where.MergeFrom(other.Where);
+          break;
+      }
+
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            global::Ahghee.Grpc.FollowOperator subBuilder = new global::Ahghee.Grpc.FollowOperator();
+            if (operatorCase_ == OperatorOneofCase.Follow) {
+              subBuilder.MergeFrom(Follow);
+            }
+            input.ReadMessage(subBuilder);
+            Follow = subBuilder;
+            break;
+          }
+          case 18: {
+            global::Ahghee.Grpc.FilterOperator subBuilder = new global::Ahghee.Grpc.FilterOperator();
+            if (operatorCase_ == OperatorOneofCase.Where) {
+              subBuilder.MergeFrom(Where);
+            }
+            input.ReadMessage(subBuilder);
+            Where = subBuilder;
+            break;
+          }
+          case 26: {
+            if (next_ == null) {
+              Next = new global::Ahghee.Grpc.Step();
+            }
+            input.ReadMessage(Next);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Query : pb::IMessage<Query> {
+    private static readonly pb::MessageParser<Query> _parser = new pb::MessageParser<Query>(() => new Query());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Query> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[12]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Query() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Query(Query other) : this() {
+      step_ = other.step_ != null ? other.step_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Query Clone() {
+      return new Query(this);
+    }
+
+    /// <summary>Field number for the "step" field.</summary>
+    public const int StepFieldNumber = 1;
+    private global::Ahghee.Grpc.Step step_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.Step Step {
+      get { return step_; }
+      set {
+        step_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Query);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Query other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Step, other.Step)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (step_ != null) hash ^= Step.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (step_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Step);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (step_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Step);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Query other) {
+      if (other == null) {
+        return;
+      }
+      if (other.step_ != null) {
+        if (step_ == null) {
+          Step = new global::Ahghee.Grpc.Step();
+        }
+        Step.MergeFrom(other.Step);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (step_ == null) {
+              Step = new global::Ahghee.Grpc.Step();
+            }
+            input.ReadMessage(Step);
             break;
           }
         }
