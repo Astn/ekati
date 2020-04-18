@@ -21,7 +21,7 @@ type MemoryStore() =
                                                     let head = n.Id 
                                                     nodeIDs |> Seq.contains head |> not)
             Task.CompletedTask    
-        member this.Items (addresses:seq<NodeID>, follow: IDictionary<DataBlock, int>) =
+        member this.Items (addresses:seq<NodeID>, follow: Step) =
             let matches = addresses |> Seq.map (fun addr -> 
                                                         let isLocal = _nodes 
                                                                       |> Seq.tryFind ( fun n -> n.Id = addr)

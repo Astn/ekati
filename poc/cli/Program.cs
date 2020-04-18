@@ -27,8 +27,9 @@ get {""iri"":""wat/1""}
 put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""hi""}},""value"":{""Data"":{""str"":""bat""}}}]}
 put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""bye""}},""value"":{""Data"":{""str"":""batter""}}}]} 
 get {""iri"":""wat/2""}
-get {""iri"":""wat/2""}
+
 get {""iri"":""wat/1""}
+get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter"" 
         ";
         
         static UnbufferedTokenStream makeStream(string text)

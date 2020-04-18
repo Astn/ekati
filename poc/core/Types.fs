@@ -25,7 +25,7 @@ type IStorage =
     abstract member Flush: unit -> unit
     abstract member Add: seq<Node> -> System.Threading.Tasks.Task
     abstract member Remove: seq<NodeID> -> System.Threading.Tasks.Task
-    abstract member Items: seq<NodeID> * IDictionary<DataBlock , int> -> System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>>
+    abstract member Items: seq<NodeID> * Step -> System.Threading.Tasks.Task<seq<NodeID * Either<Node, Exception>>>
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
 

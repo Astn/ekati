@@ -127,7 +127,7 @@ namespace cli.antlr
             if (fgs.Any(_ => _ == 'v')) pm |= PrintMode.Verbose;
             return pm;
         }
-        void getNodes(IEnumerable<NodeID> ab, PrintMode pm)
+        void getNodes(IEnumerable<NodeID> ab, PrintMode pm, Step pipes)
         {
              if ((pm & PrintMode.Verbose) != 0)
              {
@@ -135,7 +135,7 @@ namespace cli.antlr
              }
 
              var sw = Stopwatch.StartNew();
-             var t = _store.Items(ab, new Dictionary<DataBlock, int>())
+             var t = _store.Items(ab, pipes)
                  .ContinueWith(get =>
                  {
                      try
@@ -200,9 +200,9 @@ namespace cli.antlr
                     return nodeIdContext.ToNodeID();
                 }).ToList();
 
-                var pipes = context.pipe().ToPipeFlow();
+                var pipes = context.pipe()?.ToPipeFlow();
                 
-                getNodes(nodesToGet, pm);
+                getNodes(nodesToGet, pm, pipes);
             }
             catch (Exception e)
             {

@@ -243,7 +243,7 @@ namespace cli
                 return new Step()
                 {
                     Where = filter,
-                    Next = ctx.pipe().ToPipeFlow()
+                    Next = ctx.pipe()?.ToPipeFlow()
                 };
             }
             throw new NotImplementedException("Only Follow and Filter are available in PipeContext so far.");
