@@ -37,6 +37,16 @@ namespace cli
             return ac;
         }
 
+        public static DataBlock ToDataBlockNodeID(this string str)
+        {
+            var nid = new NodeID {Iri = str};
+            nid.Pointer = new MemoryPointer();
+            return new DataBlock
+            {
+                Nodeid = nid
+            };
+        }
+
         public static DataBlock ToDataBlock(this AHGHEEParser.ValueContext v)
         {
             var db = new DataBlock();
@@ -143,7 +153,7 @@ namespace cli
         {
             return new Range()
             {
-                From = Int32.Parse(ctx.@from().GetText() ?? "0"),
+                From = Int32.Parse(ctx.@from()?.GetText() ?? "0"),
                 To = Int32.Parse(ctx.to().GetText() ?? "0")
             };
         }
@@ -233,7 +243,7 @@ namespace cli
                 return new Step()
                 {
                     Follow = follow,
-                    Next = ctx.pipe().ToPipeFlow()
+                    Next = ctx.pipe()?.ToPipeFlow()
                 };
             } 
             

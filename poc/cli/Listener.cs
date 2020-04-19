@@ -71,12 +71,23 @@ namespace cli.antlr
                             kv.Key = new TMD();
                             kv.Key.Data = new DataBlock();
                             kv.Value = new TMD();
-                            kv.Value.Data = pair.value().ToDataBlock();
-                            kv.Key.Data.Str = pair.STRING().GetText();
-                            
-
-                            // handle json array or json object as typebytes
-                            
+                            if (pair.kvp() != null)
+                            {
+                                kv.Value.Data = pair.kvp().value().ToDataBlock();
+                                kv.Key.Data.Str = pair.kvp().STRING().GetText();    
+                            } else if(pair.edge()!=null)
+                            {
+                                kv.Key.Data.Str = pair.edge().STRING(0).GetText();
+                                kv.Value.Data = pair.edge().STRING(1).GetText().ToDataBlockNodeID();
+                            }else if(pair.fedge()!=null)
+                            {
+                                kv.Key.Data = pair.edge().STRING(0).GetText().ToDataBlockNodeID();
+                                kv.Value.Data.Str = pair.edge().STRING(1).GetText();
+                            }else if(pair.dedge()!=null)
+                            {
+                                kv.Key.Data = pair.edge().STRING(0).GetText().ToDataBlockNodeID();
+                                kv.Value.Data = pair.edge().STRING(1).GetText().ToDataBlockNodeID();
+                            }
                             
                             vs.Add(kv);
                         }

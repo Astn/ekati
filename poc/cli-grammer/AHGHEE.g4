@@ -45,8 +45,28 @@ obj
 kvps: pair (',' pair)*;
 
 pair
-   : STRING ':' value
+   : kvp
+   | edge
+   | fedge
+   | dedge
    ;
+   
+kvp
+    : STRING ':' value
+    ;
+
+edge
+    : STRING ':' '@' STRING
+    ;
+
+fedge
+    :  '@' STRING':' value
+    ;
+
+dedge
+    : '@' STRING ':' '@' STRING
+    ;
+
 
 arr
    : '[' value (',' value)* ']'

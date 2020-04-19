@@ -1,3 +1,5 @@
+put "wat/man"
+
 get -abc "name/name/name" 
     |> follow (("knows" 5 || "wat" 2) && "fat" 5)
     |> follow "fdas" 6
