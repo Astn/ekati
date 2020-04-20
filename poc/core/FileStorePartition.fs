@@ -55,14 +55,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
 //            scanIndexChunk.Add (pointer)
 //            scanIndex.AddLast(scanIndexChunk) |> ignore
     
-    let IndexNodeIds nids =
+    let IndexNodeIds (nids:seq<NodeID>) =
         let lookup = 
             nids
             |> Seq.map(fun x ->
-                let hash = Utils.GetNodeIdHash x
-                //Console.WriteLine("Indexing hash " + hash.ToString())
-                hash
-                |> BitConverter.GetBytes, x.Pointer)
+                let hash = x.GetHashCode()
+                (hash |> BitConverter.GetBytes), x.Pointer)
             |> Map.ofSeq
              
         let keys =
@@ -170,7 +168,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // NOTE: It will also update the FragmentLinksRequested with bi-directional links that are still needed
     let LinkFragments (n:Node) =
         try
-            let hash = n.Id |> NodeIdFromAddress |> Utils.GetNodeIdHash
+            let hash = n.Id.GetHashCode()
             // If this node has links requested, then make those and exit
             let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
             let mutable outMpB:Pointers = null 
@@ -204,11 +202,11 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
             if (nodeid.Pointer.Length = uint64 0) then
-                let hash = Utils.GetNodeIdHash nodeid
+                let hash = nodeid.GetHashCode()
                 let partition = Utils.GetPartitionFromHash config.ParitionCount hash
                 if partition = i then // we have the info local
                     let mutable outMp:Pointers = null
-                    if (``Index of NodeID -> MemoryPointer``.TryGetValue (Utils.GetNodeIdHash nodeid, & outMp)) then
+                    if (``Index of NodeID -> MemoryPointer``.TryGetValue (nodeid.GetHashCode(), & outMp)) then
                         nodeid.Pointer <- outMp.Pointers_ |> Seq.head
                         true,true
                     else

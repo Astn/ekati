@@ -53,7 +53,7 @@ namespace cli
 
             if (v.STRING() != null)
             {
-                db.Str = v.STRING().GetText();
+                db.Str = v.STRING().GetText().Trim('"');
             } else if (v.NUMBER() != null)
             {
                 var numberstr = v.NUMBER().GetText();
@@ -83,6 +83,7 @@ namespace cli
                     if (nid != null)
                     {
                         db.Nodeid = nid;
+                        db.Nodeid.Pointer = new MemoryPointer();
                     }
                 }
                 catch (Exception e)
@@ -118,7 +119,7 @@ namespace cli
                 
             } else if (!string.IsNullOrWhiteSpace(v.GetText()))
             {
-                var t = v.GetText();
+                var t = v.GetText().Trim('"');
                 if (Boolean.TryParse(t, out var boo))
                 {
                     db.B = boo;

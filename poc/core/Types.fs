@@ -29,6 +29,7 @@ type IStorage =
     abstract member Items: seq<NodeID> * Step -> System.Threading.Tasks.Task<seq<struct (NodeID * Either<Node, Exception>)>>
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
+    
 
 type NodeIdIndex (indexFile:string) = 
     //let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
@@ -135,10 +136,6 @@ type NodeIdIndex (indexFile:string) =
 module Utils =
     open Google.Protobuf
 
-    let GetNodeIdHash (nodeid:NodeID) : NodeIdHash =  nodeid.GetHashCode() 
-    let GetAddressBlockHash (ab:NodeID) : NodeIdHash =
-        let nid = ab
-        GetNodeIdHash nid    
     let GetPartitionFromHash (partitionCount:int) (nodeHash:NodeIdHash) =
         int ((uint32 nodeHash) % uint32 partitionCount)
 

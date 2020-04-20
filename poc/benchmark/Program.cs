@@ -2,12 +2,15 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Ahghee;
 using Ahghee.Grpc;
 using benchmark;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Running;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -60,14 +63,14 @@ namespace benchmark
         public void PutNodeIdIndex()
         {
             Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
-            var idHash = Utils.GetNodeIdHash(Nodeid);
+            var idHash = Nodeid.GetHashCode();
             nodeIndex.AddOrUpdateCS(idHash, (bytes) => rp, (id, rp) => rp);   
         }
         [Benchmark]
         public void PutConcurrentDictionary()
         {
             Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
-            var idHash = Utils.GetNodeIdHash(Nodeid);
+            var idHash = Nodeid.GetHashCode();
             var value = cd.AddOrUpdate(idHash, rp, (id, rp) => rp);   
         }
 
@@ -198,15 +201,108 @@ namespace benchmark
             return Ahghee.Utils.Node(id, new List<KeyValue>{kv});
         }
     }
+
+    [MinColumn, MaxColumn, BaselineColumn, AllStatisticsColumn]
+    public class NodeIdHashBench
+    {
+        NodeID nid;
+        public NodeIdHashBench()
+        {
+            nid = new NodeID()
+            {
+                Iri = "jklfdajklfjkla/ajksdfjalksjkfldas",
+                Remote = "jklfsdjkflew"
+            };
+        }
+
+
+        [Benchmark(Baseline = true)]
+        public int StringHash()
+        {
+            return nid.Remote.GetHashCode() ^ nid.Iri.GetHashCode();
+        }
+        
+        [Benchmark()]
+        public int CustomHash()
+        {
+            return nid.GetHashCode();
+        }
+      
+        [Benchmark()]
+        public int MurmurHash()
+        {
+            return nid.GetHashCodeMurmur(nid);
+        }
+        
+    }
+
+    [EventPipeProfiler(EventPipeProfile.CpuSampling)]
+    [MinColumn, MaxColumn, AllStatisticsColumn]
+    public class WriteNodesBenchmark
+    {
+        private GrpcFileStore g;
+        private IStorage istor;
+        private IDisposable idis;
+        private IList<Node[]> seedData;
+        private Random rnd;
+        public WriteNodesBenchmark()
+        {
+            var config = Ahghee.Program.testConfig();
+            g = new GrpcFileStore(config);
+            istor = g;
+            idis = g;
+            seedData = Ahghee.Program.buildLotsNodes(2).Take(100).ToList();
+            rnd = new Random(1337);
+        }
+        
+        [Benchmark]
+        public async Task AddNodes1()
+        {
+            var nodes = seedData[rnd.Next(seedData.Count-1)];
+            await istor.Add(nodes.Take(1));
+            istor.Flush();
+        }
+        [Benchmark]
+        public async Task AddNodes10()
+        {
+            var nodes = seedData[rnd.Next(seedData.Count-1)];
+            await istor.Add(nodes.Take(10));
+            istor.Flush();
+        }
+        [Benchmark]
+        public async Task AddNodes100()
+        {
+            var nodes = seedData[rnd.Next(seedData.Count-1)];
+            await istor.Add(nodes.Take(100));
+            istor.Flush();
+        }
+
+        private void ReleaseUnmanagedResources()
+        {
+            idis.Dispose();
+        }
+
+        public void Dispose()
+        {
+            ReleaseUnmanagedResources();
+            GC.SuppressFinalize(this);
+        }
+
+        ~WriteNodesBenchmark()
+        {
+            ReleaseUnmanagedResources();
+        }
+    }
     
     class Program
     {
         static void Main(string[] args)
         {
+            var summary4 = BenchmarkRunner.Run<WriteNodesBenchmark>();
             //var summary0 = BenchmarkRunner.Run<CreatingTypes>();
             //var summary1 = BenchmarkRunner.Run<CreatingKeyValue>();
             //var summary2 = BenchmarkRunner.Run<CreatingNodeEmpty>();
-            var summary3 = BenchmarkRunner.Run<RocksDbSinglePut>();
+            //var summary3 = BenchmarkRunner.Run<RocksDbSinglePut>();
         }
     }
 }

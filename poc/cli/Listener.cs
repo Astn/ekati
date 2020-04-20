@@ -50,10 +50,10 @@ namespace cli.antlr
                     {
                         if (nc.nodeid().remote() != null)
                         {
-                            n.Id.Remote = nc.nodeid().remote().GetText();
+                            n.Id.Remote = nc.nodeid().remote().GetText().Trim('"');
                         }
 
-                        n.Id.Iri = nc.nodeid().id().GetText();
+                        n.Id.Iri = nc.nodeid().id().GetText().Trim('"');
                     }
 
                     var vs = new List<KeyValue>();
@@ -74,19 +74,19 @@ namespace cli.antlr
                             if (pair.kvp() != null)
                             {
                                 kv.Value.Data = pair.kvp().value().ToDataBlock();
-                                kv.Key.Data.Str = pair.kvp().STRING().GetText();    
+                                kv.Key.Data.Str = pair.kvp().STRING().GetText().Trim('"');    
                             } else if(pair.edge()!=null)
                             {
-                                kv.Key.Data.Str = pair.edge().STRING(0).GetText();
-                                kv.Value.Data = pair.edge().STRING(1).GetText().ToDataBlockNodeID();
+                                kv.Key.Data.Str = pair.edge().STRING(0).GetText().Trim('"');
+                                kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
                             }else if(pair.fedge()!=null)
                             {
-                                kv.Key.Data = pair.edge().STRING(0).GetText().ToDataBlockNodeID();
-                                kv.Value.Data.Str = pair.edge().STRING(1).GetText();
+                                kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
+                                kv.Value.Data.Str = pair.edge().STRING(1).GetText().Trim('"');
                             }else if(pair.dedge()!=null)
                             {
-                                kv.Key.Data = pair.edge().STRING(0).GetText().ToDataBlockNodeID();
-                                kv.Value.Data = pair.edge().STRING(1).GetText().ToDataBlockNodeID();
+                                kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
+                                kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
                             }
                             
                             vs.Add(kv);
@@ -151,12 +151,14 @@ namespace cli.antlr
                  {
                      try
                      {
-                         sw.Stop();
+                         
                          if (get.IsCompletedSuccessfully)
                          {
+                             var swConsole = Stopwatch.StartNew();
                              var sb = new StringBuilder();
                              foreach (var result in get.Result)
                              {
+                                 sw.Stop();
                                  if (result.Item2.IsLeft)
                                  {
                                      sb.Append("\nstatus> get(");
@@ -173,8 +175,9 @@ namespace cli.antlr
                                      Console.WriteLine($"\nstatus> get({result.Item1.Iri}).err({result.Item2.right.Message})");
                                  }
                              }
+                             swConsole.Stop();
 
-                             Console.WriteLine($"status> completed in {sw.ElapsedMilliseconds}ms");
+                             Console.WriteLine($"status> DB first result in {sw.ElapsedMilliseconds}ms Console Printing: {swConsole.ElapsedMilliseconds}ms");
                          }
                          else
                          {

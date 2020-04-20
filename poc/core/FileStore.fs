@@ -54,9 +54,8 @@ type GrpcFileStore(config:Config) =
         for i in 0 .. (writers.Length - 1) do
             let (_,_,part) = writers.[i]
             clusterServices.RemotePartitions().AddOrUpdate(i,part, (fun x p -> part)) |> ignore
-            
-            
-        writers                     
+        writers
+        
     let mergeNodesById (node:Node[]) =
         node
         |> Seq.groupBy(fun n -> n.Id)
@@ -138,7 +137,7 @@ type GrpcFileStore(config:Config) =
     let rec EdgeCmpValid(edgeNum: FollowOperator.Types.EdgeNum) =
         match edgeNum.OpCase with
             | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange -> 
-                edgeNum.EdgeRange.Range.To > 0
+                edgeNum.EdgeRange.Range.To >= 0
             | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeCmp ->
                 EdgeCmpValid (edgeNum.EdgeCmp.Left) &&
                     EdgeCmpValid (edgeNum.EdgeCmp.Right)
@@ -203,7 +202,7 @@ type GrpcFileStore(config:Config) =
             |> Seq.map (fun ab ->
                 let tcs = TaskCompletionSource<Node[]>()
                 let nid = ab
-                let nodeHash = Utils.GetAddressBlockHash ab
+                let nodeHash = ab.GetHashCode()
                 let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
                 // this line is just plain wrong, we don't have a pointer with any of this data here.
                 // if we did, then this would be ok to go I think.
@@ -213,6 +212,7 @@ type GrpcFileStore(config:Config) =
                 // TODO: Read all the fragments, not just the first one.
                 let t = 
                     if (nid.Pointer = Utils.NullMemoryPointer()) then
+                        Console.WriteLine ("Read using Index")
                         let mutable mp:Pointers = null
                         if(part.Index().TryGetValue(nodeHash, &mp)) then 
                             while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
@@ -221,6 +221,7 @@ type GrpcFileStore(config:Config) =
                             tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
                             tcs.Task   
                     else 
+                        Console.WriteLine ("Read using Pointer")
                         while bc.Writer.TryWrite (Read(tcs, [|nid.Pointer|])) = false do ()
                         tcs.Task
                         
@@ -293,7 +294,7 @@ type GrpcFileStore(config:Config) =
                         match fixedStep.Follow.FollowCase with
                         | FollowOperator.FollowOneofCase.FollowAny ->
                             fixedStep.Follow.FollowAny.Range.To <- fixedStep.Follow.FollowAny.Range.To - 1 
-                            fixedStep.Follow.FollowAny.Range.To > 0
+                            fixedStep.Follow.FollowAny.Range.To >= 0
                         | FollowOperator.FollowOneofCase.FollowEdge ->
                             EdgeCmpDecr ( fixedStep.Follow.FollowEdge )
                             EdgeCmpValid ( fixedStep.Follow.FollowEdge )
@@ -310,7 +311,15 @@ type GrpcFileStore(config:Config) =
                 ()    
             })
     
-                    
+    let Stop() =
+        Flush()
+        for (bc,t,part) in PartitionWriters do
+            bc.Writer.Complete()
+            t.Join() // wait for shard threads to stop    
+    
+    interface IDisposable with
+        member x.Dispose() = Stop()
+        
     interface IStorage with
         member x.Nodes = 
             // return local nodes before remote nodes
@@ -364,7 +373,7 @@ type GrpcFileStore(config:Config) =
                 Parallel.For(0,lstNodes.Length,(fun i ->
                     let node = lstNodes.[i]
                     setTimestamps node nowInt
-                    let nodeHash = Utils.GetAddressBlockHash node.Id
+                    let nodeHash = node.Id.GetHashCode()
                     let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
                     let plist = partitionLists.[partition] 
                     lock (plist) (fun () -> plist.Add node) 

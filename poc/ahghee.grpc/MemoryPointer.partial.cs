@@ -4,6 +4,7 @@ using System.Collections;
 using System.Data.HashFunction.MurmurHash;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
@@ -116,7 +117,7 @@ namespace Ahghee.Grpc
 
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         public override int GetHashCode() {
-            return GetHashCode(this);
+            return GetHashCodeGoodDistribution(this);
         }
 
         public bool Equals(NodeID x, NodeID y)
@@ -124,8 +125,35 @@ namespace Ahghee.Grpc
             return x != null && x.Equals(y);
         }
 
+        // In benchmarking this one is 1.72x slower than string.GetHashCode() ^ string2.getHashCode()
+        // we can't use the string.gethashcode, as it's not consistent across processes, or environments.
+        // and we are using these hash codes as a why they need to be consistent
+        // Currently creates a lot of collisions, wich slows us down more than then murmu3 approach (GetHashCodeGoodDistribution).
+        // TODO: implement murmur3 without allocations.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCode(NodeID obj)
+        public int GetHashCodeStackAlloc(NodeID obj)
+        {
+            int hash = 983;
+            int len = System.Text.Encoding.UTF8.GetByteCount(obj.remote_) +
+                      System.Text.Encoding.UTF8.GetByteCount(obj.iri_);
+            int toadd = 4 - (len % 4);
+            Span<byte> array = stackalloc  byte[len + toadd];
+            var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,array);
+            var arra2 = array.Slice(written);
+            System.Text.Encoding.UTF8.GetBytes(obj.iri_,arra2);
+            var asInts = MemoryMarshal.Cast<byte,int>(array);
+            for (int i = 0; i < asInts.Length; i++)
+            {
+                hash <<= 1;
+                hash ^= asInts[i];
+            }
+            return hash;
+        }
+        // In benchmarking this one is 6.89x slower than string.GetHashCode() ^ string2.getHashCode()
+        // But because it results in less collisions it's currently a net faster then our stack alloc approach.
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetHashCodeGoodDistribution(NodeID obj)
         {
             var array = new byte[System.Text.Encoding.UTF8.GetByteCount(obj.remote_) + System.Text.Encoding.UTF8.GetByteCount(obj.iri_)];
             var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,0,obj.remote_.Length,array,0);
@@ -133,6 +161,20 @@ namespace Ahghee.Grpc
             var hash = hasher.ComputeHash(array);
             return BitConverter.ToInt32(hash.Hash, 0);
         }
+        
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // public int GetHashCodeGoodDistributionLessAllocation(NodeID obj)
+        // {
+        //     int len = System.Text.Encoding.UTF8.GetByteCount(obj.remote_) +
+        //               System.Text.Encoding.UTF8.GetByteCount(obj.iri_);
+        //     int toadd = 4 - (len % 4);
+        //     Span<byte> array = stackalloc  byte[len + toadd];
+        //     var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,array);
+        //     var arra2 = array.Slice(written);
+        //     System.Text.Encoding.UTF8.GetBytes(obj.iri_,arra2);
+        //     var hash = hasher.ComputeHash(array);
+        //     return BitConverter.ToInt32(hash.Hash, 0);
+        // }
     }
 
     public sealed partial class DataBlock : IComparable<DataBlock>, IComparable

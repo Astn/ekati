@@ -34,6 +34,41 @@ get {""iri"":""wat/2""}
 
 get {""iri"":""wat/1""}
 get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter"" 
+put austin 
+    ""name"":""Austin"",
+    ""age"": 38,  
+    ""child"":@""gwynneth"",
+    ""child"":@""august"",
+    ""child"":@""blakely"",
+    ""spouce"":@""kendra"";
+    kendra 
+    ""name"":""Kendra"", 
+    ""age"": 32,    
+    ""child"":@""gwynneth"",
+    ""child"":@""august"",
+    ""child"":@""blakely"",
+    ""spouce"":@""austin"";
+    gwynneth 
+    ""name"":""Gwynneth"", 
+    ""age"": 5,    
+    ""mother"":@""kendra"",
+    ""brother"":@""august"",
+    ""sister"":@""blakely"",
+    ""father"":@""austin"";
+    blakely 
+    ""name"":""Blakely"", 
+    ""age"": 3,    
+    ""mother"":@""kendra"",
+    ""brother"":@""august"",
+    ""sister"":@""gwynneth"",
+    ""father"":@""austin"";
+    august 
+    ""name"":""August"", 
+    ""age"": 2,
+    ""mother"":@""kendra"",
+    ""sister"":@""blakely"",
+    ""sister"":@""gwynneth"",
+    ""father"":@""austin"";
         ";
         
         static UnbufferedTokenStream makeStream(string text)
@@ -102,13 +137,13 @@ get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter""
                     .CreateDefaultBuilder()
                     .Build())) as IStorage;
 
-          //TextReader tx
+            using var disposableStore = (IDisposable)store;
             var parser = new AHGHEEParser(makeStream(test1));
             parser.BuildParseTree = true;
             parser.AddParseListener(listener: new Listener(store));
             parser.AddErrorListener(new ErrorListener());
             AHGHEEParser.CommandContext cc = null;
-
+    
             for (;; cc = parser.command())
             {
                 if (cc?.exception != null
@@ -120,7 +155,7 @@ get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter""
                     Console.WriteLine(
                         $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
                 }
-
+    
                 // we got no more, so jump into console input
                 if (parser.CurrentToken.Type == TokenConstants.Eof)
                 {
@@ -133,6 +168,9 @@ get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter""
                     }
                 }
             }
+
+            //TextReader tx
+
         }
     }
 }
