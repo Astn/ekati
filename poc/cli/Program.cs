@@ -129,7 +129,7 @@ put austin
             Console.WriteLine("Starting up...");
 
             var store = new Ahghee.GrpcFileStore(new Config(
-                 Convert.ToInt32( Environment.ProcessorCount * .75),
+                 Convert.ToInt32( 1 ), //Environment.ProcessorCount * .75),
                 FSharpFunc<string, Unit>.FromConverter(
                     input => { return null; }),
                 false,

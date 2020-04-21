@@ -116,8 +116,13 @@ namespace Ahghee.Grpc
         }
 
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() {
-            return GetHashCodeGoodDistribution(this);
+            return GetHashCode(this);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetHashCode(NodeID nodeId) {
+            return GetHashCodeGoodDistribution(nodeId);
         }
 
         public bool Equals(NodeID x, NodeID y)

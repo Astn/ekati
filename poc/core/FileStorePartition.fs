@@ -65,19 +65,20 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
              
         let keys =
             lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
-
-        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
-            (fun x -> 
-                let ptr = lookup.Item(x) 
-                let mp = new Pointers()
-                mp.Pointers_.Add ptr
-                mp
-                )
-            (fun x old ->
-                let ptr = lookup.Item(x)
-                old.Pointers_.Add ptr
-                old
-            )       
+        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
+       
+//        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
+//            (fun x -> 
+//                let ptr = lookup.Item(x) 
+//                let mp = new Pointers()
+//                mp.Pointers_.Add ptr
+//                mp
+//                )
+//            (fun x old ->
+//                let ptr = lookup.Item(x)
+//                old.Pointers_.Add ptr
+//                old
+//            )       
     
 //    let IndexMaintainer =
 //        MailboxProcessor<IndexMessage>.Start(fun inbox ->

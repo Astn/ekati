@@ -190,7 +190,7 @@ module Program =
         
         g.Flush()
         
-        System.Threading.Thread.Sleep(30000)
+        System.Threading.Thread.Sleep(10000)
         
         // now for the read test
         let readTimer = Stopwatch.StartNew()

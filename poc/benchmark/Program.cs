@@ -64,7 +64,7 @@ namespace benchmark
         {
             Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
             var idHash = Nodeid.GetHashCode();
-            nodeIndex.AddOrUpdateCS(idHash, (bytes) => rp, (id, rp) => rp);   
+            nodeIndex.AddOrUpdateCS(new [] {Nodeid});   
         }
         [Benchmark]
         public void PutConcurrentDictionary()
