@@ -231,7 +231,7 @@ namespace benchmark
         [Benchmark()]
         public int MurmurHash()
         {
-            return nid.GetHashCodeMurmur(nid);
+            return nid.GetHashCodeGoodDistribution(nid);
         }
         
     }

@@ -653,16 +653,15 @@ type MyTests(output:ITestOutputHelper) =
         let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
         use nodeIndex = new NodeIdIndex(path) 
         let id = ABtoyId "1"
-        let idHash = GetAddressBlockHash id
         let fp = new Pointers()
         let mp = Utils.NullMemoryPointer()
         mp.Offset <- 100UL
         mp.Length <- 200UL
         fp.Pointers_.Add(mp)
         
-        let value = nodeIndex.AddOrUpdateBatch [|BitConverter.GetBytes idHash|] (fun (has) -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+        let value = nodeIndex.AddOrUpdateBatch [| id |]
         let mutable outvalue : Pointers = (new Pointers())
-        let success = nodeIndex.TryGetValue (idHash, &outvalue)
+        let success = nodeIndex.TryGetValue (id, &outvalue)
         Assert.True success
         Assert.Equal<MemoryPointer>(fp.Pointers_,    outvalue.Pointers_)
         ()
@@ -673,53 +672,24 @@ type MyTests(output:ITestOutputHelper) =
         let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
         use nodeIndex = new NodeIdIndex(path) 
         let id = ABtoyId "1"
-        let idHash = GetAddressBlockHash id
         let fp = new Pointers()
         let mp = Utils.NullMemoryPointer()
-        mp.Offset <- 100UL
-        mp.Length <- 200UL
         fp.Pointers_.Add(mp)
+        id.Pointer <- mp
         
-        let fp2 = new Pointers()
-        let mp2 = Utils.NullMemoryPointer()
-        mp2.Offset <- 200UL
-        mp2.Length <- 200UL
-        fp2.Pointers_.Add(mp2)
-        
-        let fp3 = new Pointers()
-        let mp3 = Utils.NullMemoryPointer()
-        mp3.Offset <- 300UL
-        mp3.Length <- 200UL
-        fp3.Pointers_.Add(mp3)
-        
-        let fp4 = new Pointers()        
-        let mp4 = Utils.NullMemoryPointer()
-        mp4.Offset <- 400UL
-        mp4.Length <- 200UL        
-        fp4.Pointers_.Add(mp4)
-        
-        let fp5 = new Pointers()
-        let mp5 = Utils.NullMemoryPointer()
-        mp5.Offset <- 500UL
-        mp5.Length <- 200UL
-        fp5.Pointers_.Add(mp5)
-        
-        let idHashBytes = idHash |> BitConverter.GetBytes
-        
-        let value = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp) (fun id rp -> rp.Pointers_.Add mp; rp)
+        for off in [|1UL .. 5UL|] do
+            mp.Offset <- off * 100UL
+            mp.Length <- 200UL
+            nodeIndex.AddOrUpdateBatch ([|id|])
 
-        let value2 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp2) (fun id rp -> rp.Pointers_.Add mp2; rp)
-
-        let value3 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp3) (fun id rp -> rp.Pointers_.Add mp3; rp)
-
-        let value4 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp4) (fun id rp -> rp.Pointers_.Add mp4; rp)
-
-        let value5 = nodeIndex.AddOrUpdateBatch [|idHashBytes|] (fun (has) -> fp5) (fun id rp -> rp.Pointers_.Add mp5; rp)
-
-
-        let mutable outvalue : Pointers = (new Pointers())
-        let success = nodeIndex.TryGetValue (idHash, &outvalue)
+        let mutable outvalue = new Pointers()
+        let success = nodeIndex.TryGetValue (id, &outvalue)
         Assert.True success
-        Assert.Equal<MemoryPointer>([mp;mp2;mp3;mp4;mp5],outvalue.Pointers_)
+        
+        let mutable ctr = 1UL
+        for off in outvalue.Pointers_ do
+            Assert.Equal(off.Offset, ctr * 100UL)
+            ctr <- ctr+1UL
+            
         ()
       

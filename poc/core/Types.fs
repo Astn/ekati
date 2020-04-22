@@ -39,15 +39,14 @@ type NodeIdIndex (indexFile:string) =
     let merge = Merge.Create()
     let mutable cfOpts : ColumnFamilyOptions = new ColumnFamilyOptions()
     let options =
-        let opts = (new DbOptions())
-        opts.SetCreateIfMissing(true).EnableStatistics()
+        let mutable opts = (new DbOptions())
+        opts <- opts.SetCreateIfMissing(true).EnableStatistics()
         
         cfOpts <- opts.SetMergeOperator(merge)
         opts
     
     let db = RocksDb.Open(options,path)
-    
-    let codec = FieldCodec.ForMessage<MemoryPointer>(18u, Ahghee.Grpc.MemoryPointer.Parser)
+
     let cleanup() = db.Dispose()
 
     let writeRP (rp:Pointers) = 
@@ -61,24 +60,19 @@ type NodeIdIndex (indexFile:string) =
         outputStream.Flush() 
         (b, len)
     
-    let TryGetValueInternal (keybytes:array<byte>) (value: Pointers byref) =
+    let TryGetValueInternal (nid:NodeID) (value: Pointers byref) =
+        let keybytes = BitConverter.GetBytes(nid.GetHashCode())
         let valueBytes = db.Get(keybytes)
         if valueBytes = null || valueBytes.Length = 0 then 
             value <- null
             false 
         else
-            Console.WriteLine( "Loaded : " + BitConverter.ToString(valueBytes));
+            //Console.WriteLine( "Loaded : " + BitConverter.ToString(valueBytes));
             let repeatedField = new Pointers()
             let codedinputStream = new CodedInputStream(valueBytes,0,valueBytes.Length)
             repeatedField.MergeFrom(codedinputStream)
             value <- repeatedField 
             true
-    let AddPointerToPointersArray (pointers:array<byte> , pointer: MemoryPointer): Pointers   =
-        let repeatedField = new Pointers()
-        let codedinputStream = new CodedInputStream(pointers,0,pointers.Length)
-        repeatedField.MergeFrom(codedinputStream)
-        repeatedField.Pointers_.Add pointer
-        repeatedField
 
     override x.Finalize() =
         cleanup()
@@ -102,22 +96,16 @@ type NodeIdIndex (indexFile:string) =
         }
         
     
-    member __.TryGetValue (key:NodeIdHash, value: Pointers byref) = 
+    member __.TryGetValue (nid:NodeID, value: Pointers byref) = 
         //Console.WriteLine("Get hash " + key.ToString())
-        let keybytes = BitConverter.GetBytes key
-        TryGetValueInternal keybytes &value 
+        
+        TryGetValueInternal nid &value 
 
     member __.AddOrUpdateBatch (nids:seq<NodeID>) =
-        let nidArr = nids |> Seq.toArray
-        let keys = nidArr |> Array.map (fun nid -> nid.GetHashCode() |> BitConverter.GetBytes)
-        //let wb = new ReadBatch()
-        let keysBytes = keys
-        
         //let gotLots = db.MultiGet keysBytes
         // for keys with no values we just perform the Put operation.
         let writeBatch = new WriteBatch()
-        // can use merge in writeBatch
-        // for keys with values we do a Modify and Write. Eventually maybe do a rocksDb.merge instead of all of this
+        // todo: use writeBatch.MergeV to do it all in one operation.
         nids
             |> Seq.iter(fun kvp ->
                     let hash = kvp.GetHashCode() |> BitConverter.GetBytes
@@ -125,29 +113,10 @@ type NodeIdIndex (indexFile:string) =
                         let pts = Pointers()
                         pts.Pointers_.Add( kvp.Pointer)
                         pts |> writeRP
-                    Console.WriteLine( "Saving : " + BitConverter.ToString(ptrsB,0,ptrsL));
+
                     writeBatch.Merge (hash, Convert.ToUInt64( hash.Length), ptrsB, Convert.ToUInt64(ptrsL),null) |> ignore
-//                    if kvp.Value = null || kvp.Value.Length = 0 then
-//                        // novalues
-//                        let idx = keys |> Array.findIndex(fun item -> item = kvp.Key)
-//                        let (d, l) =
-//                            let pts = Pointers()
-//                            pts.Pointers_.Add nidArr.[idx].Pointer
-//                            pts |> writeRP
-//                        writeBatch.Put(kvp.Key, (uint64) kvp.Key.Length, d, (uint64) l ) |> ignore
-//                        buffer.Return(d)
-//                    else
-//                        // values
-//                        let (newVal, l) =
-//                                let idx = keys |> Array.findIndex(fun item -> item = kvp.Key)
-//                                let pts = AddPointerToPointersArray (kvp.Value, nidArr.[idx].Pointer)
-//                                pts |> writeRP
-//                        writeBatch.Put(kvp.Key, (uint64) kvp.Key.LongLength, newVal, (uint64) l) |> ignore
-//                        buffer.Return(newVal)
                 )
-        //writeBatch.mer
-        db.Write(writeBatch)
-        
+        db.Write(writeBatch)        
         ()
             
     member __.AddOrUpdateCS (nodes:seq<NodeID>) =
@@ -156,8 +125,8 @@ type NodeIdIndex (indexFile:string) =
 module Utils =
     open Google.Protobuf
 
-    let GetPartitionFromHash (partitionCount:int) (nodeHash:NodeIdHash) =
-        int ((uint32 nodeHash) % uint32 partitionCount)
+    let GetPartitionFromHash (partitionCount:int) (nid:NodeID) =
+        int ((uint32 <| nid.GetHashCode()) % uint32 partitionCount)
 
     let metaPlainTextUtf8 = "xs:string"
     let metaXmlInt = "xs:int"

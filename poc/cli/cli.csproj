@@ -28,4 +28,11 @@
       <None Remove="antlr\generated\**" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="testscript.wat" />
+      <Content Include="testscript.wat">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

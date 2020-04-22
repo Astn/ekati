@@ -20,57 +20,6 @@ namespace cli
 {
     class Program
     {
-
-        static string test1 = @"
-put {""id"":{""iri"":""wat/1""},""attributes"":[{""key"": {""Data"":{""str"":""hi""}},""value"":{""Data"":{""str"":""wat""}}}]}
-get {""iri"":""wat/1""}
-put {""id"":{""iri"":""wat/1""},""attributes"":[{""key"": {""Data"":{""str"":""bye""}},""value"":{""Data"":{""str"":""watter""}}}]} 
-get {""iri"":""wat/1""}
-get {""iri"":""wat/1""}
-
-put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""hi""}},""value"":{""Data"":{""str"":""bat""}}}]}
-put {""id"":{""iri"":""wat/2""},""attributes"":[{""key"": {""Data"":{""str"":""bye""}},""value"":{""Data"":{""str"":""batter""}}}]} 
-get {""iri"":""wat/2""}
-
-get {""iri"":""wat/1""}
-get ""wat/2"", ""wat/1"" |> filter ""str"" ==  ""watter"" 
-put austin 
-    ""name"":""Austin"",
-    ""age"": 38,  
-    ""child"":@""gwynneth"",
-    ""child"":@""august"",
-    ""child"":@""blakely"",
-    ""spouce"":@""kendra"";
-    kendra 
-    ""name"":""Kendra"", 
-    ""age"": 32,    
-    ""child"":@""gwynneth"",
-    ""child"":@""august"",
-    ""child"":@""blakely"",
-    ""spouce"":@""austin"";
-    gwynneth 
-    ""name"":""Gwynneth"", 
-    ""age"": 5,    
-    ""mother"":@""kendra"",
-    ""brother"":@""august"",
-    ""sister"":@""blakely"",
-    ""father"":@""austin"";
-    blakely 
-    ""name"":""Blakely"", 
-    ""age"": 3,    
-    ""mother"":@""kendra"",
-    ""brother"":@""august"",
-    ""sister"":@""gwynneth"",
-    ""father"":@""austin"";
-    august 
-    ""name"":""August"", 
-    ""age"": 2,
-    ""mother"":@""kendra"",
-    ""sister"":@""blakely"",
-    ""sister"":@""gwynneth"",
-    ""father"":@""austin"";
-        ";
-        
         static UnbufferedTokenStream makeStream(string text)
         {
             var sr = new StringReader(text);
@@ -137,6 +86,8 @@ put austin
                     .CreateDefaultBuilder()
                     .Build())) as IStorage;
 
+            var test1 = File.ReadAllText("./testscript.wat");
+            
             using var disposableStore = (IDisposable)store;
             var parser = new AHGHEEParser(makeStream(test1));
             parser.BuildParseTree = true;

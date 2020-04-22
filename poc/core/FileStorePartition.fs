@@ -35,26 +35,6 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
     let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     
-    // this is a linked list with lists size 1000 that we add all memory pointers to
-    // in the order they are created. This should be fully sorted and contain all the
-    // pointers to every node
-//    let mutable scanIndex = new LinkedList<List<Grpc.MemoryPointer>>()
-//    
-//    let AddPointerToScanIndex pointer =
-//        if scanIndex.First = null then
-//            // todo is 1000 the right size to keep pressure off the GC? LOB and such?
-//            scanIndex.AddLast(new List<Grpc.MemoryPointer>(1000)) |> ignore
-//        
-//        let scanIndexChunk = scanIndex.Last.Value
-//        if scanIndexChunk.Count <> scanIndexChunk.Capacity then
-//            scanIndexChunk.Add (pointer)
-//        else
-//            // make a new chunk
-//            scanIndex.AddLast(new List<Grpc.MemoryPointer>(1000)) |> ignore
-//            let scanIndexChunk = scanIndex.Last.Value
-//            scanIndexChunk.Add (pointer)
-//            scanIndex.AddLast(scanIndexChunk) |> ignore
-    
     let IndexNodeIds (nids:seq<NodeID>) =
         let lookup = 
             nids
@@ -67,38 +47,6 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
         ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
        
-//        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch keys 
-//            (fun x -> 
-//                let ptr = lookup.Item(x) 
-//                let mp = new Pointers()
-//                mp.Pointers_.Add ptr
-//                mp
-//                )
-//            (fun x old ->
-//                let ptr = lookup.Item(x)
-//                old.Pointers_.Add ptr
-//                old
-//            )       
-    
-//    let IndexMaintainer =
-//        MailboxProcessor<IndexMessage>.Start(fun inbox ->
-////            let mutable scanIndexChunk = new List<Grpc.MemoryPointer>(1000)
-////            scanIndex.AddLast(scanIndexChunk) |> ignore
-////            
-//            let rec messageLoop() = 
-//                async{
-//                    let! message = inbox.Receive()
-//                    match message with 
-//                    | Index(nids) ->
-//                        IndexNodeIds (nids)   
-//                    | Flush(replyChannel)->
-//                        replyChannel.Reply(true)
-//                        
-//                    return! messageLoop()
-//                }    
-//            messageLoop()    
-//        )
-    
     // returns true if the node is or was linked to the pointer
     // also updates indexes (FragmentLinksRequested; FragmentLinksConnected) to reflect changes, and request 
     // bidirectional linking for this fragment and the pointer it links to
@@ -169,7 +117,6 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // NOTE: It will also update the FragmentLinksRequested with bi-directional links that are still needed
     let LinkFragments (n:Node) =
         try
-            let hash = n.Id.GetHashCode()
             // If this node has links requested, then make those and exit
             let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
             let mutable outMpB:Pointers = null 
@@ -180,7 +127,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             yield mp 
                     }
             // otherwise link it to something at the end of the NodeIdToPointers index
-            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (hash, & outMpB)) &&
+            else if (``Index of NodeID -> MemoryPointer``.TryGetValue (n.Id, & outMpB)) &&
                 not (n.Fragments |> Seq.exists(fun frag -> frag.Length <> 0UL)) then
                 // we want to create a basic linked list. 
                 let pointers = outMpB
@@ -203,17 +150,17 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let UpdateMemoryPointers (node:Node)=
         let AttachMemoryPointer (nodeid:NodeID) =
             if (nodeid.Pointer.Length = uint64 0) then
-                let hash = nodeid.GetHashCode()
-                let partition = Utils.GetPartitionFromHash config.ParitionCount hash
+                
+                let partition = Utils.GetPartitionFromHash config.ParitionCount nodeid
                 if partition = i then // we have the info local
                     let mutable outMp:Pointers = null
-                    if (``Index of NodeID -> MemoryPointer``.TryGetValue (nodeid.GetHashCode(), & outMp)) then
+                    if (``Index of NodeID -> MemoryPointer``.TryGetValue (nodeid, & outMp)) then
                         nodeid.Pointer <- outMp.Pointers_ |> Seq.head
                         true,true
                     else
                         true,false
                 else // its a remote node and we need to ask the cluster for the info.
-                    let success,pointer = cluster.RemoteLookup partition hash 
+                    let success,pointer = cluster.RemoteLookup partition nodeid 
                     if success then
                         nodeid.Pointer <- pointer 
                         true,true
@@ -380,15 +327,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let mutable lastOpIsWrite = false
             let mutable lastPosition = 0L
             
-//            let loadScanIndex() =
-//                scanIndexFile.Seek(0L, SeekOrigin.Begin)
-//                while scanIndexFile.Position < scanIndexFile.Length do 
-//                    let mp = new MemoryPointer()
-//                    mp.MergeDelimitedFrom(scanIndexFile)
-//                    AddPointerToScanIndex (mp)
-//                ()
-//            loadScanIndex()
-            
+           
             let loadLastPos () =
                 // this cannot be called after we create a writer a few lines after we initially call loadLastPos
                 // because we hold open the file.

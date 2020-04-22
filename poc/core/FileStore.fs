@@ -18,12 +18,12 @@ type ClusterServices() =
     let remotePartitions = new ConcurrentDictionary<int,FileStorePartition>()
     member this.RemotePartitions() = remotePartitions
     interface IClusterServices with 
-        member this.RemoteLookup (partition:int) (hash:NodeIdHash) : bool * MemoryPointer = 
+        member this.RemoteLookup (partition:int) (nid:NodeID) : bool * MemoryPointer = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
                 let mutable refPointers :Pointers = null
                 let rind = remote.Index()
-                if rind.TryGetValue(hash, & refPointers) then
+                if rind.TryGetValue(nid, & refPointers) then
                     true, refPointers.Pointers_ |> Seq.head
                 else
                     false, Utils.NullMemoryPointer()
@@ -202,8 +202,7 @@ type GrpcFileStore(config:Config) =
             |> Seq.map (fun ab ->
                 let tcs = TaskCompletionSource<Node[]>()
                 let nid = ab
-                let nodeHash = ab.GetHashCode()
-                let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
+                let partition = Utils.GetPartitionFromHash config.ParitionCount ab
                 // this line is just plain wrong, we don't have a pointer with any of this data here.
                 // if we did, then this would be ok to go I think.
                 // Console.WriteLine("About to query shard "+ partition.ToString())
@@ -214,7 +213,7 @@ type GrpcFileStore(config:Config) =
                     if (nid.Pointer = Utils.NullMemoryPointer()) then
                         Console.WriteLine ("Read using Index")
                         let mutable mp:Pointers = null
-                        if(part.Index().TryGetValue(nodeHash, &mp)) then 
+                        if(part.Index().TryGetValue(ab, &mp)) then 
                             while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
                             tcs.Task
                         else 
@@ -373,8 +372,7 @@ type GrpcFileStore(config:Config) =
                 Parallel.For(0,lstNodes.Length,(fun i ->
                     let node = lstNodes.[i]
                     setTimestamps node nowInt
-                    let nodeHash = node.Id.GetHashCode()
-                    let partition = Utils.GetPartitionFromHash config.ParitionCount nodeHash
+                    let partition = Utils.GetPartitionFromHash config.ParitionCount node.Id
                     let plist = partitionLists.[partition] 
                     lock (plist) (fun () -> plist.Add node) 
                 )) |> ignore

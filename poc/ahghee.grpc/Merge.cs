@@ -51,17 +51,39 @@ namespace Ahghee.Grpc
             unsafe
             {
                 // TODO: deduplicate
-                // just return pointer they gave us, as they have done the merging for us as a binary concatenation is all we need to do.
-                
-                var newsize = Marshal.ReadInt64(operandsListLength);
-                IntPtr dest = Marshal.AllocHGlobal((IntPtr) newsize );
-                Buffer.MemoryCopy(operandsList.ToPointer(), dest.ToPointer(),newsize,newsize);
-                Marshal.WriteInt32(success, 1);
+                // for each operand
+                long totalLength = 0;
+                var size = sizeof(IntPtr);
+                var orig = operandsListLength;
+                for (int i = 0; i < numOperands; i++)
+                {
+                    totalLength +=  Marshal.ReadIntPtr(orig).ToInt64();
+                    var added = IntPtr.Add(orig, size);
+                    orig = added;
+                    // sum all the lengths so we can allocate once.
+                }
+
+                Int64 tots = totalLength;
+                Int64* ptots = &tots;
+                IntPtr lenPtr = new IntPtr(ptots);
+                IntPtr dest = Marshal.AllocHGlobal( new IntPtr( totalLength ));
+
+                // for each operand
+                var destIter = dest;
+                var copied = 0L;
+                for (int i = 0; i < numOperands; i++)
+                {
+                    var cntToCopy = Marshal.ReadInt64(IntPtr.Add(operandsListLength, i * size));
+                    // copy each operand
+                    var operandLoc = IntPtr.Add(operandsList, i * size);
+                    Buffer.MemoryCopy(Marshal.ReadIntPtr( operandLoc).ToPointer(),  destIter.ToPointer(), totalLength - copied, cntToCopy );
+                    copied += cntToCopy;
+                    destIter = IntPtr.Add(destIter, Convert.ToInt32(cntToCopy));
+                }
+
+                Marshal.WriteInt64(newValueLength, Convert.ToInt32(totalLength));
+                Marshal.WriteInt64(success, 1);
                 return dest;
-                
-                Marshal.WriteInt64(newValueLength, newsize);
-                success = (IntPtr) 1; // true
-                return operandsList;
             }
         }
         /// <summary>
@@ -108,43 +130,8 @@ namespace Ahghee.Grpc
                     Marshal.WriteInt32(success, 1);
                     return dest;
                 }
-                else
-                {
-
-                    // for each operand
-                    long totalLength = 0;
-                    var size = sizeof(IntPtr);
-                    var orig = operandsListLength;
-                    for (int i = 0; i < numOperands; i++)
-                    {
-                        totalLength +=  Marshal.ReadIntPtr(orig).ToInt64();
-                        var added = IntPtr.Add(orig, size);
-                        orig = added;
-                        // sum all the lengths so we can allocate once.
-                    }
-
-                    Int64 tots = totalLength;
-                    Int64* ptots = &tots;
-                    IntPtr lenPtr = new IntPtr(ptots);
-                    IntPtr dest = Marshal.AllocHGlobal( new IntPtr( totalLength ));
-
-                    // for each operand
-                    var destIter = dest;
-                    var copied = 0L;
-                    for (int i = 0; i < numOperands; i++)
-                    {
-                        var cntToCopy = Marshal.ReadInt64(IntPtr.Add(operandsListLength, i * size));
-                        // copy each operand
-                        var operandLoc = IntPtr.Add(operandsList, i * size);
-                        Buffer.MemoryCopy(Marshal.ReadIntPtr( operandLoc).ToPointer(),  destIter.ToPointer(), totalLength - copied, cntToCopy );
-                        copied += cntToCopy;
-                        destIter = IntPtr.Add(destIter, Convert.ToInt32(cntToCopy));
-                    }
-
-                    Marshal.WriteInt64(newValueLength, Convert.ToInt32(totalLength));
-                    Marshal.WriteInt64(success, 1);
-                    return dest;
-                }
+                
+                return PartialMergeFunc(key, keyLength, operandsList, operandsListLength, numOperands, success, newValueLength);
             }
         }
 

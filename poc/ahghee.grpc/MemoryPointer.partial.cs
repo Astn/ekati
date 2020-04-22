@@ -133,12 +133,12 @@ namespace Ahghee.Grpc
         // In benchmarking this one is 1.72x slower than string.GetHashCode() ^ string2.getHashCode()
         // we can't use the string.gethashcode, as it's not consistent across processes, or environments.
         // and we are using these hash codes as a why they need to be consistent
-        // Currently creates a lot of collisions, wich slows us down more than then murmu3 approach (GetHashCodeGoodDistribution).
+        // Currently creates a lot of collisions, which slows us down more than then murmu3 approach (GetHashCodeGoodDistribution).
         // TODO: implement murmur3 without allocations.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCodeStackAlloc(NodeID obj)
+        public long GetHashCodeStackAlloc(NodeID obj)
         {
-            int hash = 983;
+            long hash = 983;
             int len = System.Text.Encoding.UTF8.GetByteCount(obj.remote_) +
                       System.Text.Encoding.UTF8.GetByteCount(obj.iri_);
             int toadd = 4 - (len % 4);
@@ -146,13 +146,25 @@ namespace Ahghee.Grpc
             var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,array);
             var arra2 = array.Slice(written);
             System.Text.Encoding.UTF8.GetBytes(obj.iri_,arra2);
-            var asInts = MemoryMarshal.Cast<byte,int>(array);
-            for (int i = 0; i < asInts.Length; i++)
+            var asLong = MemoryMarshal.Cast<byte,long>(array);
+            unchecked
             {
-                hash <<= 1;
-                hash ^= asInts[i];
+                for (int i = 0; i < asLong.Length; i++)
+                {
+                    hash ^= asLong[i];
+                }
+                return hash;
             }
-            return hash;
+        }
+
+        public int GetHashCodeIntStackAlloc(NodeID obj)
+        {
+            unchecked
+            {
+                var hash = GetHashCodeStackAlloc(obj);
+                int hash32 = ((int)hash) ^ ((int)(hash >> 32));
+                return hash32;
+            }
         }
         // In benchmarking this one is 6.89x slower than string.GetHashCode() ^ string2.getHashCode()
         // But because it results in less collisions it's currently a net faster then our stack alloc approach.
@@ -164,7 +176,12 @@ namespace Ahghee.Grpc
             var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,0,obj.remote_.Length,array,0);
             System.Text.Encoding.UTF8.GetBytes(obj.iri_,0,obj.iri_.Length,array,written);
             var hash = hasher.ComputeHash(array);
-            return BitConverter.ToInt32(hash.Hash, 0);
+            return BitConverter.ToInt32(hash.Hash);
+            // unchecked
+            // {
+            //     int hash32 = ((int)h) ^ ((int)(h >> 32));
+            //     return hash32;
+            // }
         }
         
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
