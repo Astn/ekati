@@ -17,6 +17,8 @@ EndProject
 				EndProject
 				Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cli-grammer", "cli-grammer\cli-grammer.csproj", "{F3D48AB4-AE71-4DD9-B001-5A00F59A151F}"
 				EndProject
+				Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "server", "server\server.csproj", "{EF022214-2116-45CF-B8DA-22ADAB756453}"
+				EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,5 +116,17 @@ Global
 		{F3D48AB4-AE71-4DD9-B001-5A00F59A151F}.Release|x64.Build.0 = Release|Any CPU
 		{F3D48AB4-AE71-4DD9-B001-5A00F59A151F}.Release|x86.ActiveCfg = Release|Any CPU
 		{F3D48AB4-AE71-4DD9-B001-5A00F59A151F}.Release|x86.Build.0 = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|x64.Build.0 = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Debug|x86.Build.0 = Debug|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|x64.ActiveCfg = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|x64.Build.0 = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|x86.ActiveCfg = Release|Any CPU
+		{EF022214-2116-45CF-B8DA-22ADAB756453}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

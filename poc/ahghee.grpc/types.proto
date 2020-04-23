@@ -2,7 +2,7 @@ syntax = "proto3";
 
 // TODO: support protobuff any
 // import google/protobuf/any.proto
-
+import "google/protobuf/timestamp.proto";
 package ahghee.grpc;
 
 // MemoryPointer needs fixed fields, so we can update them
@@ -121,4 +121,52 @@ message Step {
 
 message Query {
     Step step = 1;
+    repeated string iris = 2;
+}
+
+message PutResponse{
+    bool success = 1;
+}
+
+message GetMetricsResponse{
+    message Metric {
+        float value =1;
+        string name = 2;
+        google.protobuf.Timestamp time = 3;
+    }
+    repeated Metric metrics = 1;
+}
+message GetMetricsRequest{
+    repeated string names = 1;
+}
+message GetStatsRequest{
+    message Stat{
+        float value = 1;
+        string topic = 2;
+        string stat = 3;
+    }
+    repeated Stat stats = 1;
+}
+message GetStatsResponse{
+    repeated string names = 1;
+}
+message ListStatsRequest{
+    repeated string match = 1;
+}
+message ListStatsResponse{
+    repeated string names = 1;
+}
+message ListPoliciesRequest{
+    repeated string iris = 1;
+}
+message ListPoliciesResponse{
+    repeated Node nodes = 1;
+}
+service WatDbService {
+    rpc Put (Node) returns (PutResponse) {}
+    rpc Get (Query) returns (stream Node) {}
+    rpc GetMetrics (GetMetricsRequest) returns (GetMetricsResponse){}
+    rpc GetStats (GetStatsRequest) returns (GetStatsResponse){}
+    rpc ListStats (ListStatsRequest) returns (ListStatsResponse){}
+    rpc ListPolicies (ListPoliciesRequest) returns (stream Node){}
 }
