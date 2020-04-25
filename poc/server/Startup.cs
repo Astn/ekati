@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Ahghee;
+using App.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.FSharp.Core;
+using Unit = Microsoft.FSharp.Core.Unit;
 
 namespace server
 {
@@ -17,7 +21,20 @@ namespace server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
-           // services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
+
+            services.AddSingleton(sp =>
+            {
+                return new Ahghee.GrpcFileStore(new Config(
+                    Convert.ToInt32(1), //Environment.ProcessorCount * .75),
+                    FSharpFunc<string, Unit>.FromConverter(
+                        input => { return null; }),
+                    false,
+                    AppMetrics
+                        .CreateDefaultBuilder()
+                        .Build())) as IStorage;
+            });
+
+            // services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             // services.AddCors(o =>
             // {

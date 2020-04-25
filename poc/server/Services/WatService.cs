@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Ahghee;
 using Ahghee.Grpc;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
@@ -13,14 +14,16 @@ namespace server
     public class WatService : Ahghee.Grpc.WatDbService.WatDbServiceBase
     {
         private readonly ILogger<WatService> _logger;
+        private readonly IStorage _db;
         private TimeSpan _procTotalProcessorTime;
         private DateTime _dateTime;
         private Process _proc;
 
-        public WatService(ILogger<WatService> logger)
+        public WatService(ILogger<WatService> logger, IStorage db)
         {
             _logger = logger;
-            
+            _db = db;
+
             // these are used to keep track of cpu.
             _proc = Process.GetCurrentProcess();
             _procTotalProcessorTime = _proc.TotalProcessorTime;
@@ -29,18 +32,8 @@ namespace server
 
         public override async Task<GetMetricsResponse> GetMetrics(GetMetricsRequest request, ServerCallContext context)
         {
+            return await _db.GetMetrics(request,context.CancellationToken);
             var cpuPercent = UpdateCpuPercent();
-            var memMB = _proc.WorkingSet64 * 0.000001f;
-            return new GetMetricsResponse
-            {
-                Metrics =
-                {
-                    new GetMetricsResponse.Types.Metric{Name = "Cpu", Value = cpuPercent, Time = Timestamp.FromDateTimeOffset(DateTimeOffset.Now)},
-                    new GetMetricsResponse.Types.Metric{Name = "Mem", Value = memMB, Time = Timestamp.FromDateTimeOffset(DateTimeOffset.Now)},
-                    new GetMetricsResponse.Types.Metric{Name = "Disk", Value = 00.1f, Time = Timestamp.FromDateTimeOffset(DateTimeOffset.Now)},
-                    new GetMetricsResponse.Types.Metric{Name = "Network", Value = 00.1f, Time = Timestamp.FromDateTimeOffset(DateTimeOffset.Now)},
-                }
-            };
         }
 
         private float UpdateCpuPercent()
@@ -55,19 +48,56 @@ namespace server
             return cpuPercent;
         }
 
-        public override Task Get(Query request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
+        public override async Task Get(Query request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
         {
-            return base.Get(request, responseStream, context);
+            try
+            {
+                // todo: pass this into the Items call. context.CancellationToken;
+                var resutl = await _db.Items(request.Iris.Select(iri => new NodeID
+                {
+                    Iri = iri,
+                    Remote = "",
+                    Pointer = Utils.NullMemoryPointer()
+                }), request.Step);
+
+                foreach (var chunk in resutl)
+                {
+                    var (z, b) = chunk;
+                    if (b.IsLeft)
+                    {
+                        await responseStream.WriteAsync(b.left);
+                    }
+                    else
+                    {
+                        _logger.LogError(b.right, "Failure processing query");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e,"Get failed");
+            }
         }
 
-        public override Task<PutResponse> Put(Node request, ServerCallContext context)
+        public override async Task<PutResponse> Put(Node request, ServerCallContext context)
         {
-            return base.Put(request, context);
+            try
+            {
+                await _db.Add(new[] {request});
+                return new PutResponse{Success = true};
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e,"Put failed");
+                return new PutResponse{Success = false};
+            }
         }
 
-        public override Task<GetStatsResponse> GetStats(GetStatsRequest request, ServerCallContext context)
+        public override async Task<GetStatsResponse> GetStats(GetStatsRequest request, ServerCallContext context)
         {
-            return base.GetStats(request, context);
+
+            return await _db.GetStats(request, context.CancellationToken);
+            
         }
 
         public override Task ListPolicies(ListPoliciesRequest request, IServerStreamWriter<Node> responseStream, ServerCallContext context)

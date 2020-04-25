@@ -13,6 +13,7 @@ open RocksDbSharp
 open System
 open System.Buffers
 open System.Linq
+open System.Threading
 
 [<Struct>]
 type Either<'L, 'R> =
@@ -30,7 +31,8 @@ type IStorage =
     abstract member Items: seq<NodeID> * Step -> System.Threading.Tasks.Task<seq<struct (NodeID * Either<Node, Exception>)>>
     abstract member First: (Node -> bool) -> System.Threading.Tasks.Task<Option<Node>> 
     abstract member Stop: unit -> unit
-    
+    abstract member GetStats: GetStatsRequest * CancellationToken -> Task<GetStatsResponse>
+    abstract member GetMetrics: GetMetricsRequest * CancellationToken -> Task<GetMetricsResponse>
 
 type NodeIdIndex (indexFile:string) = 
     //let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()

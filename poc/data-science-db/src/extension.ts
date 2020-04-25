@@ -20,8 +20,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.window.registerTreeDataProvider('watDbExplorer', watDbExplorerProvider);
 	let refreshEntry = vscode.commands.registerCommand('watDbExplorer.refreshEntry', () => {
-		console.log('Yup.. gj, your extension "watdb" is now active!');
-		vscode.window.showInformationMessage('Hello World from Wat DB!');
+		console.log('Extension "watdb" is now active!');
+		vscode.window.showInformationMessage('Wat DB - refreshing!');
 	  watDbExplorerProvider.refresh();
 	});
 
@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 			{ placeHolder: 'Select the endpoint to connect to for your Wat Db.' });
 		vscode.window.showInformationMessage(`Saving... Wat Db dir set to ${target?.target}`);
 		await vscode.workspace.getConfiguration().update('conf.view.watDbConnection', target?.target, vscode.ConfigurationTarget.Global);
-		vscode.window.showInformationMessage(`Saved... Wat Db dir set to ${target?.target}`);
+		vscode.window.showInformationMessage(`Saved.. Wat Db dir set to ${target?.target}`);
 		
 		if(target?.target && target?.target.length > 0){
 			watDbExplorerProvider.setLocalConnection(target?.target);

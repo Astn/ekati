@@ -36,4 +36,10 @@ type MemoryStore() =
             _nodes
             |> Seq.tryFind predicate  
             |> Task.FromResult 
-        member this.Stop() = ()                                              
+        member this.Stop() = ()
+        
+        member x.GetStats(req, cancel) =
+            raise (new NotImplementedException())
+        
+        member x.GetMetrics(req, cancel) =
+            raise (new NotImplementedException())

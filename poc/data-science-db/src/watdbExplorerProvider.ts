@@ -72,12 +72,15 @@ export class WatDbExplorerProvider implements vscode.TreeDataProvider<WatDbTreeI
             schema.id = "_root/schema";
             let stat = new WatDbTreeItem("Stats","",vscode.TreeItemCollapsibleState.Collapsed);
             stat.id = "_root/stats";
+            let indexes = new WatDbTreeItem("Indexes","",vscode.TreeItemCollapsibleState.Collapsed);
+            indexes.id = "_root/indexes";
             // let metrics = new WatDbTreeItem("Metrics","",vscode.TreeItemCollapsibleState.Collapsed);
             // metrics.id = "_root/metrics";
             return Promise.resolve([
                 metrics,
                 schema,
-                stat
+                stat,
+                indexes
             ]);
         }
         if(element.id === "_root/metrics"){
@@ -93,7 +96,12 @@ export class WatDbExplorerProvider implements vscode.TreeDataProvider<WatDbTreeI
             return mets
                 .then(data => {
                     return data.getMetricsList()
-                    .map(metric => new WatDbTreeItem(metric.getName(), metric.getValue().toString(), vscode.TreeItemCollapsibleState.None));
+                    .map(metric => {
+                        var mName = metric.getName()
+                        var mSplit = mName.split('|')
+
+                        return new WatDbTreeItem(mSplit[0], metric.getValue().toLocaleString(), vscode.TreeItemCollapsibleState.None);
+                    });
                 })
                 .catch(err => {
                     return [new WatDbTreeItem("Error:", err, vscode.TreeItemCollapsibleState.None)];
@@ -102,7 +110,7 @@ export class WatDbExplorerProvider implements vscode.TreeDataProvider<WatDbTreeI
         
         
         return Promise.resolve([
-            new WatDbTreeItem("todo:","",vscode.TreeItemCollapsibleState.None)
+            new WatDbTreeItem("youdo:","",vscode.TreeItemCollapsibleState.None)
         ]);
         
     } else {
