@@ -161,14 +161,14 @@ module Program =
         let bytesOpen = Encoding.UTF8.GetBytes("[")
         f.Write(bytesOpen,0,bytesOpen.Length)
         
-        let duration = TimeSpan.FromMinutes(2.5)
+        let duration = TimeSpan.FromMinutes(1.5)
         let timer = Stopwatch.StartNew()
         let mutable stop = false 
         let reporter = 
             async{
                 while not stop do 
                     report f
-                    do! Async.Sleep 10000
+                    do! Async.Sleep 5000
                  
             }
                     

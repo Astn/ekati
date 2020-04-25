@@ -30,11 +30,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const target = await vscode.window.showQuickPick(
 			[
-				{ label: 'https', description: 'localhost:5001', target: "localhost:5001" },
-				{ label: 'https', description: 'https://localhost:5001', target: "https://localhost:5001" },
-				{ label: 'http', description: 'localhost:5000', target: "localhost:5000" },
-				{ label: 'http', description: 'http://localhost:5000', target: "http://localhost:5000" },
-				{ label: 'withSlashAndServiceName', description: 'localhost:5001/WatDbService', target: "localhost:5001/WatDbService" }
+				{ label: 'http', description: 'localhost:8000', target: "localhost:8000" },
+				{ label: 'https', description: 'localhost:8001', target: "localhost:8001" }
 			],
 			{ placeHolder: 'Select the endpoint to connect to for your Wat Db.' });
 		vscode.window.showInformationMessage(`Saving... Wat Db dir set to ${target?.target}`);

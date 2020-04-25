@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="RocksDbNative" Version="6.2.2" />
+      <PackageReference Include="RocksDbSharp" Version="6.2.2" />
+    </ItemGroup>
+
+</Project>

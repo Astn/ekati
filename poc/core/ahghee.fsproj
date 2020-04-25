@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
+    <ProjectReference Include="..\serverlib\serverlib.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="tinkerpop-modern.xml">

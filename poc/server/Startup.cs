@@ -63,13 +63,13 @@ namespace server
             //
             // app.UseCors("MyPolicy");
 
-            //app.UseGrpcWeb();
+            app.UseGrpcWeb();
             
             
             
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<WatService>();
+                endpoints.MapGrpcService<WatService>().EnableGrpcWeb();
 
                 endpoints.MapGet("/", async context =>
                 {
