@@ -1,0 +1,47 @@
+@page "/metrics"
+@using Ahghee.Grpc
+@inject HttpClient Http
+@inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+
+@if (metrics == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Time</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var metric in metrics)
+            {
+                var name = metric.Name.Split('|').First();
+                <tr>
+                    <td>@name</td>
+                    <td>@metric.Time</td>
+                    <td>@metric.Value</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private GetMetricsResponse.Types.Metric[] metrics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var foo = await wat.GetMetricsAsync(new GetMetricsRequest());
+        metrics = foo.Metrics.ToArray();
+    }
+
+}

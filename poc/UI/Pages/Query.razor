@@ -1,0 +1,154 @@
+﻿@page "/query"
+
+@using System.IO
+@using Ahghee.Grpc
+@using Microsoft.Extensions.Logging
+@using Antlr4
+@using Antlr4.Runtime
+@using cli.antlr
+@using cli_grammer
+@using Grpc.Core.Utils
+@inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
+@inject IJSRuntime JsRuntime;
+@inject HttpClient Http
+@inject ILogger<Query> Logger
+@code {
+
+    bool isInitializing;
+    public bool IsInitialized;
+    static UnbufferedTokenStream makeStream(string text)
+    {
+        var sr = new StringReader(text);
+        var ins  = new AntlrInputStream(sr);
+        var lex = new AHGHEELexer(ins);
+        return new UnbufferedTokenStream(lex);
+    }
+    
+    private async Task Run()
+    {
+        await JS_OnContentChanged();
+        
+        var parser = new AHGHEEParser(makeStream(Source));
+        parser.BuildParseTree = true;
+        parser.AddParseListener(listener: new Listener(async (nodes) =>
+        {
+            Source = "";
+            foreach (var node in nodes)
+            {
+                await wat.PutAsync(node);
+                Source += "\nput:" + node.Id.Iri ;
+                this.StateHasChanged();
+            }
+        }, async (nids, step) =>
+        {
+            var q = new Ahghee.Grpc.Query();
+            q.Iris.AddRange(nids.Select(x=>x.Iri));
+            q.Step = step;
+
+            var stream = wat.Get(q);
+            var head = await stream.ResponseHeadersAsync;
+            Source = "";
+            this.StateHasChanged();
+            stream.ResponseStream.ForEachAsync(async node =>
+            {
+                // todo: show it
+                Source += "\n" + node.ToString();
+                this.StateHasChanged();
+            });
+        }, () =>
+        {
+            
+        }));
+        parser.AddErrorListener(new ErrorListener());
+        AHGHEEParser.CommandContext cc = null;
+    
+        for (;; cc = parser.command())
+        {
+            if (cc?.exception != null
+    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
+    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
+                )
+            {
+                Console.WriteLine(cc.exception.Message);
+                Console.WriteLine(
+                    $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+            }
+
+            if (parser.CurrentToken.Type == TokenConstants.Eof)
+            {
+                break;
+            }
+        }
+        
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (IsInitialized || isInitializing)
+            return;
+
+        isInitializing = true;
+
+        var text = "get watman, austin;";
+
+        try
+        {
+            text = await JsRuntime.InvokeAsync<string>("CreateMonacoEditor", DotNetObjectReference.Create(this), text);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("1something with monaco",e);
+            text = null;
+        }
+            
+        this.Source = await JS_GetSourceAsync();
+        StateHasChanged();
+
+        IsInitialized = true;
+        StateHasChanged();
+
+    }
+
+    public string Source { get; set; }
+
+    [JSInvokable]
+    public async Task<string> JS_OnContentChanged()
+    {
+        this.Source = await JS_GetSourceAsync();
+
+        return "occ";
+    }
+    public async Task<string> JS_GetSourceAsync()
+    {
+        try
+        {
+            var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] { });
+    //DebugText = $"{counterSource++} Source:{source}";
+            return source;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "2something with monaco");
+            return string.Empty;
+        }
+    }
+
+}
+
+<h1>Query</h1>
+
+<button class="btn btn-primary" @onclick="Run">Run</button>
+<div class="container">
+    <div class="row align-items-start">
+        <div id="monaco_container" class="col-12" style="min-height:400px;"></div>
+    </div>
+    <textarea>@Source</textarea>
+</div>

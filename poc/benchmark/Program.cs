@@ -16,6 +16,7 @@ using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Microsoft.FSharp.Core;
 using RocksDbSharp;
+using Utils = Ahghee.Grpc.Utils;
 
 namespace benchmark
 {

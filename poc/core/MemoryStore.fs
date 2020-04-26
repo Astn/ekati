@@ -10,32 +10,37 @@ open Ahghee.Grpc
 
 type MemoryStore() =
     let mutable _nodes:seq<Node> = Seq.empty
-    interface IStorage with
-        member this.Nodes = _nodes
+    interface Ahghee.Grpc.IStorage with
         member x.Flush () = ()
         member this.Add (nodes:seq<Node>) = 
             _nodes <- Seq.append _nodes nodes
             Task.CompletedTask
-        member this.Remove (nodeIDs:seq<NodeID>) = 
+        member this.Remove (nodeIDs: seq<NodeID>) = 
             _nodes <- _nodes |> Seq.filter (fun n -> 
                                                     let head = n.Id 
                                                     nodeIDs |> Seq.contains head |> not)
             Task.CompletedTask    
+        
+        member this.Nodes () =
+            raise (new NotImplementedException())
+            
         member this.Items (addresses:seq<NodeID>, follow: Step) =
             let matches = addresses |> Seq.map (fun addr -> 
                                                         let isLocal = _nodes 
                                                                       |> Seq.tryFind ( fun n -> n.Id = addr)
                                                         let found = match isLocal with
-                                                            | Some(n) -> Left(n)
-                                                            | _ -> Right(new Exception("Not Found"))
+                                                            | Some(n) -> Either<Node,Exception>(n)
+                                                            | _ -> Either<Node,Exception>(new Exception("Not Found"))
                                                         struct (addr, found)
                                                                 
                                                 )
             Task.FromResult matches      
-        member this.First (predicate: (Node -> bool)) : System.Threading.Tasks.Task<Option<Node>> =
+        member this.First (predicate: Func<Node,bool>) : System.Threading.Tasks.Task<Node> =
             _nodes
-            |> Seq.tryFind predicate  
-            |> Task.FromResult 
+            |> Seq.tryFind (fun x -> predicate.Invoke(x))  
+            |> (fun x ->
+                  if x.IsSome then Task.FromResult(x.Value) else Task.FromResult(null)  
+                )  
         member this.Stop() = ()
         
         member x.GetStats(req, cancel) =

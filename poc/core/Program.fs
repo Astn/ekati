@@ -196,7 +196,7 @@ module Program =
         let readTimer = Stopwatch.StartNew()
         
         let mutable count = 0
-        let readEnu = g.Nodes.GetEnumerator()
+        let readEnu = g.Nodes().GetEnumerator()
         
         while readTimer.Elapsed < duration do
             if readEnu.MoveNext() then

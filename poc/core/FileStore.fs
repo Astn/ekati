@@ -229,9 +229,9 @@ type GrpcFileStore(config:Config) =
                 let res = t.ContinueWith(fun (isdone:Task<Node[]>) ->
                             if (isdone.IsCompletedSuccessfully) then
                                 config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
-                                ab,Left(isdone.Result)
+                                ab, Either<Node[],Exception>(isdone.Result)
                             else 
-                                ab,Right(isdone.Exception :> Exception)
+                                ab, Either<Node[],Exception>(isdone.Exception :> Exception)
                             )
                 res)
             
@@ -252,9 +252,9 @@ type GrpcFileStore(config:Config) =
                 for ts in requestsMade do
                     let (ab,eith) = ts.Result
 
-                    let (toyield,matched) = 
-                        match eith with 
-                        | Left(nodes) ->
+                    let (toyield,matched) =
+                        if eith.IsLeft then
+                            let nodes = eith.Left
                             let node =
                                 nodes |> Array.reduce(fun n1 n2 ->
                                                            n1.MergeFrom(n2)
@@ -281,8 +281,9 @@ type GrpcFileStore(config:Config) =
                             
                             let _matched = (not stepIsFilter) || FilterNode(node, fixedStep.Where.Compare)
                                 
-                            struct (ab,Left(node)), _matched
-                        | Right(err) -> (ab,Right(err)), true
+                            struct (ab,Either<Node,Exception>(node)), _matched
+                        else
+                            (ab,Either<Node,Exception>(eith.Right)), true
                        
                     if matched then
                         yield toyield
@@ -396,7 +397,7 @@ type GrpcFileStore(config:Config) =
         member x.GetMetrics(req, cancel) =
             GetMetrics(req,cancel)
         
-        member x.Nodes = 
+        member x.Nodes() : IEnumerable<Node> = 
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
             seq {
@@ -468,7 +469,7 @@ type GrpcFileStore(config:Config) =
                         
         member x.Remove (nodes:seq<NodeID>) = raise (new NotImplementedException())
         member x.Items (addressBlock:seq<NodeID>, follow: Step) = QueryNodes(addressBlock, follow)
-        member x.First (predicate: (Node -> bool)) = raise (new NotImplementedException())
+        member x.First (predicate: Func<Node, bool>) = raise (new NotImplementedException())
         member x.Stop () =  
             Flush()
             for (bc,t,part) in PartitionWriters do

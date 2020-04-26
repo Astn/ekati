@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using Antlr4.Runtime;
 using cli.antlr;
 using Ahghee;
+using Ahghee.Grpc;
 using App.Metrics;
 using cli_grammer;
 using Microsoft.AspNetCore.Identity;
@@ -91,7 +93,75 @@ namespace cli
             using var disposableStore = (IDisposable)store;
             var parser = new AHGHEEParser(makeStream(test1));
             parser.BuildParseTree = true;
-            parser.AddParseListener(listener: new Listener(store));
+            parser.AddParseListener(listener: new Listener( async nodes =>
+            {
+                var sw = Stopwatch.StartNew();
+                store.Add(nodes).ContinueWith(adding =>
+                {
+                    if (adding.IsCompletedSuccessfully)
+                    {
+                        sw.Stop();
+                        Console.WriteLine(
+                            $"\nstatus> put({String.Join(", ", nodes.Select(_ => _.Id.Iri))}).done in {sw.ElapsedMilliseconds}ms");
+                    }
+                    else
+                    {
+                        Console.WriteLine(
+                            $"\nstatus> put({String.Join(", ", nodes.Select(_ => _.Id.Iri))}).err({adding?.Exception?.InnerException?.Message})");
+                    }
+
+                    Console.Write("\nwat> ");
+                });
+            }, (ids, step) =>
+            {
+                var sw = Stopwatch.StartNew();
+                store.Items(ids, step)
+                    .ContinueWith((Task<IEnumerable<(NodeID, Either<Node,Exception>)>> get) =>
+             {
+                 try
+                 {
+                     
+                     if (get.IsCompletedSuccessfully)
+                     {
+                         var swConsole = Stopwatch.StartNew();
+                         var sb = new StringBuilder();
+                         foreach (var result in get.Result)
+                         {
+                             sw.Stop();
+                             if (result.Item2.IsLeft)
+                             {
+                                 sb.Append("\nstatus> get(");
+                                 sb.Append(result.Item1.Iri);
+                                 sb.Append(").done");
+             
+                                 sb.NodePrinter(result.Item2.Left,0,PrintMode.Simple);
+                                 Console.Write(sb.ToString());
+                                 sb.Clear();
+                             }
+             
+                             if (result.Item2.IsRight)
+                             {
+                                 Console.WriteLine($"\nstatus> get({result.Item1.Iri}).err({result.Item2.Right.Message})");
+                             }
+                         }
+                         swConsole.Stop();
+             
+                         Console.WriteLine($"status> DB first result in {sw.ElapsedMilliseconds}ms Console Printing: {swConsole.ElapsedMilliseconds}ms");
+                     }
+                     else
+                     {
+                         Console.WriteLine($"\nstatus> get(...).err({get?.Exception?.InnerException?.Message})");
+                     }
+             
+                     Console.Write("\nwat> ");
+                 }
+                 catch (Exception e)
+                 {
+                     Console.WriteLine(e);
+                     throw;
+                 }
+             });
+            }, () => store.Flush()));
             parser.AddErrorListener(new ErrorListener());
             AHGHEEParser.CommandContext cc = null;
     

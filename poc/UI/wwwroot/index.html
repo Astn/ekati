@@ -8,6 +8,8 @@
     <base href="/" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="monaco-editor/min/vs/editor/editor.main.css">
+    
 </head>
 
 <body>
@@ -18,7 +20,51 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
+
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>var require = { paths: { 'vs': 'monaco-editor/min/vs' } };</script>
+    <script src="monaco-editor/min/vs/loader.js"></script>
+    <script src="monaco-editor/min/vs/editor/editor.main.nls.js"></script>
+    <script src="monaco-editor/min/vs/editor/editor.main.js"></script>
+
+
+    <script>
+
+
+        window.CreateMonacoEditor = (instance, source) => {
+            // Register a tokens provider for the language
+            //https://microsoft.github.io/monaco-editor/monarch.html
+            
+            var text1 = source;
+
+            var editor = monaco.editor.create(document.getElementById("monaco_container"), {
+                value: text1,
+                language: "javascript",
+
+                lineNumbers: "off",
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                readOnly: false,
+                theme: "vs-dark",
+            });
+
+            window.monacoEditor = editor;
+
+            return "created";
+        };
+
+        window.GetMonacoEditorContent = () => {
+            return window.monacoEditor.getValue();
+        }
+
+        window.SetMonacoEditorContent = (modifiedSource) => {
+            window.monacoEditor.setValue(modifiedSource);
+            return "modified";
+        }
+
+    </script>
+ 
 </body>
 
 </html>

@@ -8,6 +8,7 @@ using Ahghee.Grpc;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Utils = Ahghee.Utils;
 
 namespace server
 {
@@ -65,11 +66,11 @@ namespace server
                     var (z, b) = chunk;
                     if (b.IsLeft)
                     {
-                        await responseStream.WriteAsync(b.left);
+                        await responseStream.WriteAsync(b.Left);
                     }
                     else
                     {
-                        _logger.LogError(b.right, "Failure processing query");
+                        _logger.LogError(b.Right, "Failure processing query");
                     }
                 }
             }

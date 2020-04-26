@@ -1,7 +1,10 @@
 ﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('firacode/font/fira_code.css');
 
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Fira Code', Helvetica, Arial, sans-serif;
+    background-color: #161616;
+    color: #bbbbbb;
 }
 
 a, .btn-link {
@@ -31,8 +34,8 @@ app {
 }
 
     .main .top-row {
-        background-color: #f7f7f7;
-        border-bottom: 1px solid #d6d5d5;
+        background-color: #161616;
+        border-bottom: 1px solid #383838;
         justify-content: flex-end;
     }
 
@@ -46,12 +49,16 @@ app {
     text-overflow: ellipsis;
 }
 
+.table{
+    color: #bbbbbb;
+}
+
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-color: #262626;
 }
 
     .sidebar .top-row {
-        background-color: rgba(0,0,0,0.4);
+        background-color: #161616;
     }
 
     .sidebar .navbar-brand {
@@ -79,7 +86,7 @@ app {
         }
 
         .sidebar .nav-item a {
-            color: #d7d7d7;
+            color: #666666;
             border-radius: 4px;
             height: 3rem;
             display: flex;
@@ -88,7 +95,7 @@ app {
         }
 
             .sidebar .nav-item a.active {
-                background-color: rgba(255,255,255,0.25);
+                background-color: #383838;
                 color: white;
             }
 
