@@ -107,6 +107,116 @@ namespace Ahghee.Grpc {
 
     }
 
+    /// <summary>Client for WatDbService</summary>
+    public partial class WatDbServiceClient : grpc::ClientBase<WatDbServiceClient>
+    {
+      /// <summary>Creates a new client for WatDbService</summary>
+      /// <param name="channel">The channel to use to make remote calls.</param>
+      public WatDbServiceClient(grpc::ChannelBase channel) : base(channel)
+      {
+      }
+      /// <summary>Creates a new client for WatDbService that uses a custom <c>CallInvoker</c>.</summary>
+      /// <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+      public WatDbServiceClient(grpc::CallInvoker callInvoker) : base(callInvoker)
+      {
+      }
+      /// <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+      protected WatDbServiceClient() : base()
+      {
+      }
+      /// <summary>Protected constructor to allow creation of configured clients.</summary>
+      /// <param name="configuration">The client configuration.</param>
+      protected WatDbServiceClient(ClientBaseConfiguration configuration) : base(configuration)
+      {
+      }
+
+      public virtual global::Ahghee.Grpc.PutResponse Put(global::Ahghee.Grpc.Node request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Put(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual global::Ahghee.Grpc.PutResponse Put(global::Ahghee.Grpc.Node request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Put, null, options, request);
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.PutResponse> PutAsync(global::Ahghee.Grpc.Node request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PutAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.PutResponse> PutAsync(global::Ahghee.Grpc.Node request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Put, null, options, request);
+      }
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.Node> Get(global::Ahghee.Grpc.Query request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Get(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.Node> Get(global::Ahghee.Grpc.Query request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_Get, null, options, request);
+      }
+      public virtual global::Ahghee.Grpc.GetMetricsResponse GetMetrics(global::Ahghee.Grpc.GetMetricsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetMetrics(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual global::Ahghee.Grpc.GetMetricsResponse GetMetrics(global::Ahghee.Grpc.GetMetricsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetMetrics, null, options, request);
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.GetMetricsResponse> GetMetricsAsync(global::Ahghee.Grpc.GetMetricsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetMetricsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.GetMetricsResponse> GetMetricsAsync(global::Ahghee.Grpc.GetMetricsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetMetrics, null, options, request);
+      }
+      public virtual global::Ahghee.Grpc.GetStatsResponse GetStats(global::Ahghee.Grpc.GetStatsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetStats(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual global::Ahghee.Grpc.GetStatsResponse GetStats(global::Ahghee.Grpc.GetStatsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetStats, null, options, request);
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.GetStatsResponse> GetStatsAsync(global::Ahghee.Grpc.GetStatsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetStatsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.GetStatsResponse> GetStatsAsync(global::Ahghee.Grpc.GetStatsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetStats, null, options, request);
+      }
+      public virtual global::Ahghee.Grpc.ListStatsResponse ListStats(global::Ahghee.Grpc.ListStatsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListStats(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual global::Ahghee.Grpc.ListStatsResponse ListStats(global::Ahghee.Grpc.ListStatsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ListStats, null, options, request);
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.ListStatsResponse> ListStatsAsync(global::Ahghee.Grpc.ListStatsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListStatsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.ListStatsResponse> ListStatsAsync(global::Ahghee.Grpc.ListStatsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ListStats, null, options, request);
+      }
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.Node> ListPolicies(global::Ahghee.Grpc.ListPoliciesRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListPolicies(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.Node> ListPolicies(global::Ahghee.Grpc.ListPoliciesRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_ListPolicies, null, options, request);
+      }
+      /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+      protected override WatDbServiceClient NewInstance(ClientBaseConfiguration configuration)
+      {
+        return new WatDbServiceClient(configuration);
+      }
+    }
+
     /// <summary>Creates service definition that can be registered with a server</summary>
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     public static grpc::ServerServiceDefinition BindService(WatDbServiceBase serviceImpl)

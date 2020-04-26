@@ -54,11 +54,18 @@ namespace server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseWebAssemblyDebugging();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
             }
 
-
             //app.UseHttpsRedirection();
-            
+            app.UseBlazorFrameworkFiles();
+            app.UseStaticFiles();
             app.UseRouting();
             //
             // app.UseCors("MyPolicy");
@@ -70,11 +77,11 @@ namespace server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<WatService>().EnableGrpcWeb();
-
-                endpoints.MapGet("/", async context =>
-                {
-                    await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
-                });
+                endpoints.MapFallbackToFile("index.html");
+                // endpoints.MapGet("/", async context =>
+                // {
+                //     await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+                // });
             });
         }
     }
