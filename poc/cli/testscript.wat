@@ -13,14 +13,16 @@ put austin
         "child":@"gwynneth",
         "child":@"august",
         "child":@"blakely",
-        "spouce":@"kendra";
+        "spouce":@"kendra",
+        "friend":@"alan";
     kendra 
         "name":"Kendra", 
         "age": 32,    
         "child":@"gwynneth",
         "child":@"august",
         "child":@"blakely",
-        "spouce":@"austin";
+        "spouce":@"austin",
+        "friend":@"samantha";
     gwynneth 
         "name":"Gwynneth", 
         "age": 5,    
@@ -44,11 +46,11 @@ put austin
         "father":@"austin";
     alan
         "name":"Alan", 
-            "age": 2,
-            "spouce":@"samantha",
-            "friend":@"austin";
+        "age": 2,
+        "spouce":@"samantha",
+        "friend":@"austin";
     samantha
         "name":"Samantha", 
-            "age": 2,
-            "spouce":@"alan",
-            "friend":@"kendra";
+        "age": 2,
+        "spouce":@"alan",
+        "friend":@"kendra";
