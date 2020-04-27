@@ -6,6 +6,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BlazorFabric.BaseComponent" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Button" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Callout" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Checkbox" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.CommandBar" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.ComponentStyle" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Dropdown" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.FabricTheme" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Icon" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Label" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Layer" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Link" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Nav" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Panel" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.ProgressIndicator" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.ResponsiveLayout" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Spinner" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Stack" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Text" Version="3.0.0" />
+    <PackageReference Include="BlazorFabric.Toggle" Version="3.0.0" />
     <PackageReference Include="Grpc.Net.Client.Web" Version="2.28.0-pre2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.0-preview5.20216.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.0-preview5.20216.8" PrivateAssets="all" />
@@ -826,6 +846,11 @@
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\contextmenu.js" />
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\canIUse.js" />
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\browser.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\css\bootstrap\bootstrap.min.css" />
+    <_ContentIncludedByDefault Remove="wwwroot\css\bootstrap\bootstrap.min.css.map" />
   </ItemGroup>
 
 </Project>

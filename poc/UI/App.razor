@@ -1,10 +1,15 @@
-<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+<FabricTheme>
+    <StylePreloader LoadAllComponents="true" />
+    <LayerHost Style="display:flex; flex-direction: row;width:100vw;height:100vh;overflow:hidden;">
+        <Router AppAssembly="typeof(Program).Assembly" >
+            <Found Context="routeData">
+                <ResponsiveCascader>
+                    <RouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)" />
+                </ResponsiveCascader>
+            </Found>
+            <NotFound>
+                <p>Page not found.</p>
+            </NotFound>
+        </Router>
+    </LayerHost>
+</FabricTheme>
