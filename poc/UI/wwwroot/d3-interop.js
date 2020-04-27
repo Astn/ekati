@@ -37,15 +37,18 @@ window.d3Interop = {
           d3.selectAll("svg > *").remove();
           return ;
       }
+      var ctr = 0;
       var width = 300, height = 300
       const nodes = data.map(d => d.id);
       const links = data.map(d => d.attributes
           .filter(a => a.value?.data?.nodeid !== null)
           .map(a => {
+              ctr = ctr +1;
               return {
                   "source": d.id.iri,
                   "target": a.value.data.nodeid.iri,
-                  "type": a.key.data.str
+                  "type": a.key.data.str,
+                  "myid": `${ctr}`
               };
           })).flat().filter(l => nodes.find(n => n.iri === l.source)  && nodes.find(n => n.iri === l.target));
 
@@ -55,16 +58,16 @@ window.d3Interop = {
 
       const simulation = d3.forceSimulation(nodes)
           .force("link", forceL )
-          .force("charge", d3.forceManyBody().strength(-400))
+          .force("charge", d3.forceManyBody().strength(-800))
           .force("x", d3.forceX())
           .force("y", d3.forceY());
 
       d3.selectAll("svg > *").remove();
       const svg = d3.select("svg")
           .attr("viewBox", [-width / 2, -height / 2, width, height])
-          .style("font", "12px sans-serif")
-          .style("fill", "#888888")
-          .style("background-color","#373737");
+          .style("font", "8px sans-serif")
+          .style("fill", "#686868")
+          .style("background-color","#181818");
       
       console.log("renderGraph:3",svg);
       
@@ -84,14 +87,27 @@ window.d3Interop = {
           .attr("fill", color)
           .attr("d", "M0,-5L10,0L0,5");
 
-      const link = svg.append("g")
+      const g1 = svg.append("g");
+      const link = g1
           .attr("fill", "none")
           .attr("stroke-width", 1.5)
           .selectAll("path")
           .data(links)
           .join("path")
+          .attr("id",d => `tp${d.myid}`)
           .attr("stroke", d => color(d.type))
           .attr("marker-end", d => `url(#arrow-${d.type})`);
+      
+      svg.append("g").selectAll("text")
+          .data(links)
+          .join("text")
+          .append("textPath")
+          .attr("fill", "#787878")
+          .attr("startOffset", "25%")
+          .attr("stroke", "none")
+          .attr("href", d =>`${location.href}#tp${d.myid}`)
+          .text(d => d.type);
+          
 
       const node = svg.append("g")
           .attr("fill", "currentColor")
@@ -103,7 +119,7 @@ window.d3Interop = {
           .call(this.drag(simulation));
 
       node.append("circle")
-          .attr("stroke", "white")
+          .attr("stroke", "black")
           .attr("stroke-width", 1.5)
           .attr("r", 4);
 
@@ -111,10 +127,8 @@ window.d3Interop = {
           .attr("x", 8)
           .attr("y", "0.31em")
           .text(d => d.iri)
-          .clone(true).lower()
-          .attr("fill", "none")
-          .attr("stroke", "white")
-          .attr("stroke-width", 3);
+          .attr("fill", "#888888")
+          .attr("stroke", "none");
 
       const lar = this.linkArk;
       
