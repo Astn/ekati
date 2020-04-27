@@ -42,3 +42,13 @@ put austin
         "sister":@"blakely",
         "sister":@"gwynneth",
         "father":@"austin";
+    alan
+        "name":"Alan", 
+            "age": 2,
+            "spouce":@"samantha",
+            "friend":@"austin";
+    samantha
+        "name":"Samantha", 
+            "age": 2,
+            "spouce":@"alan",
+            "friend":@"kendra";

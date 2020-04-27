@@ -16,12 +16,20 @@
 
     bool isInitializing;
     public bool IsInitialized;
+    public List<Node> Nodes { get; set; }
+    
     static UnbufferedTokenStream makeStream(string text)
     {
         var sr = new StringReader(text);
         var ins  = new AntlrInputStream(sr);
         var lex = new AHGHEELexer(ins);
         return new UnbufferedTokenStream(lex);
+    }
+
+    private async Task Clear()
+    {
+        this.Nodes.Clear();
+        this.StateHasChanged();
     }
     
     private async Task Run()
@@ -49,12 +57,22 @@
             var head = await stream.ResponseHeadersAsync;
             Source = "";
             this.StateHasChanged();
-            stream.ResponseStream.ForEachAsync(async node =>
+            await stream.ResponseStream.ForEachAsync(async node =>
             {
+                if (this.Nodes.Find(n => n.Id.Equals(node.Id)) == null)
+                {
+                    this.Nodes.Add(node);    
+                }
+                else
+                {
+                    return;
+                }
+                
                 // todo: show it
-                Source += "\n" + node.ToString();
-                this.StateHasChanged();
+                Source += "\n" + node.Id.Iri.ToString();
+                
             });
+            this.StateHasChanged();
         }, () =>
         {
             
@@ -85,7 +103,7 @@
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
-        
+        Nodes = new List<Node>();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -97,7 +115,7 @@
 
         isInitializing = true;
 
-        var text = "get watman, austin;";
+        var text = "get austin |> follow * 1";
 
         try
         {
@@ -142,13 +160,24 @@
     }
 
 }
-
-<h1>Query</h1>
-
-<button class="btn btn-primary" @onclick="Run">Run</button>
 <div class="container">
     <div class="row align-items-start">
-        <div id="monaco_container" class="col-12" style="min-height:400px;"></div>
+        <h1 class="col-4">Query</h1>
+        <div class="col-2">
+            <button class="btn btn-primary" @onclick="Run">Run</button>
+        </div>
+        <div class="col-2">
+            <button class="btn btn-primary" @onclick="Clear">Clear Graph</button>
+        </div>
     </div>
-    <textarea>@Source</textarea>
+    <div class="row align-items-start">
+        <div id="monaco_container" class="col-6" style="min-height:400px;"></div>
+        <div  class="col-6" >
+         <Graph Nodes="@Nodes"></Graph>
+        </div>
+    </div>
+    <div class="row align-items-start">
+        <textarea class="col-12">@Source</textarea>
+    </div>
+   
 </div>

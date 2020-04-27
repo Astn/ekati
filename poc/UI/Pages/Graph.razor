@@ -1,0 +1,34 @@
+@using Ahghee.Grpc
+@inject IJSRuntime JSRuntime;
+
+
+
+<svg id="@uniqueId" @ref="d3Container"></svg>
+
+
+
+@code {
+    [Parameter]
+    public List<Node> Nodes { get; set; }
+
+    private ElementReference d3Container;
+    private string uniqueId = Guid.NewGuid().ToString().Replace("-", "");
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        DoIt();
+        //this.StateHasChanged();
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    public async Task DoIt()
+    {
+        await JSRuntime.InvokeVoidAsync(
+            "d3Interop.renderGraph", uniqueId, Nodes);
+    }
+    
+}

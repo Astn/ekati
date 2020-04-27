@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\css\firacode\font" />
+    <Folder Include="wwwroot\d3" />
     <Folder Include="wwwroot\monaco-editor" />
     <Folder Include="wwwroot\monaco-editor\esm\vs\base\browser\ui\actionbar" />
     <Folder Include="wwwroot\monaco-editor\esm\vs\base\browser\ui\aria" />

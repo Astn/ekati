@@ -9,6 +9,15 @@
       <PackageReference Include="Antlr4" Version="4.6.6" />
     </ItemGroup>
 
+<!--    <ItemGroup>-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseListener.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEELexer.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEListener.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEParser.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEVisitor.cs" />-->
+<!--    </ItemGroup>-->
+
 
 
 
