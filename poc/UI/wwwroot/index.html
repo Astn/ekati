@@ -15,10 +15,10 @@
 <body>
     <app>Loading...</app>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+    <div id="blazor-error-ui" style="display: none !important; background-color: #1b1a19; ">
+<!--        An unhandled error has occurred.-->
+<!--        <a href="" class="reload">Reload</a>-->
+<!--        <a class="dismiss">🗙</a>-->
     </div>
 
     <script src="_framework/blazor.webassembly.js"></script>
@@ -44,7 +44,7 @@
             var editor = monaco.editor.create(document.getElementById("monaco_container"), {
                 value: text1,
                 language: "javascript",
-
+                automaticLayout: true,
                 lineNumbers: "off",
                 roundedSelection: false,
                 scrollBeyondLastLine: false,

@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.Logging
 @using Antlr4
 @using Antlr4.Runtime
+@using BlazorFabric
 @using cli.antlr
 @using cli_grammer
 @using Grpc.Core.Utils
@@ -12,16 +13,40 @@
 @inject IJSRuntime JsRuntime;
 @inject HttpClient Http
 @inject ILogger<Query> Logger
-@code {
 
+<h3 >Query</h3>
+<CommandBar Items=@commands />
+<div style="display: table; clear: both;">
+    <div id="monaco_container" style="width: 48%; height: 500px; float: left;" ></div>
+    <div  style="width: 48%; height: 500px; float: right; ">
+        <Graph Nodes="@Nodes"></Graph>    
+    </div>
+</div>
+  
+
+@code {
+    private List<CommandBarItem> commands;
     bool isInitializing;
     public bool IsInitialized;
     public List<Node> Nodes { get; set; }
-    
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+
+        commands = new List<CommandBarItem>
+        {
+            new CommandBarItem() {Text = "Run", IconName = "Flow", Key = "1", Command = new RelayCommand((o) => { Run(); }, (o)=>true)},
+            new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)}
+        };
+
+        Nodes = new List<Node>();
+    }
+
     static UnbufferedTokenStream makeStream(string text)
     {
         var sr = new StringReader(text);
-        var ins  = new AntlrInputStream(sr);
+        var ins = new AntlrInputStream(sr);
         var lex = new AHGHEELexer(ins);
         return new UnbufferedTokenStream(lex);
     }
@@ -31,11 +56,11 @@
         this.Nodes.Clear();
         this.StateHasChanged();
     }
-    
+
     private async Task Run()
     {
         await JS_OnContentChanged();
-        
+
         var parser = new AHGHEEParser(makeStream(Source));
         parser.BuildParseTree = true;
         parser.AddParseListener(listener: new Listener(async (nodes) =>
@@ -44,13 +69,13 @@
             foreach (var node in nodes)
             {
                 await wat.PutAsync(node);
-                Source += "\nput:" + node.Id.Iri ;
+                Source += "\nput:" + node.Id.Iri;
                 this.StateHasChanged();
             }
         }, async (nids, step) =>
         {
             var q = new Ahghee.Grpc.Query();
-            q.Iris.AddRange(nids.Select(x=>x.Iri));
+            q.Iris.AddRange(nids.Select(x => x.Iri));
             q.Step = step;
 
             var stream = wat.Get(q);
@@ -61,25 +86,21 @@
             {
                 if (this.Nodes.Find(n => n.Id.Equals(node.Id)) == null)
                 {
-                    this.Nodes.Add(node);    
+                    this.Nodes.Add(node);
                 }
                 else
                 {
                     return;
                 }
-                
-                // todo: show it
+
+    // todo: show it
                 Source += "\n" + node.Id.Iri.ToString();
-                
             });
             this.StateHasChanged();
-        }, () =>
-        {
-            
-        }));
+        }, () => { }));
         parser.AddErrorListener(new ErrorListener());
         AHGHEEParser.CommandContext cc = null;
-    
+
         for (;; cc = parser.command())
         {
             if (cc?.exception != null
@@ -97,14 +118,8 @@
                 break;
             }
         }
-        
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        base.OnInitialized();
-        Nodes = new List<Node>();
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -123,16 +138,15 @@
         }
         catch (Exception e)
         {
-            Logger.LogError("1something with monaco",e);
+            Logger.LogError("1something with monaco", e);
             text = null;
         }
-            
+
         this.Source = await JS_GetSourceAsync();
         StateHasChanged();
 
         IsInitialized = true;
         StateHasChanged();
-
     }
 
     public string Source { get; set; }
@@ -144,11 +158,12 @@
 
         return "occ";
     }
+
     public async Task<string> JS_GetSourceAsync()
     {
         try
         {
-            var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] { });
+            var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] {});
     //DebugText = $"{counterSource++} Source:{source}";
             return source;
         }
@@ -158,27 +173,4 @@
             return string.Empty;
         }
     }
-
 }
-<div class="container">
-    <div class="row">
-        <h1 class="col-4">Query</h1>
-        <div class="col-1">
-            <button class="btn btn-primary" @onclick="Run">Run</button>
-        </div>
-        <div class="col-1">
-            <button class="btn btn-primary" @onclick="Clear">Clear Graph</button>
-        </div>
-        <div class="col-6"></div>
-    </div>
-    <div class="row">
-        <div id="monaco_container" class="col-6" style="min-height:400px;"></div>
-        <div  class="col-6" >
-         <Graph Nodes="@Nodes"></Graph>
-        </div>
-    </div>
-    @* <div class="row"> *@
-    @*     <textarea class="col-12">@Source</textarea> *@
-    @* </div> *@
-   
-</div>

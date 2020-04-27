@@ -59,8 +59,10 @@ window.d3Interop = {
       const simulation = d3.forceSimulation(nodes)
           .force("link", forceL )
           .force("charge", d3.forceManyBody().strength(-800))
-          .force("x", d3.forceX())
-          .force("y", d3.forceY());
+          .force("x", d3.forceX(20))
+          .force("y", d3.forceY(0));    
+      // .force("x", d3.forceX())
+          // .force("y", d3.forceY());
 
       d3.selectAll("svg > *").remove();
       const svg = d3.select("svg")
