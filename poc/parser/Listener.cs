@@ -24,13 +24,22 @@ namespace cli.antlr
         private bool flushed = false;
         private readonly Action<IEnumerable<NodeID>, Step> _query;
         private readonly Action _flush;
+        private readonly Action<string,string> _load;
 
-        public Listener(Func<IEnumerable<Node>,Task> adder, Action<IEnumerable<NodeID>, Step> query, Action flush)
+        public Listener(Func<IEnumerable<Node>,Task> adder, Action<IEnumerable<NodeID>, Step> query, Action flush, Action<string, string> load)
         {
             // _store = store;
             _adder = adder;
             _query = query;
             _flush = flush;
+            _load = load;
+        }
+
+        public override void ExitLoad(AHGHEEParser.LoadContext context)
+        {
+            var strType = context.loadtype().GetText();
+            var strPath = context.loadpath().GetText();
+            _load(strType, strPath);
         }
 
         public override void ExitPut(AHGHEEParser.PutContext context){

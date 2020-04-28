@@ -2,17 +2,16 @@
 namespace Ahghee
 
     
-module TinkerPop =
+module public TinkerPop =
     open Utils
     open FSharp.Data
     open System.Text
     open System
     open Ahghee.Grpc
     
-    type GraphML = XmlProvider<"""https://raw.githubusercontent.com/apache/tinkerpop/master/data/tinkerpop-modern.xml""">
+    type public GraphML = XmlProvider<"""https://raw.githubusercontent.com/apache/tinkerpop/master/data/tinkerpop-modern.xml""">
     let TheCrew = lazy ( GraphML.Load("tinkerpop-modern.xml") )
-
-    
+  
     let ABtoyId id : NodeID =
             let ab graph i= 
                 let Nodeid = NodeID()
@@ -31,10 +30,13 @@ module TinkerPop =
         | "int" -> metaXmlInt
         | "double" -> metaXmlDouble
         | _ -> ""
+    
+    
         
-    let buildNodesTheCrew : seq<Node> =
+    let buildNodesFromGraphML (gmlfile : GraphML.Graphml) : seq<Node> =
+        let gmlGraph = gmlfile.Graph
         let attrs forType= 
-            TheCrew.Value.Keys 
+            gmlfile.Keys
             |> Seq.ofArray
             |> Seq.filter (fun k -> k.For = forType)
             |> Seq.map (fun k -> k.Id, (k.AttrName, k.AttrType))
@@ -43,7 +45,7 @@ module TinkerPop =
         let EdgeAttrs = attrs "edge" 
         
         let Id id = 
-            Id "TheCrew" id (NullMemoryPointer())
+            Id "" id (NullMemoryPointer())
         
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
             nodes
@@ -156,6 +158,10 @@ module TinkerPop =
                         |> z.Attributes.AddRange
                         z)
         
-        buildNodesFromGraphMlNodes TheCrew.Value.Graph.Nodes TheCrew.Value.Graph.Edges
-        |> Seq.append (buildEdgeNodesFromGraphMlEdges TheCrew.Value.Graph.Edges)
-        
+        buildNodesFromGraphMlNodes gmlGraph.Nodes gmlGraph.Edges
+        |> Seq.append (buildEdgeNodesFromGraphMlEdges gmlGraph.Edges)
+    
+    let buildNodesFromFile(filename:String) =
+        buildNodesFromGraphML (GraphML.Load(filename))
+    let buildNodesTheCrew : seq<Node> =
+        buildNodesFromGraphML (TheCrew.Value)

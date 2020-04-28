@@ -60,6 +60,8 @@ namespace cli
                     Process.Start("open", fi.FullName);
                 }
             }
+
+
             
             if (args.Any(a => a == "benchmark"))
             {
@@ -88,6 +90,8 @@ namespace cli
                     .CreateDefaultBuilder()
                     .Build())) as IStorage;
 
+            
+            
             var test1 = File.ReadAllText("./testscript.wat");
             
             using var disposableStore = (IDisposable)store;
@@ -161,7 +165,41 @@ namespace cli
                      throw;
                  }
              });
-            }, () => store.Flush()));
+            }, () => store.Flush(),
+            (ftype, path ) =>
+            {
+                if (ftype == "graphml" )
+                {
+                    Console.WriteLine($"Loading file: {path}");
+                    try
+                    {
+                        var sw = Stopwatch.StartNew();
+                        var nodes = TinkerPop.buildNodesFromFile(path.Trim('\"'));
+                        store.Add(nodes).ContinueWith(adding =>
+                        {
+                            if (adding.IsCompletedSuccessfully)
+                            {
+                                sw.Stop();
+                                Console.WriteLine(
+                                    $"\nstatus> put done in {sw.ElapsedMilliseconds}ms");
+                            }
+                            else
+                            {
+                                Console.WriteLine(
+                                    $"\nstatus> put err({adding?.Exception?.InnerException?.Message})");
+                            }
+
+                            Console.Write("\nwat> ");
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                
+                }
+            }));
             parser.AddErrorListener(new ErrorListener());
             AHGHEEParser.CommandContext cc = null;
     

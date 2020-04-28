@@ -49,6 +49,47 @@ namespace server
             return cpuPercent;
         }
 
+
+        public override async Task<LoadFileResponse> Load(LoadFile request, ServerCallContext context)
+        {
+            try
+            {
+                if (request.Type == "graphml")
+                {
+                    Console.WriteLine($"Loading file: {request.Path}");
+                    try
+                    {
+                        var sw = Stopwatch.StartNew();
+                        var nodes = TinkerPop.buildNodesFromFile(request.Path);
+                        await _db.Add(nodes).ContinueWith(adding =>
+                        {
+                            if (adding.IsCompletedSuccessfully)
+                            {
+                                sw.Stop();
+                                Console.WriteLine(
+                                    $"\nstatus> put done in {sw.ElapsedMilliseconds}ms");
+                            }
+                            else
+                            {
+                                Console.WriteLine(
+                                    $"\nstatus> put err({adding?.Exception?.InnerException?.Message})");
+                            }
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                }
+                return new LoadFileResponse();
+            }
+            catch (Exception ex)
+            {
+                return new LoadFileResponse();
+            }
+        }
+
         public override async Task Get(Query request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
         {
             try

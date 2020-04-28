@@ -219,7 +219,7 @@ type GrpcFileStore(config:Config) =
                             while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
                             tcs.Task
                         else 
-                            tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID")) 
+                            tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID " + nid.Iri)) 
                             tcs.Task   
                     else 
                         Console.WriteLine ("Read using Pointer")

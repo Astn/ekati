@@ -22,7 +22,7 @@
                 <Stack Horizontal="true" HorizontalAlign="Alignment.SpaceBetween" VerticalAlign="Alignment.Center" Style="width:100%">
                     <StackItem Grow="0" VerticalFill="false">
                         <div class="top-row">
-                            <Link Href="https://github.com/astn/ahghee" Target="_blank">Ahghee on GitHub</Link>
+                            <Link Href="https://github.com/astn/ahghee" Target="_blank">on GitHub</Link>
                         </div>
                     </StackItem>
                     <StackItem DisableShrink="true">
@@ -41,7 +41,7 @@
             <Panel Type=@PanelType.SmallFixedNear OnDismiss=@(new EventCallback(this, (Action<bool>)((b) => isPanelOpen = false))) IsOpen="@isPanelOpen" IsLightDismiss="true">
                 <NavigationTemplate>
                     <IconButton IconName="GlobalNavButton" OnClick="@(() => isPanelOpen = false)" />
-                    <Link Href="https://github.com/astn/ahghee" Target="_blank">Ahghee on GitHub</Link>
+                    <Link Href="https://github.com/astn/ahghee" Target="_blank">on GitHub</Link>
                 </NavigationTemplate>
                 <ChildContent>
                     <NavMenu />

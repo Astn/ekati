@@ -9,7 +9,13 @@
       <PackageReference Include="Antlr4" Version="4.6.6" />
     </ItemGroup>
 
-<!--    <ItemGroup>-->
+
+    <ItemGroup>
+        <Content Include="AHGHEE.g4" />
+    </ItemGroup>
+
+
+<!--    <ItemGroup Condition="'$(BuildingByReSharper)' == 'True'">-->
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseListener.cs" />-->
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />-->
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEELexer.cs" />-->

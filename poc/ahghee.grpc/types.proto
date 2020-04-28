@@ -162,7 +162,15 @@ message ListPoliciesRequest{
 message ListPoliciesResponse{
     repeated Node nodes = 1;
 }
+message LoadFile{
+    string type = 1;
+    string path = 2;
+}
+message LoadFileResponse{
+    
+}
 service WatDbService {
+    rpc Load (LoadFile) returns (LoadFileResponse) {}
     rpc Put (Node) returns (PutResponse) {}
     rpc Get (Query) returns (stream Node) {}
     rpc GetMetrics (GetMetricsRequest) returns (GetMetricsResponse){}

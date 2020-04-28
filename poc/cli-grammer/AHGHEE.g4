@@ -5,6 +5,7 @@ grammar AHGHEE;
 command
    : put
    | get
+   | load
    ;
 
 put  
@@ -14,13 +15,18 @@ put
 get  
     : 'get' flags? nodeid (',' nodeid)* pipe?
     ;
-     
+
+load
+    : 'load' loadtype loadpath 
+    ;
+
 nodeid
     : obj 
     | remote? id
     ;
 
-    
+loadpath: STRING;
+loadtype: WORD;
 
 remote: (WORD | STRING);
 id: (WORD | STRING) ;

@@ -18,7 +18,7 @@
 <CommandBar Items=@commands />
 <div style="display: table; clear: both;">
     <div id="monaco_container" style="width: 48%; height: 500px; float: left;" ></div>
-    <div  style="width: 48%; height: 500px; float: right; ">
+    <div  style="width: 48%; height: 500px; float: right; overflow: scroll; background-color: pink; ">
         <Graph Nodes="@Nodes"></Graph>    
     </div>
 </div>
@@ -36,7 +36,7 @@
 
         commands = new List<CommandBarItem>
         {
-            new CommandBarItem() {Text = "Run", IconName = "Flow", Key = "1", Command = new RelayCommand((o) => { Run(); }, (o)=>true)},
+            new CommandBarItem() {Text = "Run", IconName = "Play", Key = "1", Command = new RelayCommand((o) => { Run(); }, (o)=>true)},
             new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)}
         };
 
@@ -97,7 +97,17 @@
                 Source += "\n" + node.Id.Iri.ToString();
             });
             this.StateHasChanged();
-        }, () => { }));
+        }, () => { },
+            async (loadType, path) =>
+            {
+                Console.WriteLine($"Loading: {loadType} @ {path}");
+                await wat.LoadAsync(new LoadFile
+                {
+                    Type = loadType,
+                    Path = path.Trim('\"')
+                });
+                Console.WriteLine($"Finished Loading: {loadType} @ {path}");
+            }));
         parser.AddErrorListener(new ErrorListener());
         AHGHEEParser.CommandContext cc = null;
 

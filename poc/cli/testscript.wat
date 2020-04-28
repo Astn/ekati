@@ -1,19 +1,16 @@
 put wat/1 "hi": "wat"
-get wat/1
+
 put wat/1 "bye" :"watter" 
-get wat/1
+
 put wat/2 "hi":"bat"
 put wat/2 "bye" :"batter" 
-get wat/2
-get wat/1
-get wat/2, wat/1 |> filter "str" ==  "watter" 
 put austin 
         "name":"Austin",
         "age": 38,  
         "child":@"gwynneth",
         "child":@"august",
         "child":@"blakely",
-        "spouce":@"kendra",
+        "spouse":@"kendra",
         "friend":@"alan";
     kendra 
         "name":"Kendra", 
@@ -21,7 +18,7 @@ put austin
         "child":@"gwynneth",
         "child":@"august",
         "child":@"blakely",
-        "spouce":@"austin",
+        "spouse":@"austin",
         "friend":@"samantha";
     gwynneth 
         "name":"Gwynneth", 
@@ -47,10 +44,10 @@ put austin
     alan
         "name":"Alan", 
         "age": 2,
-        "spouce":@"samantha",
+        "spouse":@"samantha",
         "friend":@"austin";
     samantha
         "name":"Samantha", 
         "age": 2,
-        "spouce":@"alan",
+        "spouse":@"alan",
         "friend":@"kendra";

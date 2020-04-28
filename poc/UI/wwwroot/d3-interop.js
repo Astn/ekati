@@ -37,8 +37,9 @@ window.d3Interop = {
           d3.selectAll("svg > *").remove();
           return ;
       }
+
       var ctr = 0;
-      var width = 300, height = 300
+      var width = 2000, height = 2000
       const nodes = data.map(d => d.id);
       const links = data.map(d => d.attributes
           .filter(a => a.value?.data?.nodeid !== null)
@@ -50,27 +51,32 @@ window.d3Interop = {
                   "type": a.key.data.str,
                   "myid": `${ctr}`
               };
-          })).flat().filter(l => nodes.find(n => n.iri === l.source)  && nodes.find(n => n.iri === l.target));
+          })).flat()
+          .filter(l => {
+              return nodes.find(n => n.iri === l.source) && nodes.find(n => n.iri === l.target);
+          });
 
       const types = Array.from(new Set(links.map(d => d.type)));
-      const color = d3.scaleOrdinal(types, d3.schemeCategory10)
+      const color = d3.scaleOrdinal(types, d3.schemeCategory10);
       const forceL = d3.forceLink(links).id(d => d.iri);
 
       const simulation = d3.forceSimulation(nodes)
           .force("link", forceL )
           .force("charge", d3.forceManyBody().strength(-800))
-          .force("x", d3.forceX(20))
-          .force("y", d3.forceY(0));    
+          .force("x", d3.forceX(width/2))
+          .force("y", d3.forceY(height/2));    
       // .force("x", d3.forceX())
           // .force("y", d3.forceY());
 
       d3.selectAll("svg > *").remove();
       const svg = d3.select("svg")
-          .attr("viewBox", [-width / 2, -height / 2, width, height])
+          .attr("viewBox", [width/2 - width/10, height/2 - height/10, width/5, height/5])
           .style("font", "8px sans-serif")
           .style("fill", "#686868")
           .style("background-color","#181818");
       
+          //.attr("viewBox", [-width , -height , width*2, height*2])
+          
       console.log("renderGraph:3",svg);
       
       
