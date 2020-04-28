@@ -12,10 +12,18 @@
 
     <ItemGroup>
         <Content Include="AHGHEE.g4" />
+        <Content Include="NTRIPLES.g4" />
     </ItemGroup>
 
 
-<!--    <ItemGroup Condition="'$(BuildingByReSharper)' == 'True'">-->
+<!--    <ItemGroup>-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESBaseListener.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESBaseVisitor.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESLexer.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESListener.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESParser.cs" />-->
+<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESVisitor.cs" />-->
+
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseListener.cs" />-->
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />-->
 <!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEELexer.cs" />-->

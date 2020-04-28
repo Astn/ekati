@@ -37,6 +37,81 @@ namespace cli
             return ac;
         }
 
+        public static TMD ToDataBlock(this NTRIPLESParser.ObjContext ctx, Func<string, string> BNToId)
+        {
+            // VALUE with optional stuffs
+            var db = new DataBlock();
+
+            var literalString = ctx.literal()?.STRING()?.GetText().Trim('"');
+            if (literalString != null)
+            {
+                db.Str = literalString;
+                var tmd = new TMD();
+                tmd.Data = db;
+                
+                var literalStringTypeIRI = ctx.literal()?.IRI()?.GetText().Trim('<', '>');
+                if (literalStringTypeIRI != null)
+                {
+                    tmd.MetaData = new DataBlock
+                    {
+                        Nodeid = literalStringTypeIRI.ToNodeID()
+                    };
+                }
+                var literalStringLang = ctx.literal()?.LANGTAG()?.GetText();
+                if (literalStringLang != null)
+                {
+                    tmd.MetaData = new DataBlock
+                    {
+                        Str = $"lang:{literalStringLang}"
+                    };
+                }
+
+                return tmd;
+            }
+            
+            // Value Pointer
+            var objPointer = ctx.IRI()?.GetText()?.Trim('<', '>');
+            if (objPointer != null)
+            {
+                db.Nodeid = objPointer.ToNodeID();
+                return new TMD
+                {
+                    Data = db
+                };
+            }
+            
+            // Value BlankNode, got this far, we have to have a blankNode, or something is broke.
+            var objVal = ctx.BLANKNODE().GetText();
+
+            var objBn = BNToId(objVal);
+            db.Nodeid = objBn.ToNodeID();
+            return new TMD
+            {
+                Data = db
+            };
+        }
+
+        public static DataBlock ToDataBlock(this NTRIPLESParser.PredContext ctx)
+        {
+            var pred = ctx.GetText().Trim('<', '>');
+            return pred.ToDataBlockNodeID();
+        }
+        
+        public static NodeID ToNodeId(this NTRIPLESParser.SubjContext ctx, Func<string,string> BNToId)
+        {
+            var subIRI = ctx.IRI()?.GetText()?.Trim('<', '>');
+            if (subIRI == null)
+            {
+                var subjBN = ctx.BLANKNODE().GetText();
+                subIRI = BNToId(subjBN);
+            }
+            return new NodeID {Iri = subIRI};
+        }
+
+        public static NodeID ToNodeID(this string str)
+        {
+            return new NodeID{Iri = str};
+        }
         public static DataBlock ToDataBlockNodeID(this string str)
         {
             var nid = new NodeID {Iri = str};

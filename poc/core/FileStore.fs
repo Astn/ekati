@@ -72,6 +72,10 @@ type GrpcFileStore(config:Config) =
         for kv in node.Attributes do
             kv.Key.Timestamp <- nowInt
             kv.Value.Timestamp <- nowInt
+            if kv.Key.Data.DataCase = DataBlock.DataOneofCase.Nodeid then
+                kv.Key.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()
+            if kv.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid then
+                kv.Value.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()    
     
     let Flush () =
         let parentTask = Task.Factory.StartNew((fun () ->
@@ -448,6 +452,8 @@ type GrpcFileStore(config:Config) =
 
                 Parallel.For(0,lstNodes.Length,(fun i ->
                     let node = lstNodes.[i]
+                    while node.Fragments.Count < 3 do
+                        node.Fragments.Add (Utils.NullMemoryPointer())
                     setTimestamps node nowInt
                     let partition = Utils.GetPartitionFromHash config.ParitionCount node.Id
                     let plist = partitionLists.[partition] 
@@ -459,7 +465,8 @@ type GrpcFileStore(config:Config) =
                         if (list.Count > 0) then
                             let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
                             let (bc,_,_) = PartitionWriters.[i]
-                            while bc.Writer.TryWrite ( Add(tcs,list)) = false do ()
+                            while bc.Writer.TryWrite ( Add(tcs,list)) = false do
+                                Console.WriteLine "Couldn't Add"
                         )
                 
                 config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.AddFragmentMeter, count)

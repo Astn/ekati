@@ -377,6 +377,8 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             let x = System.IO.Pipelines.Pipe()
                             
                             for item in items do
+                                if  item.Id.Pointer = null then
+                                    item.Id.Pointer <- Utils.NullMemoryPointer()
                                 let mp = item.Id.Pointer
                                 mp.Partitionkey <- uint32 i
                                 mp.Filename <- uint32 fileNameid
