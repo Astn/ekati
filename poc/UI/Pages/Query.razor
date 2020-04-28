@@ -22,7 +22,65 @@
         <Graph Nodes="@Nodes"></Graph>    
     </div>
 </div>
-  
+<div>
+    
+        @if (Nodes.Any())
+        {
+            var headers = (from node in Nodes
+                from attr in node.Attributes
+                let keyD = attr.Key.Data.ToDisplayString()
+                select (keyD)).OrderBy(x=> x).Distinct().ToList();
+            
+            <table>
+                <thead>
+                <tr>
+                    <th>id</th>
+                    @foreach (var h in headers)
+                    {
+                        <th>@h</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                    @foreach (var n in Nodes)
+                    {
+                        <tr>
+                            <td>@n.Id.Iri</td>
+                            @foreach (var h in headers)
+                            {
+                                var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList();
+                                if (!vals.Any())
+                                {
+                                    <td><i>null</i></td> 
+                                }
+                                else
+                                {
+                                    <td>
+                                        
+                                        @if (vals.Count == 1)
+                                        {
+                                            <span>@vals[0].Value.Data.ToDisplayString()</span>
+                                        }
+                                        else
+                                        {
+                                            <ul>
+                                            @foreach (var a in vals)
+                                            {
+                                                //var key = a.Key.Data.ToDisplayString();
+                                                var val = a.Value.Data.ToDisplayString().Replace("\\u","&#");
+                                                <li>@val</li>
+                                            }
+                                            </ul>
+                                        } 
+                                    </td>
+                                }
+                            }
+                        </tr>        
+                    }
+                </tbody>
+            </table>        
+        }
+</div>  
 
 @code {
     private List<CommandBarItem> commands;
@@ -30,13 +88,15 @@
     public bool IsInitialized;
     public List<Node> Nodes { get; set; }
 
+    
+    
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
-
+        
         commands = new List<CommandBarItem>
         {
-            new CommandBarItem() {Text = "Run", IconName = "Play", Key = "1", Command = new RelayCommand((o) => { Run(); }, (o)=>true)},
+            new CommandBarItem() {Text = "Run", IconName = "Play", Key = "1", Command = new RelayCommand((o) => { this.Run(); }, (o)=>true)},
             new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)}
         };
 
@@ -57,6 +117,62 @@
         this.StateHasChanged();
     }
 
+    
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (IsInitialized || isInitializing)
+            return;
+
+        isInitializing = true;
+
+        var text = "get austin |> follow * 1";
+
+        try
+        {
+            text = await JsRuntime.InvokeAsync<string>("CreateMonacoEditor", DotNetObjectReference.Create(this), text);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("1something with monaco", e);
+            text = null;
+        }
+
+        this.Source = await JS_GetSourceAsync();
+        StateHasChanged();
+
+        IsInitialized = true;
+        StateHasChanged();
+    }
+
+    public string Source { get; set; }
+
+    [JSInvokable]
+    public async Task<string> JS_OnContentChanged()
+    {
+        this.Source = await JS_GetSourceAsync();
+
+        return "occ";
+    }
+
+    public async Task<string> JS_GetSourceAsync()
+    {
+        try
+        {
+            var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] {});
+    //DebugText = $"{counterSource++} Source:{source}";
+            return source;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "2something with monaco");
+            return string.Empty;
+        }
+    }
+    
     private async Task Run()
     {
         await JS_OnContentChanged();
@@ -127,60 +243,6 @@
             {
                 break;
             }
-        }
-    }
-
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-
-        if (IsInitialized || isInitializing)
-            return;
-
-        isInitializing = true;
-
-        var text = "get austin |> follow * 1";
-
-        try
-        {
-            text = await JsRuntime.InvokeAsync<string>("CreateMonacoEditor", DotNetObjectReference.Create(this), text);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError("1something with monaco", e);
-            text = null;
-        }
-
-        this.Source = await JS_GetSourceAsync();
-        StateHasChanged();
-
-        IsInitialized = true;
-        StateHasChanged();
-    }
-
-    public string Source { get; set; }
-
-    [JSInvokable]
-    public async Task<string> JS_OnContentChanged()
-    {
-        this.Source = await JS_GetSourceAsync();
-
-        return "occ";
-    }
-
-    public async Task<string> JS_GetSourceAsync()
-    {
-        try
-        {
-            var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] {});
-    //DebugText = $"{counterSource++} Source:{source}";
-            return source;
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "2something with monaco");
-            return string.Empty;
         }
     }
 }
