@@ -1,7 +1,7 @@
 # Ekáti (εκάτη / Hecate)
 ## Ekati - database 
 
-[Insert build and test status here]
+![Basic UI](https://github.com/astn/ekati/workflows/Build/badge.svg)
 
 
 ## TLDR
