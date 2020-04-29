@@ -1,53 +1,56 @@
-# Ahghee - A Big Graph database
+# Ekáti (εκάτη / Hecate)
+## Ekati - database 
 
-[![CircleCI](https://circleci.com/gh/Astn/ahghee.svg?style=svg)](https://circleci.com/gh/Astn/ahghee)
+[Insert build and test status here]
 
-This project is still in it's early early stages, so click that *Watch* button.
 
-I'm looking for other contributors to help.
+## TLDR
 
-#### Current State
+Under development, lot's to do. If your looking for something production ready, this is NOT it. If you want to get in on an early open source project and have a big impact, this could be your thing.
 
-Under heavy development. Not ready for Production.
+# Interested? 
 
-Status of the prototype F#
- 
- - [x] Protocol Buffers data types
- - [x] Sharding
- - [x] Stores Fragments
- - [x] Links Fragments
- - [x] Resolves Fragment Pointers
- - [x] Entry Index uses RocksDb
- - [x] Single machine ingress tested at 50MB/s and 15m Fragments in 2.5 min. 
- - [ ] Map Reduce
- - [ ] Clustering
- - [ ] Full text index
+Do you like graphs or databases, and solving hard problems? I'm hoping you will help me. 
 
-Status of post prototype Rust
+## But wat is it really?
 
- - [x] Protocol Buffers data types
- - [x] Stores Fragments
- - [ ] Links Fragments
- - [ ] Resolves Fragment Pointers
- - [x] Entry Index uses RocksDb
- - [ ] Single machine ingress tested at 50MB/s and 15m Fragments in 2.5 min. 
- - [ ] Map Reduce
- - [ ] Clustering
- - [ ] Full text index
+It's wanting to be a real graph database, not a virtural graph database. You know the ones that are build on top of document databases, or key value stores, or column stores. Not that those are bad, but I'm hoping we can do better. 
 
-#### Slack
+The native data representation is flexable in order to support Neo4j / Gremlin style graphs, as well as semantic graphs, or RDF.
 
-  ahghee.slack.com
+There is no smarts built into it as of yet. It dumbly stores and loads data. To solve this I'm working on adding support for webassembly plugins.
 
-#### Contributors 
+## What can it do now?
 
-  Main implementation using Rust in root  
-  
-  Prototype in FSharp -> see /poc
-  
-  Start [here](https://github.com/Astn/ahghee/wiki/Getting-Started---Contributors)
+Right now you can import a few file formats (ttl, graphml) supporting other file types is fairly easy, maybe you want to help add support for one? You would find or create an ANTLR4 grammer, and then add an adapter for that parser to import data.
 
-## References
+There is the beginnings of a UI, that runs in your browser.
+
+![Basic UI](/docs/UI-load-graphml.png)
+
+# Tech
+
+ - The UI using a webassembly SPA framework called Blazor.
+ - The text editor is the same one that is in VS Code.
+ - The pretty data graphs are built using D3.js
+ - Communication with the database is done over gRPC.
+
+## Database Tech
+
+ - Mostly written in F# and C#. The code is a fair bit ugly, and needs some refactoring.
+ - It's targeting Linux, OSX, and Windows, using the dotnet core JIT.
+ - Some indexing is done using RockDB, looking into using  FASTER.
+ - The main storage layer from scratch and needs a ton of work. Just starting down the hybrid log structured merge tree approach.
+ - There is some sharding support built in, though at this time all the shards have to run on a single machine. Clustering is on the list.
+ - Query support is ultra basic, and need to do some work in the query language department.
+
+## Still here?
+
+ - Click *Watch* button
+ - Click fork button
+ - Jump on Discord https://discord.gg/NfcBmjA
+
+## Good reading
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
 - [BigTable](https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf)
 - [DynamoDB](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)
@@ -60,37 +63,7 @@ Status of post prototype Rust
 - [YCSB](https://github.com/brianfrankcooper/YCSB/wiki) 
 - [SeaStar](http://docs.seastar.io/master/md_doc_tutorial.html)
 
-## Design goals
+## Whiteboard
 
-- [Structure Whiteboard](https://realtimeboard.com/app/board/o9J_kz6OZhI=/)
+- [Structure Whiteboard](https://miro.com/app/board/o9J_kz6OZhI=/)
 
-- Massive graphs (Trillions of nodes)
-- Write friendly (like Cassandra)
-- Elastic scaling
-- Masterless clustering
-- Fast (Millions of graph-node steps per second per server)
-- Index-free adjancecy traversal
-- Custom indexing
-- Automatic adaptive indexing
-- Storage local compute
-- Large value support
-- Standing queries 
-- Virtual sub-graph
-- Pluggable storage providers
-- Pluggable query providers
-- Dotnet core embedding
-- Cross platform
-- Tinkerpop or a variation of Tinkerpop
-- Cypher or a variation of Cypher
-
-## Approach
-- TDD
-- DevOps
-
-### High level strategy
-- [Gossip](https://en.wikipedia.org/wiki/Gossip_protocol) for cluster registry
-- [gRPC](https://grpc.io/docs/quickstart/csharp.html) for serialization and RPC 
-- Use a [Log structured merge approach](http://www.cs.utexas.edu/~vijay/papers/sosp17-pebblesdb.pdf)
-- A new cluster-node should be able to join the cluster just by authenticating with any cluster-node
-- Gateway nodes should be able to join multiple clusters to form a WAN cluster
-- Gateway nodes can control the flow of data between clusters (read/write/one-way)
