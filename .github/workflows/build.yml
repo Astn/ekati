@@ -20,6 +20,6 @@ jobs:
       uses: actions/setup-dotnet@v1.4.0
       with:
         # SDK version to use. Example: 2.2.104
-        dotnet-version: 3.1.201 
+        dotnet-version: ${{ matrix.dotnet-version }}
     - name: Build
       run: cd src; dotnet build
