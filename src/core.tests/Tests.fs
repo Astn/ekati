@@ -180,7 +180,7 @@ type MyTests(output:ITestOutputHelper) =
     member __.``Can Remove nodes from graph`` db =
         let g = __.buildGraph (dbtype db)
 
-        let n1 = g.Nodes
+        let n1 = g.Nodes()
         let len1 = n1 |> Seq.length
         
         let toRemove = n1 
@@ -188,7 +188,7 @@ type MyTests(output:ITestOutputHelper) =
                         |> (fun n -> n.Id)
         let task = g.Remove([toRemove])
         task.Wait()
-        let n2 = g.Nodes
+        let n2 = g.Nodes()
         let len2 = n2 |> Seq.length                        
         
         Assert.NotEqual<Node> (n1, n2)
@@ -210,7 +210,7 @@ type MyTests(output:ITestOutputHelper) =
         let task = g.Add nodes
         task.Wait()   
         g.Flush() 
-        let nodesWithIncomingEdges = g.Nodes 
+        let nodesWithIncomingEdges = g.Nodes() 
                                          |> Seq.collect (fun n -> n.Attributes) 
                                          |> Seq.map (fun y -> 
                                                             match y.Value.Data.DataCase with  
@@ -224,12 +224,13 @@ type MyTests(output:ITestOutputHelper) =
                                          |> (fun ids -> g.Items(ids, Step() ))
 
         let sb = new StringBuilder()
-        sb.ResultsPrinter(nodesWithIncomingEdges.Result)
+        sb.ResultsPrinter(nodesWithIncomingEdges.Result) |> ignore
         nodesWithIncomingEdges.Result
             |> Seq.iter (fun struct (nid, res) ->
-                            match res with
-                                | Left(found) -> sb.NodePrinter(found, 1, PrintMode.History)
-                                | Right(ex) -> sb.AppendLine(ex.Message)
+                            if res.IsLeft then
+                                sb.NodePrinter(res.Left, 1, PrintMode.History) |> ignore
+                            else
+                                sb.AppendLine(res.Right.Message) |> ignore
                             ())
             
         output.WriteLine <| sb.ToString() 
@@ -246,13 +247,13 @@ type MyTests(output:ITestOutputHelper) =
              | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
              | _ -> raise <| new NotImplementedException() 
                   
-         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
          
          let nodes = buildNodesTheCrew |> List.ofSeq
          let task = g.Add nodes
          task.Wait()
          g.Flush()
-         let n1 = g.Nodes |> List.ofSeq
+         let n1 = g.Nodes() |> List.ofSeq
          
          let actual = n1
                          |> Seq.map (fun id -> 
@@ -289,7 +290,7 @@ type MyTests(output:ITestOutputHelper) =
          let task = g.Add nodes 
          task.Wait()
          g.Flush()
-         let n1 = g.Nodes |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
+         let n1 = g.Nodes() |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
          output.WriteLine(sprintf "node in: %A" nodes )
          output.WriteLine(sprintf "node out: %A" n1 )
          Assert.Equal<Node>(nodes,n1)
@@ -308,7 +309,7 @@ type MyTests(output:ITestOutputHelper) =
       task.Wait()
       g.Flush()
 
-      let n1 = g.Nodes 
+      let n1 = g.Nodes() 
                 |> List.ofSeq 
                 |> List.sortBy (fun x -> x.Id.Iri)
                 |> Seq.map (fun n -> 
@@ -355,7 +356,7 @@ type MyTests(output:ITestOutputHelper) =
         // TODO: Bug somewhere causing us to not wait for flush to finish, so sometimes we don't get all the adding
         // Flushed before we try to read the nodes.    
         
-        let allOfThem = g.Nodes |> List.ofSeq
+        let allOfThem = g.Nodes() |> List.ofSeq
         
         for n in allOfThem do
             output.WriteLine (sprintf "%A %A" n.Id n.Fragments)
@@ -395,7 +396,7 @@ type MyTests(output:ITestOutputHelper) =
             Assert.Contains(frag, connectedFragments)))
  
     member __.CollectValues key (graph:IStorage) =
-        graph.Nodes
+        graph.Nodes()
              |> Seq.collect (fun n -> n.Attributes 
                                       |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with 
                                                                  | DataBlock.DataOneofCase.Metabytes when 
@@ -418,7 +419,7 @@ type MyTests(output:ITestOutputHelper) =
     member __.``Can get labelV after load tinkerpop-crew.xml into graph`` db =
          let g = __.toyGraph (dbtype db)
                   
-         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
          
          let attrName = "labelV"
          let actual = __.CollectValues attrName g
@@ -444,7 +445,7 @@ type MyTests(output:ITestOutputHelper) =
     member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` db =
          let g = __.toyGraph (dbtype db)
                   
-         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
@@ -472,7 +473,7 @@ type MyTests(output:ITestOutputHelper) =
          for i in 0 .. flushes do
             g.Flush()
                   
-         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
@@ -500,7 +501,7 @@ type MyTests(output:ITestOutputHelper) =
          for i in 0 .. flushes do
             g.Flush()
                   
-         output.WriteLine("g.Nodes length: {0}", g.Nodes |> Seq.length )
+         output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
          let attrName = "age"
          let actual = __.CollectValues attrName g                                         
          let (_,_,one) = actual |> Seq.head 
@@ -629,8 +630,8 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("file")>] 
     member __.``After load tinkerpop-crew.xml has node data`` db =        
         let g = __.toyGraph (dbtype db)
-        output.WriteLine(sprintf "%A" g.Nodes)
-        Assert.NotEmpty(g.Nodes)
+        output.WriteLine(sprintf "%A" (g.Nodes()))
+        Assert.NotEmpty(g.Nodes())
     
     [<Fact>]
     member __.RocksDBCanWriteAndReadKeyValue () = 
