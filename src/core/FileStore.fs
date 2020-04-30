@@ -78,22 +78,26 @@ type GrpcFileStore(config:Config) =
                 kv.Value.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()    
     
     let Flush () =
-        let parentTask = Task.Factory.StartNew((fun () ->
-            let allDone =
-                seq {for (bc,t,_) in PartitionWriters do
-                        let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        while bc.Writer.TryWrite ( FlushAdds(fwtcs)) = false do ()
-                        let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        while bc.Writer.TryWrite ( FlushFixPointers(tcs)) = false do ()
-                        let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                        while bc.Writer.TryWrite ( FlushFragmentLinks(ffltcs)) = false do ()
-                        yield [ fwtcs.Task :> Task; tcs.Task :> Task; ffltcs.Task :> Task]}
-                |> Seq.collect (fun x -> x)
-                |> List.ofSeq // force it to run
-            allDone    
-            ))
-        parentTask.Wait()        
-        ()
+        PartitionWriters
+        |> Seq.collect(fun (bc,t,_) ->
+                let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
+                let tasks = [| fwtcs.Task ; tcs.Task ; ffltcs.Task  |]
+                let ops = [| FlushAdds(fwtcs);  FlushFixPointers(tcs); FlushFragmentLinks(ffltcs) |]
+                async {
+                    for op in ops do
+                        if bc.Writer.TryWrite ( op ) = false then
+                            let t = bc.Writer.WaitToWriteAsync().AsTask()
+                            let awt = Async.AwaitTask(t) |> Async.Ignore
+                            do! awt
+                } |> Async.RunSynchronously
+                tasks
+            )
+            |> Task.WhenAll
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+            |> ignore
     
     let DataBlockCMP (left:DataBlock, op:String, right:DataBlock) =
         match op with

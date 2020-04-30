@@ -22,7 +22,7 @@ type MemoryStore() =
             Task.CompletedTask    
         
         member this.Nodes () =
-            raise (new NotImplementedException())
+            _nodes
             
         member this.Items (addresses:seq<NodeID>, follow: Step) =
             let matches = addresses |> Seq.map (fun addr -> 

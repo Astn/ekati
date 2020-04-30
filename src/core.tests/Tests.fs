@@ -82,16 +82,6 @@ type MyTests(output:ITestOutputHelper) =
         Assert.True(success)  
         
     [<Fact>]
-    member __.``Can create a Binary type`` () =
-        let d = Utils.BBString "This will be converted to binary with type xs:string"
-        let success = match d.DataCase with 
-                        | DataBlock.DataOneofCase.Metabytes -> true
-                        | _ -> false
-        Assert.True(success)   
-    
-   
-        
-    [<Fact>]
     member __.``Can create a Pair`` () =
         let pair = PropString "firstName" "Richard"
         let md = pair.Key.Data
@@ -352,8 +342,9 @@ type MyTests(output:ITestOutputHelper) =
                                                     |]) 
             let adding = g.Add [fragment]
             adding.Wait()
-            g.Flush()
+            
         // TODO: Bug somewhere causing us to not wait for flush to finish, so sometimes we don't get all the adding
+        g.Flush()
         // Flushed before we try to read the nodes.    
         
         let allOfThem = g.Nodes() |> List.ofSeq
@@ -361,8 +352,14 @@ type MyTests(output:ITestOutputHelper) =
         for n in allOfThem do
             output.WriteLine (sprintf "%A %A" n.Id n.Fragments)
         
-        let len = allOfThem |> Seq.length
-        Assert.InRange(len, fragments, fragments)
+        let countAttributes =
+                  allOfThem
+                  |> Seq.map (fun n ->
+                                   n.Attributes
+                                        |> Seq.length)
+                  |> Seq.sum
+                  
+        Assert.InRange(countAttributes, fragments, fragments)
         
         // Assert that all the fragments are connected.
 
@@ -398,11 +395,15 @@ type MyTests(output:ITestOutputHelper) =
     member __.CollectValues key (graph:IStorage) =
         graph.Nodes()
              |> Seq.collect (fun n -> n.Attributes 
-                                      |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with 
+                                      |> Seq.filter (fun attr -> match attr.Key.Data.DataCase with
                                                                  | DataBlock.DataOneofCase.Metabytes when 
                                                                     ( key , Encoding.UTF8.GetString (attr.Key.Data.Metabytes.Bytes.ToByteArray())) 
                                                                     |> String.Equals
                                                                     -> true
+                                                                 | DataBlock.DataOneofCase.Str when
+                                                                     ( key , attr.Key.Data.Str)
+                                                                     |> String.Equals
+                                                                     -> true
                                                                  | _ -> false
                                                     )
                                       |> Seq.map (fun attr -> 

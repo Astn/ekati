@@ -145,17 +145,13 @@ module Utils =
             ()    
         Nodeid       
         
-    let BBString (text:string) =  MetaBytesNoCopy metaPlainTextUtf8 (ByteString.CopyFromUtf8 text)
-    let BBInt (value:int) =       MetaBytes metaXmlInt ( BitConverter.GetBytes value)
-    let BBDouble (value:double) = MetaBytes metaXmlDouble (BitConverter.GetBytes value)
     let DBA address =
         let data = new DataBlock()
         data.Nodeid <- address
         data
-    let DBB binary =
+    let DBBEmpty () =
         let data = new DataBlock()
-        data.Metabytes <- binary
-        data        
+        data
     let DBBString (text:string) = 
         let data = new DataBlock()
         data.Str <- text
