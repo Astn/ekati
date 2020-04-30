@@ -58,7 +58,7 @@ There is the beginnings of a UI, that runs in your browser.
 ```
 load graphml "https://raw.githubusercontent.com/Astn/ekati/master/src/core/tinkerpop-modern.xml"
 ```
-or
+or if you can find a ntriples graph
 ```
 load nt "http://path to .NTriples file"
 ```
@@ -68,15 +68,15 @@ view some of it
 ```
 get "1" |> follow * 2
 ```
-
+![Basic UI](/docs/query1.png)
 ```
 get "6" |> follow * 2
 ```
-
+![Basic UI](/docs/query2.png)
 ```
 get "2", "4"
 ```
-
+![Basic UI](/docs/query3.png)
 ## Enter some data
 
 ```
@@ -100,6 +100,7 @@ put "your/wonderful/id"
 ```
 get "your/wonderful/id", "anotherid" |> follow * 1     
 ```
+![Basic UI](/docs/query4.png)
 
 ## Good reading
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
