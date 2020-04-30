@@ -16,8 +16,11 @@ open System.Threading.Tasks
 open Ahghee.Grpc
 open Google.Protobuf.WellKnownTypes
 
-type ClusterServices() = 
+type ClusterServices(log: string -> unit) = 
     let remotePartitions = new ConcurrentDictionary<int,FileStorePartition>()
+    
+    let ByteToHex (bytes:byte[]) =
+        bytes |> Array.fold (fun state x-> state + sprintf "%02X" x) ""
     member this.RemotePartitions() = remotePartitions
     interface IClusterServices with 
         member this.RemoteLookup (partition:int) (nid:NodeID) : bool * MemoryPointer = 
@@ -36,7 +39,7 @@ type ClusterServices() =
 
 type GrpcFileStore(config:Config) = 
 
-    let clusterServices = new ClusterServices()
+    let clusterServices = new ClusterServices(config.log)
 
     let PartitionWriters = 
         let bcs = 

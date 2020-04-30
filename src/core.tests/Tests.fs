@@ -166,7 +166,7 @@ type MyTests(output:ITestOutputHelper) =
                                       
     [<Theory>]
     [<InlineData("mem")>]
-    [<InlineData("file")>] 
+    //[<InlineData("file")>] 
     member __.``Can Remove nodes from graph`` db =
         let g = __.buildGraph (dbtype db)
 
@@ -655,16 +655,17 @@ type MyTests(output:ITestOutputHelper) =
         let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
         use nodeIndex = new NodeIdIndex(path) 
         let id = ABtoyId "1"
-        let fp = new Pointers()
-        let mp = Utils.NullMemoryPointer()
-        mp.Offset <- 100UL
-        mp.Length <- 200UL
-        fp.Pointers_.Add(mp)
         
+        id.Pointer <- Utils.NullMemoryPointer()
+        id.Pointer.Offset <- 100UL
+        id.Pointer.Length <- 200UL
+
         let value = nodeIndex.AddOrUpdateBatch [| id |]
         let mutable outvalue : Pointers = (new Pointers())
         let success = nodeIndex.TryGetValue (id, &outvalue)
         Assert.True success
+        let fp = new Pointers()
+        fp.Pointers_.Add(id.Pointer)
         Assert.Equal<MemoryPointer>(fp.Pointers_,    outvalue.Pointers_)
         ()
 

@@ -19,7 +19,7 @@ module public TinkerPop =
                 Nodeid.Remote <- graph
                 Nodeid.Iri <- i
                 Nodeid
-            ab "TheCrew" id
+            ab "" id
     
     let DABtoyId id : DataBlock =
         DBA (ABtoyId id)
@@ -43,16 +43,13 @@ module public TinkerPop =
             |> Map.ofSeq
         let NodeAttrs = attrs "node" 
         let EdgeAttrs = attrs "edge" 
-        
-        let Id id = 
-            Id "" id (NullMemoryPointer())
-        
+       
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
             nodes
             |> Seq.map (fun n -> 
                      
                         let z = new Grpc.Node()
-                        z.Id <- Id (n.Id.ToString());  
+                        z.Id <- ABtoyId (n.Id.ToString());  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->
@@ -105,7 +102,7 @@ module public TinkerPop =
             edges
             |> Seq.map (fun n -> 
                         let z = new Grpc.Node()
-                        z.Id <-  Id (n.Id.ToString()) ;  
+                        z.Id <-  ABtoyId (n.Id.ToString()) ;  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->

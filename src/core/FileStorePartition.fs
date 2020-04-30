@@ -16,7 +16,9 @@ open Metrics
 type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
     let tags = MetricTags([| "partition_id" |],
                           [| i.ToString() |]) 
-        
+    
+    let ByteToHex (bytes:byte[]) =
+        bytes |> Array.fold (fun state x-> state + sprintf "%02X" x) ""    
     let dir = match config.CreateTestingDataDirectory with 
                       | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+ Path.GetRandomFileName())))
                       | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
@@ -36,15 +38,6 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     
     let IndexNodeIds (nids:seq<NodeID>) =
-        let lookup = 
-            nids
-            |> Seq.map(fun x ->
-                let hash = x.GetHashCode()
-                (hash |> BitConverter.GetBytes), x.Pointer)
-            |> Map.ofSeq
-             
-        let keys =
-            lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
         ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
        
     // returns true if the node is or was linked to the pointer
