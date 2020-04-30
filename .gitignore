@@ -389,3 +389,7 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+src/cli-grammer/.antlr/
+src/data-science-db/out
+src/gen
+src/server/data/

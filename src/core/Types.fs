@@ -20,7 +20,7 @@ type NodeIdIndex (indexFile:string) =
     //let ``Index of NodeID -> MemoryPointer`` = new System.Collections.Concurrent.ConcurrentDictionary<NodeIdHash, System.Collections.Generic.List<Grpc.MemoryPointer>>()
     let buffer = System.Buffers.ArrayPool<byte>.Shared 
     let path = Environment.ExpandEnvironmentVariables(indexFile)
-    let merge = Merge.Create()
+    let merge = Merge.Create() 
     let mutable cfOpts : ColumnFamilyOptions = new ColumnFamilyOptions()
     let options =
         let mutable opts = (new DbOptions())
@@ -78,6 +78,31 @@ type NodeIdIndex (indexFile:string) =
                 yield repeatedField
                 it.Next()
         }
+    
+    member __.IterKey() =
+        seq {
+            use mutable it = db.NewIterator()
+            it.SeekToFirst()
+            while it.Valid() do
+                let repeatedField = new Pointers()
+                let bytes = it.Value()
+                yield bytes
+                it.Next()
+        }
+        
+
+    member __.IterKV() =
+        seq {
+            use mutable it = db.NewIterator()
+            it.SeekToFirst()
+            while it.Valid() do
+                let repeatedField = new Pointers()
+                let bytes = it.Value()
+                let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
+                repeatedField.MergeFrom(codedinputStream)
+                yield (it.Key(), repeatedField)
+                it.Next()
+        }        
         
     
     member __.TryGetValue (nid:NodeID, value: Pointers byref) = 
@@ -145,17 +170,13 @@ module Utils =
             ()    
         Nodeid       
         
-    let BBString (text:string) =  MetaBytesNoCopy metaPlainTextUtf8 (ByteString.CopyFromUtf8 text)
-    let BBInt (value:int) =       MetaBytes metaXmlInt ( BitConverter.GetBytes value)
-    let BBDouble (value:double) = MetaBytes metaXmlDouble (BitConverter.GetBytes value)
     let DBA address =
         let data = new DataBlock()
         data.Nodeid <- address
         data
-    let DBB binary =
+    let DBBEmpty () =
         let data = new DataBlock()
-        data.Metabytes <- binary
-        data        
+        data
     let DBBString (text:string) = 
         let data = new DataBlock()
         data.Str <- text

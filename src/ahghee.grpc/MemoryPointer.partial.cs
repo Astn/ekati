@@ -74,6 +74,37 @@ namespace Ahghee.Grpc
         }
     }
 
+    public partial class TMD : IComparable
+    {
+        public int CompareTo(object other)
+        {
+            if (other == null) return 1;
+
+            if (other is TMD o)
+            {
+                var byTs = this.timestamp_.CompareTo(o.timestamp_);
+                if (byTs != 0)
+                    return byTs;
+                
+                if (this.data_ != null)
+                {
+                   var bydata = this.data_.CompareTo(o.data_);
+                   if (bydata != 0)
+                       return bydata; 
+                }
+
+                if (this.metaData_ != null)
+                {
+                    var bymata = this.metaData_.CompareTo(o.metaData_);
+                    return bymata;                
+                }
+            }
+
+            return 0;
+            
+        }
+    }
+    
     public sealed partial class NodeID : IComparable, IComparable<NodeID>, scg.IEqualityComparer<NodeID>
     {
         private static IMurmurHash3 hasher = System.Data.HashFunction.MurmurHash.MurmurHash3Factory.Instance.Create();

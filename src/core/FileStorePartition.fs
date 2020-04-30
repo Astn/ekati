@@ -16,7 +16,9 @@ open Metrics
 type FileStorePartition(config:Config, i:int, cluster:IClusterServices) = 
     let tags = MetricTags([| "partition_id" |],
                           [| i.ToString() |]) 
-        
+    
+    let ByteToHex (bytes:byte[]) =
+        bytes |> Array.fold (fun state x-> state + sprintf "%02X" x) ""    
     let dir = match config.CreateTestingDataDirectory with 
                       | true -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("data-"+ Path.GetRandomFileName())))
                       | false -> IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,"data"))
@@ -36,15 +38,6 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     
     let IndexNodeIds (nids:seq<NodeID>) =
-        let lookup = 
-            nids
-            |> Seq.map(fun x ->
-                let hash = x.GetHashCode()
-                (hash |> BitConverter.GetBytes), x.Pointer)
-            |> Map.ofSeq
-             
-        let keys =
-            lookup |> Seq.map (fun (x)->x.Key) |> Array.ofSeq
         ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
        
     // returns true if the node is or was linked to the pointer
@@ -119,12 +112,16 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         try
             // If this node has links requested, then make those and exit
             let mutable outMpA:List<MemoryPointer> = null //System.Collections.Generic.List
-            let mutable outMpB:Pointers = null 
-            if FragmentLinksRequested.TryGetValue(n.Id.Pointer, & outMpA) && outMpA |> Seq.length > 0 then 
+            let mutable outMpB:Pointers = null
+            // outMpa is being modified in another thread somehow.
+            if FragmentLinksRequested.TryGetValue(n.Id.Pointer, & outMpA) && outMpA.Count > 0 then 
                 seq {
-                    for mp in outMpA do
-                        if LinkFragmentTo n mp then  
-                            yield mp 
+                    // Note that we ToList() here to creat a copy of the list, because
+                    // this logic here is dumb and inside LinkFragmentTo it will mutate outMpA
+                    // TODO: rethink this stuff.
+                    for mp in outMpA.ToList() do
+                        if LinkFragmentTo n mp then
+                            yield mp
                     }
             // otherwise link it to something at the end of the NodeIdToPointers index
             else if (``Index of NodeID -> MemoryPointer``.TryGetValue (n.Id, & outMpB)) &&
@@ -357,9 +354,13 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     let mutable nio: NodeIO = NodeIO.NoOP() 
                     if reader.TryRead(&nio) = false then
                         let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.QueueEmptyWaitTime, tags)
-                        // sleep for now. later we will want do do compaction tasks
-                        //printf "Waited."
-                        System.Threading.Thread.Sleep(1) // sleep to save cpu
+                        // sleep for now.
+                        // todo: use this down time to do cleanup and compaction and other maintance tasks.
+                        reader.WaitToReadAsync().AsTask()
+                            |> Async.AwaitTask
+                            |> Async.RunSynchronously
+                            |> ignore
+                            
                         nio <- myNoOp // set NoOp so we can loop and check alldone.IsCompleted again.
                         nioWaitTimer.Dispose()    
                     match nio with
@@ -412,7 +413,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
                             config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddSizeBytes, tags, lastPosition - startPos)
-                            copyTask.Wait()
+                            copyTask |> Async.AwaitTask |> Async.RunSynchronously
                             arraybuffer.Return rentedBuffer
                             tcs.SetResult()
                             

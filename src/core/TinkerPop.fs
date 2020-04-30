@@ -19,7 +19,7 @@ module public TinkerPop =
                 Nodeid.Remote <- graph
                 Nodeid.Iri <- i
                 Nodeid
-            ab "TheCrew" id
+            ab "" id
     
     let DABtoyId id : DataBlock =
         DBA (ABtoyId id)
@@ -43,16 +43,13 @@ module public TinkerPop =
             |> Map.ofSeq
         let NodeAttrs = attrs "node" 
         let EdgeAttrs = attrs "edge" 
-        
-        let Id id = 
-            Id "" id (NullMemoryPointer())
-        
+       
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
             nodes
             |> Seq.map (fun n -> 
                      
                         let z = new Grpc.Node()
-                        z.Id <- Id (n.Id.ToString());  
+                        z.Id <- ABtoyId (n.Id.ToString());  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->
@@ -63,19 +60,19 @@ module public TinkerPop =
                                 let valueBytes =
                                     match valueMeta with
                                     | m when m = metaPlainTextUtf8 -> match d.String with  
-                                                                       | Some(s) -> Encoding.UTF8.GetBytes s
-                                                                       | _ -> Array.empty<byte>
+                                                                       | Some(s) -> DBBString s
+                                                                       | _ -> DBBEmpty()
                                     | m when m = metaXmlDouble -> match d.String with  
-                                                                   | Some(s) -> BitConverter.GetBytes (double s)
-                                                                   | _ -> Array.empty<byte>
+                                                                   | Some(s) -> DBBDouble (double s)
+                                                                   | _ -> DBBEmpty()
                                     | m when m = metaXmlInt -> match d.String with  
-                                                                | Some(s) -> BitConverter.GetBytes (int32 s)
-                                                                | _ -> Array.empty<byte>
-                                    | _ -> Array.empty<byte>                                                                                    
+                                                                | Some(s) -> DBBInt (int32 s)
+                                                                | _ -> DBBEmpty()
+                                    | _ -> DBBEmpty()                                                                                   
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- TMDAuto (MetaBytes valueMeta valueBytes)
+                                kv1.Value <- valueBytes |> TMDAuto
                                 kv1
                             )
                             |> Seq.append (edges
@@ -105,7 +102,7 @@ module public TinkerPop =
             edges
             |> Seq.map (fun n -> 
                         let z = new Grpc.Node()
-                        z.Id <-  Id (n.Id.ToString()) ;  
+                        z.Id <-  ABtoyId (n.Id.ToString()) ;  
                         n.Datas
                             |> Seq.ofArray
                             |> Seq.map (fun d ->
@@ -116,19 +113,19 @@ module public TinkerPop =
                                 let valueBytes =
                                     match valueMeta with
                                     | m when m = metaPlainTextUtf8 -> match d.String with  
-                                                                       | Some(s) -> Encoding.UTF8.GetBytes s
-                                                                       | _ -> Array.empty<byte>
+                                                                       | Some(s) -> DBBString s
+                                                                       | _ -> DBBEmpty()
                                     | m when m = metaXmlDouble -> match d.String with  
-                                                                   | Some(s) -> BitConverter.GetBytes (double s)
-                                                                   | _ -> Array.empty<byte>
+                                                                   | Some(s) -> DBBDouble (double s)
+                                                                   | _ -> DBBEmpty()
                                     | m when m = metaXmlInt -> match d.String with  
-                                                                | Some(s) -> BitConverter.GetBytes (int32 s)
-                                                                | _ -> Array.empty<byte>
-                                    | _ -> Array.empty<byte>                                                                                    
+                                                                | Some(s) -> DBBInt (int32 s)
+                                                                | _ -> DBBEmpty()
+                                    | _ -> DBBEmpty()                                                                                   
                                 
                                 let kv1 = new KeyValue()
                                 kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- (MetaBytes valueMeta valueBytes) |> TMDAuto
+                                kv1.Value <- valueBytes |> TMDAuto
                                 kv1
                             )
                             |> Seq.append (edges

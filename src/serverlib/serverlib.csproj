@@ -8,6 +8,8 @@
     <ItemGroup>
       <PackageReference Include="RocksDbNative" Version="6.2.2" />
       <PackageReference Include="RocksDbSharp" Version="6.2.2" />
+      <PackageReference Include="Wasmtime" Version="0.15.0-preview1" />
+      <PackageReference Include="xunit.abstractions" Version="2.0.3" />
     </ItemGroup>
 
 </Project>
