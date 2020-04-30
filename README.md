@@ -50,6 +50,57 @@ There is the beginnings of a UI, that runs in your browser.
  - Click fork button
  - Jump on Discord https://discord.gg/NfcBmjA
 
+## Run it
+
+ - Launch the server project
+ - Open query tab
+ - Add data
+```
+load graphml "https://raw.githubusercontent.com/Astn/ekati/master/src/core/tinkerpop-modern.xml"
+```
+or
+```
+load nt "http://path to .NTriples file"
+```
+
+view some of it
+
+```
+get "1" |> follow * 2
+```
+
+```
+get "6" |> follow * 2
+```
+
+```
+get "2", "4"
+```
+
+## Enter some data
+
+```
+put "your/wonderful/id" 
+    "key":"value",
+    "key2":"value2",
+    "linkname":@"someid",
+    "anotherlink":@"anotherid";
+
+    "someid"
+        "likes":@"your/wonderful/id",
+        "doesnt/like":@"anotherid";
+
+    "anotherid"
+        "name":"whatever you like",
+        "follows":@"1";    
+```
+
+#### get it back out, and then follow any(*) link out 1 jump
+
+```
+get "your/wonderful/id", "anotherid" |> follow * 1     
+```
+
 ## Good reading
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
 - [BigTable](https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf)
