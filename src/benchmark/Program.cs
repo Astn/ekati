@@ -218,9 +218,15 @@ namespace benchmark
 
 
         [Benchmark(Baseline = true)]
-        public int StringHash()
+        public int StringHash32()
         {
             return nid.Remote.GetHashCode() ^ nid.Iri.GetHashCode();
+        }
+
+        [Benchmark()]
+        public long StringHash64()
+        {
+            return (((long)nid.Remote.GetHashCode()) << 32) ^ nid.Iri.GetHashCode();
         }
         
         [Benchmark()]
@@ -230,9 +236,20 @@ namespace benchmark
         }
       
         [Benchmark()]
-        public int MurmurHash()
+        public long MurmurHash()
         {
             return nid.GetHashCodeGoodDistribution(nid);
+        }
+        
+        [Benchmark()]
+        public long GetBytesForKey()
+        {
+            unsafe
+            {
+                Span<byte> bytes = stackalloc byte[nid.GetKeyBytesSize()];
+                nid.WriteKeyBytes(bytes);
+                return bytes.Length;
+            }
         }
         
     }
@@ -299,7 +316,8 @@ namespace benchmark
     {
         static void Main(string[] args)
         {
-            var summary4 = BenchmarkRunner.Run<WriteNodesBenchmark>();
+            var AddNodesBench = BenchmarkRunner.Run<NodeIdHashBench>();
+            //var summary4 = BenchmarkRunner.Run<WriteNodesBenchmark>();
             //var summary0 = BenchmarkRunner.Run<CreatingTypes>();
             //var summary1 = BenchmarkRunner.Run<CreatingKeyValue>();
             //var summary2 = BenchmarkRunner.Run<CreatingNodeEmpty>();

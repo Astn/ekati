@@ -149,10 +149,16 @@ namespace Ahghee.Grpc
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() {
-            return GetHashCode(this);
+            return Convert.ToInt32(GetHashCodeGoodDistribution(this));
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetHashCode(NodeID nodeId) {
+            return Convert.ToInt32(GetHashCodeGoodDistribution(nodeId));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Int64 GetHashCode64(NodeID nodeId) {
             return GetHashCodeGoodDistribution(nodeId);
         }
 
@@ -201,18 +207,27 @@ namespace Ahghee.Grpc
         // But because it results in less collisions it's currently a net faster then our stack alloc approach.
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCodeGoodDistribution(NodeID obj)
+        public Int64 GetHashCodeGoodDistribution(NodeID obj)
         {
             var array = new byte[System.Text.Encoding.UTF8.GetByteCount(obj.remote_) + System.Text.Encoding.UTF8.GetByteCount(obj.iri_)];
             var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,0,obj.remote_.Length,array,0);
             System.Text.Encoding.UTF8.GetBytes(obj.iri_,0,obj.iri_.Length,array,written);
             var hash = hasher.ComputeHash(array);
-            return BitConverter.ToInt32(hash.Hash);
-            // unchecked
-            // {
-            //     int hash32 = ((int)h) ^ ((int)(h >> 32));
-            //     return hash32;
-            // }
+            var bits = hash.BitLength;
+            return bits > 32 ? BitConverter.ToInt64(hash.Hash) : BitConverter.ToInt32(hash.Hash);
+        }
+
+        public int GetKeyBytesSize()
+        {
+            return System.Text.Encoding.UTF8.GetByteCount(this.remote_) +
+                   System.Text.Encoding.UTF8.GetByteCount(this.iri_);
+        }
+
+        public void WriteKeyBytes(Span<byte> output)
+        {
+            var written = System.Text.Encoding.UTF8.GetBytes(this.iri_,output);
+            var nextPart = output.Slice(written);
+            System.Text.Encoding.UTF8.GetBytes(this.remote_,nextPart);
         }
         
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
