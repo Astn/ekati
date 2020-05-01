@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Ahghee;
 using Ahghee.Grpc;
@@ -43,10 +44,15 @@ namespace server
             var lex = new AHGHEELexer(ins);
             return new UnbufferedTokenStream(lex);
         }
-        static UnbufferedTokenStream makeNTRIPLESStream(string text)
+        static UnbufferedTokenStream makeNTRIPLESStream(Stream text)
         {
-            var sr = new StringReader(text);
-            var ins = new AntlrInputStream(sr);
+            var ins = new AntlrInputStream(text);
+            var lex = new NTRIPLESLexer(ins);
+            return new UnbufferedTokenStream(lex);
+        }
+        static UnbufferedTokenStream makeNTRIPLESStream(TextReader text)
+        {
+            var ins = new AntlrInputStream(text);
             var lex = new NTRIPLESLexer(ins);
             return new UnbufferedTokenStream(lex);
         }
@@ -78,13 +84,21 @@ namespace server
                     Console.WriteLine($"Loading file: {request.Path}");
                     try
                     {
+                        Stream data = null;
                         if (!File.Exists(request.Path))
                         {
                             // TODO; download it.
+                            var client = new HttpClient();
+                            data = await client.GetStreamAsync(request.Path);
                         }
+                        else
+                        {
+                            data = File.OpenRead(request.Path);
+                        }
+                        await using var cleanup = data;
                         ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
                         var sw = Stopwatch.StartNew();
-                        var parser = new NTRIPLESParser(makeNTRIPLESStream(await File.ReadAllTextAsync(request.Path)));
+                        var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
                         parser.BuildParseTree = true;
 
                         async Task GroupAndAdd(List<Node> list)

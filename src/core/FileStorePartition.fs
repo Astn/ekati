@@ -310,14 +310,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let fileNameid = i 
             let fileName = Path.Combine(dir.FullName, (sprintf "ahghee.%i.tmp" i))
             let fileNamePos = Path.Combine(dir.FullName, (sprintf "ahghee.%i.pos" i))
-            let fileNameScanIndex = Path.Combine(dir.FullName, (sprintf "ahghee.%i.scan.index" i))
             let stream = new IO.FileStream(fileName,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
-            let scanIndexFile = new IO.FileStream(fileNameScanIndex,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,1024*10000,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
-            
-            
+
             // PRE-ALLOCATE the file to reduce fragmentation https://arxiv.org/pdf/cs/0502012.pdf
             let PreAllocSize = int64 (1024 * 1000 )
-            stream.SetLength(PreAllocSize)
+            if stream.Length < PreAllocSize then
+                stream.SetLength(PreAllocSize)
             
             let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
             let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
@@ -329,9 +327,11 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 // this cannot be called after we create a writer a few lines after we initially call loadLastPos
                 // because we hold open the file.
                 use posStream = new IO.FileStream(fileNamePos,IO.FileMode.OpenOrCreate,IO.FileAccess.ReadWrite,IO.FileShare.Read,8,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
-                posStream.SetLength(int64 8)
+                if posStream.Length < int64 8 then
+                    posStream.SetLength(int64 8)
                 use br = new BinaryReader(posStream)
-                lastPosition <- br.ReadInt64()
+                lastPosition <- br.ReadInt64()               
+                stream.Seek (lastPosition, SeekOrigin.Begin) |> ignore
             loadLastPos()
             
             let posStream = new IO.FileStream(fileNamePos,IO.FileMode.Open,IO.FileAccess.Write,IO.FileShare.Read,8,IO.FileOptions.Asynchronous ||| IO.FileOptions.SequentialScan)
