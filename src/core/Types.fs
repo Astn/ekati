@@ -72,40 +72,37 @@ type NodeIdIndex (indexFile:string) =
 
     member __.Iter() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst() 
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
                 repeatedField.MergeFrom(codedinputStream)
                 yield repeatedField
-                it.Next()
+                it.Next() |> ignore
         }
     
     member __.IterKey() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst()
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 yield bytes
-                it.Next()
+                it.Next() |> ignore
         }
         
 
     member __.IterKV() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst()
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
                 repeatedField.MergeFrom(codedinputStream)
                 yield (it.Key(), repeatedField)
-                it.Next()
+                it.Next() |> ignore
         }        
         
     

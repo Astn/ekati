@@ -29,7 +29,6 @@ namespace Ahghee.Grpc
             var host = new Wasmtime.Host();
             Called = false;
             // make a function available to wasm.
-            var initialValue = 1;
             var glob = host.DefineMutableGlobal<Int32>("", "global", 1);
             host.DefineFunction(
                 "",

@@ -26,12 +26,12 @@ type MemoryStore() =
             
         member this.Items (addresses:seq<NodeID>, follow: Step) =
             let matches = addresses |> Seq.map (fun addr -> 
-                                                        let isLocal = _nodes 
-                                                                      |> Seq.tryFind ( fun n -> n.Id = addr)
-                                                        let found = match isLocal with
-                                                            | Some(n) -> Either<Node,Exception>(n)
-                                                            | _ -> Either<Node,Exception>(new Exception("Not Found"))
-                                                        struct (addr, found)
+                        let isLocal = _nodes 
+                                      |> Seq.tryFind ( fun n -> n.Id = addr)
+                        let found = match isLocal with
+                                        | Some(n) -> Either<Node,Exception>(n)
+                                        | _ -> Either<Node,Exception>(new Exception("Not Found"))
+                        struct (addr, found)
                                                                 
                                                 )
             Task.FromResult matches      

@@ -38,7 +38,7 @@
         </Stack>
 
         <ResponsiveLayout MaxWidth="ResponsiveMode.Medium.ToMaxCssValue()">
-            <Panel Type=@PanelType.SmallFixedNear OnDismiss=@(new EventCallback(this, (Action<bool>)((b) => isPanelOpen = false))) IsOpen="@isPanelOpen" IsLightDismiss="true">
+            <Panel Type=@PanelType.SmallFixedNear OnDismiss=@(b => isPanelOpen = false) IsOpen="@isPanelOpen" IsLightDismiss="true">
                 <NavigationTemplate>
                     <IconButton IconName="GlobalNavButton" OnClick="@(() => isPanelOpen = false)" />
                     <Link Href="https://github.com/astn/ahghee" Target="_blank">on GitHub</Link>
