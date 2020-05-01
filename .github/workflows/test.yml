@@ -15,11 +15,14 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-
+        os: [windows-latest, ubuntu-latest
+        # todo: , macos-latest
+        ]
+    
+    runs-on: ${{ matrix.os }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v2
@@ -28,5 +31,13 @@ jobs:
       with:
         # SDK version to use. Example: 2.2.104
         dotnet-version: 3.1.201 
+    - name: Ubuntu Dependencies
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: sudo apt install libc6-dev libsnappy-dev
+
+    - name: Macos Dependencies
+      if: ${{ matrix.os == 'macos-latest' }}
+      run:
+
     - name: Test
       run: cd src; dotnet test ./core.tests/
