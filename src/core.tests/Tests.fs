@@ -6,7 +6,6 @@ open Xunit.Abstractions
 open Ahghee
 open Ahghee
 open Ahghee.Grpc
-open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
 open App.Metrics
@@ -212,10 +211,13 @@ type MyTests(output:ITestOutputHelper) =
                                          |> Seq.map    (fun x -> x.Value )
                                          |> Seq.distinct
                                          |> (fun ids -> g.Items(ids, Step() ))
+                                         |> Async.AwaitTask
+                                         |> Async.RunSynchronously
+                                         |> List.ofSeq
 
         let sb = new StringBuilder()
-        sb.ResultsPrinter(nodesWithIncomingEdges.Result) |> ignore
-        nodesWithIncomingEdges.Result
+        sb.ResultsPrinter(nodesWithIncomingEdges) |> ignore
+        nodesWithIncomingEdges
             |> Seq.iter (fun struct (nid, res) ->
                             if res.IsLeft then
                                 sb.NodePrinter(res.Left, 1, PrintMode.History) |> ignore
@@ -225,7 +227,7 @@ type MyTests(output:ITestOutputHelper) =
             
         output.WriteLine <| sb.ToString() 
         
-        Assert.NotEmpty nodesWithIncomingEdges.Result
+        Assert.NotEmpty nodesWithIncomingEdges
     
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
@@ -696,3 +698,24 @@ type MyTests(output:ITestOutputHelper) =
             
         ()
       
+
+    [<Theory>]
+    [<InlineData("file")>] 
+    member __.QueryWillNotReturnTheSameNodeMultipleTimes db = 
+        let g = __.toyGraph (dbtype db)
+
+        let step = new Step()
+        step.Follow <- new FollowOperator()
+        step.Follow.FollowAny <- new FollowOperator.Types.FollowAny()
+        step.Follow.FollowAny.Range <- new Ahghee.Grpc.Range()
+        step.Follow.FollowAny.Range.From <- 0
+        step.Follow.FollowAny.Range.To <- 6
+        let results = g.Items([| ABtoyId "1" |], step) |> Async.AwaitTask |> Async.RunSynchronously |> Seq.toList
+        
+        let set = results
+                  |> List.map (fun struct (nodeId,result) -> nodeId)
+                  |> Set.ofList
+        
+        Assert.Equal(set.Count, results |> List.length)    
+        ()
+
