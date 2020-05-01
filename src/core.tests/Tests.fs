@@ -211,10 +211,13 @@ type MyTests(output:ITestOutputHelper) =
                                          |> Seq.map    (fun x -> x.Value )
                                          |> Seq.distinct
                                          |> (fun ids -> g.Items(ids, Step() ))
+                                         |> Async.AwaitTask
+                                         |> Async.RunSynchronously
+                                         |> List.ofSeq
 
         let sb = new StringBuilder()
-        sb.ResultsPrinter(nodesWithIncomingEdges.Result) |> ignore
-        nodesWithIncomingEdges.Result
+        sb.ResultsPrinter(nodesWithIncomingEdges) |> ignore
+        nodesWithIncomingEdges
             |> Seq.iter (fun struct (nid, res) ->
                             if res.IsLeft then
                                 sb.NodePrinter(res.Left, 1, PrintMode.History) |> ignore
@@ -224,7 +227,7 @@ type MyTests(output:ITestOutputHelper) =
             
         output.WriteLine <| sb.ToString() 
         
-        Assert.NotEmpty nodesWithIncomingEdges.Result
+        Assert.NotEmpty nodesWithIncomingEdges
     
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
