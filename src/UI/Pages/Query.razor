@@ -17,9 +17,16 @@
 <h3 >Query</h3>
 <CommandBar Items=@commands />
 <div style="display: table; clear: both;">
-    <div id="monaco_container" style="width: 48%; height: 500px; float: left;" ></div>
-    <div  style="width: 48%; height: 500px; float: right; overflow: scroll; background-color: pink; ">
+    <div id="monaco_container" style="width: 40%; height: 500px; float: left;" ></div>
+    <div  style="float: right; width: 60%; overflow: hidden; background-color: black; ">
         <Graph Nodes="@Nodes"></Graph>    
+    </div>
+    <div>
+        @if (IsLoading > 0)
+        {
+            var label = $"{IsLoading} - Processing";
+            <Spinner Size=@SpinnerSize.Small Label="@label" ></Spinner>
+        }
     </div>
 </div>
 <div>
@@ -42,7 +49,8 @@
                 </tr>
                 </thead>
                 <tbody>
-                    @foreach (var n in Nodes)
+                @{
+                    foreach (var n in Nodes.Skip(skip).Take(take))
                     {
                         <tr>
                             <td>@n.Id.Iri</td>
@@ -51,12 +59,12 @@
                                 var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList();
                                 if (!vals.Any())
                                 {
-                                    <td><i>null</i></td> 
+                                    <td><i>null</i></td>
                                 }
                                 else
                                 {
                                     <td>
-                                        
+
                                         @if (vals.Count == 1)
                                         {
                                             <span>@vals[0].Value.Data.ToDisplayString()</span>
@@ -64,21 +72,25 @@
                                         else
                                         {
                                             <ul>
-                                            @foreach (var a in vals)
-                                            {
-                                                //var key = a.Key.Data.ToDisplayString();
-                                                var val = a.Value.Data.ToDisplayString().Replace("\\u","&#");
-                                                <li>@val</li>
-                                            }
+                                                @foreach (var a in vals.Take(10))
+                                                {
+                                                    //var key = a.Key.Data.ToDisplayString();
+                                                    var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#");
+                                                    <li>@val</li>
+                                                }
                                             </ul>
-                                        } 
+                                        }
                                     </td>
                                 }
                             }
-                        </tr>        
+                        </tr>
                     }
+                }
                 </tbody>
-            </table>        
+            </table>     
+            
+                        
+            
         }
 </div>  
 
@@ -86,9 +98,12 @@
     private List<CommandBarItem> commands;
     bool isInitializing;
     public bool IsInitialized;
+    public int IsLoading;
     public List<Node> Nodes { get; set; }
 
-    
+    int skip = 0;
+    int take = 10;
+    int took = 0;  
     
     protected override async Task OnInitializedAsync()
     {
@@ -97,7 +112,13 @@
         commands = new List<CommandBarItem>
         {
             new CommandBarItem() {Text = "Run", IconName = "Play", Key = "1", Command = new RelayCommand((o) => { this.Run(); }, (o)=>true)},
-            new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)}
+            new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)},
+            new CommandBarItem() {Text = "Up", IconName = "CaretSolidUp", Key = "3", Command = new RelayCommand((o) => { 
+                                                                                                                           if(skip>0)
+                                                                                                                           skip -= take; },(o)=>true)},
+            new CommandBarItem() {Text = "Down", IconName = "CaretSolidDown", Key = "4", Command = new RelayCommand((o) => { 
+                                                                                                                               if(skip< Nodes.Count)
+                                                                                                                               skip += take; },(o)=>true)}
         };
 
         Nodes = new List<Node>();
@@ -113,6 +134,7 @@
 
     private async Task Clear()
     {
+        took = 0;
         this.Nodes.Clear();
         this.StateHasChanged();
     }
@@ -176,7 +198,7 @@
     private async Task Run()
     {
         await JS_OnContentChanged();
-
+        
         var parser = new AHGHEEParser(makeStream(Source));
         parser.BuildParseTree = true;
         parser.AddParseListener(listener: new Listener(async (nodes) =>
@@ -184,7 +206,10 @@
             Source = "";
             foreach (var node in nodes)
             {
+                IsLoading++;
+                this.StateHasChanged();
                 await wat.PutAsync(node);
+                IsLoading--;
                 Source += "\nput:" + node.Id.Iri;
                 this.StateHasChanged();
             }
@@ -194,6 +219,8 @@
             q.Iris.AddRange(nids.Select(x => x.Iri));
             q.Step = step;
 
+            IsLoading++;
+            this.StateHasChanged();
             var stream = wat.Get(q);
             var head = await stream.ResponseHeadersAsync;
             Source = "";
@@ -212,16 +239,21 @@
     // todo: show it
                 Source += "\n" + node.Id.Iri.ToString();
             });
+            IsLoading--;
             this.StateHasChanged();
         }, () => { },
             async (loadType, path) =>
             {
                 Console.WriteLine($"Loading: {loadType} @ {path}");
+                IsLoading++;
+                this.StateHasChanged();
                 await wat.LoadAsync(new LoadFile
                 {
                     Type = loadType,
                     Path = path.Trim('\"')
                 });
+                IsLoading--;
+                this.StateHasChanged();
                 Console.WriteLine($"Finished Loading: {loadType} @ {path}");
             }));
         parser.AddErrorListener(new ErrorListener());
