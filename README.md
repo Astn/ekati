@@ -8,6 +8,10 @@
 
 Under development, lot's to do. If your looking for something production ready, this is NOT it. If you want to get in on an early open source project and have a big impact, this could be your thing.
 
+## Do you like this?
+
+![https://www.buymeacoffee.com/Ekati](https://cdn.buymeacoffee.com/buttons/default-blue.png)
+
 # Interested? 
 
 Do you like graphs or databases, and solving hard problems? I'm hoping you will help me. 
