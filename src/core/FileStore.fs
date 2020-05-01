@@ -194,10 +194,9 @@ type GrpcFileStore(config:Config) =
             | _ -> step
                 
                 
-                
-            
+
     
-    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
+    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step, filter:BloomFilter.Filter<int>) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
         // a where(filter) and then a follow can be handled in the same iteration, though
         // not true for the inverse
         // additionally multiple where filters in a sequence all need to be merged as ANDed
@@ -212,6 +211,12 @@ type GrpcFileStore(config:Config) =
         
         let requestsMade =
             addressBlock
+            |> Seq.filter (fun ab ->
+                let hash = ab.GetHashCode()
+                let f = filter.Contains(hash) |> not
+                filter.Add(hash) |> ignore
+                f
+                )
             |> Seq.map (fun ab ->
                 let tcs = TaskCompletionSource<Node[]>()
                 let nid = ab
@@ -313,18 +318,21 @@ type GrpcFileStore(config:Config) =
                             EdgeCmpValid ( fixedStep.Follow.FollowEdge )
                         | _ -> false
                     if keepGoing then           
-                        for recData in QueryNodes(nextLevel, fixedStep).Result do
+                        for recData in QueryNodes(nextLevel, fixedStep, filter).Result do
                             yield recData
                     else if fixedStep.Next <> null then
-                        for recData in QueryNodes(nextLevel, fixedStep.Next).Result do
+                        for recData in QueryNodes(nextLevel, fixedStep.Next, filter).Result do
                             yield recData
                 else if fixedStep.Next <> null then
-                    for recData in QueryNodes(nextLevel, fixedStep.Next).Result do
+                    for recData in QueryNodes(nextLevel, fixedStep.Next, filter).Result do
                         yield recData
                 ()    
             })
     
-    
+                    
+    let QueryNoDuplicates(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
+        let fliter = BloomFilter.FilterBuilder.Build<int>(10000)
+        QueryNodes(addressBlock, step, fliter)
     
     let Stop() =
         Flush()
@@ -482,7 +490,7 @@ type GrpcFileStore(config:Config) =
                 
                         
         member x.Remove (nodes:seq<NodeID>) = raise (new NotImplementedException())
-        member x.Items (addressBlock:seq<NodeID>, follow: Step) = QueryNodes(addressBlock, follow)
+        member x.Items (addressBlock:seq<NodeID>, follow: Step) = QueryNoDuplicates(addressBlock, follow)
         member x.First (predicate: Func<Node, bool>) = raise (new NotImplementedException())
         member x.Stop () =  
             Flush()
