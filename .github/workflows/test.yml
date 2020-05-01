@@ -18,9 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest
-        # todo: , macos-latest
-        ]
+        os: [windows-latest, ubuntu-latest ]
     
     runs-on: ${{ matrix.os }}
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -35,9 +33,9 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: sudo apt install libc6-dev libsnappy-dev
 
-    - name: Macos Dependencies
-      if: ${{ matrix.os == 'macos-latest' }}
-      run:
+    # - name: Macos Dependencies
+    #   if: ${{ matrix.os == 'macos-latest' }}
+    #   run:
 
     - name: Test
       run: cd src; dotnet test ./core.tests/
