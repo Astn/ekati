@@ -316,7 +316,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             
             
             // PRE-ALLOCATE the file to reduce fragmentation https://arxiv.org/pdf/cs/0502012.pdf
-            let PreAllocSize = int64 (1024 * 100000 )
+            let PreAllocSize = int64 (1024 * 1000 )
             stream.SetLength(PreAllocSize)
             
             let FixPointersWriteBuffer = new SortedList<uint64,MemoryPointer>()
