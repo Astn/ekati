@@ -2,10 +2,13 @@
 using System;
 using System.Collections;
 using System.Data.HashFunction.MurmurHash;
+using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text;
+using FASTER.core;
 using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
@@ -104,8 +107,57 @@ namespace Ahghee.Grpc
             
         }
     }
-    
-    public sealed partial class NodeID : IComparable, IComparable<NodeID>, scg.IEqualityComparer<NodeID>
+
+    // public class MemoryPointerSerializer : BinaryObjectSerializer<MemoryPointer>
+    // {
+    //     public override void Deserialize(ref MemoryPointer obj)
+    //     {
+    //         throw new NotImplementedException();
+    //     }
+    //
+    //     public override void Serialize(ref MemoryPointer obj)
+    //     {
+    //         throw new NotImplementedException();
+    //     }
+    // }
+    public class PointersSerializer : BinaryObjectSerializer<Pointers>
+    {
+        public override void Deserialize(ref Pointers obj)
+        {
+            var inputStream = new pb.CodedInputStream(reader.BaseStream, true);
+            obj.MergeFrom(inputStream);
+        }
+
+        public override void Serialize(ref Pointers obj)
+        {
+            var len = obj.CalculateSize();
+            var mem = new byte[len];
+            var outputStream = new pb.CodedOutputStream(mem);
+            obj.WriteTo(outputStream);
+            outputStream.Flush();
+            writer.Write(mem);
+        }
+    }
+    public class NodeIDSerializer : BinaryObjectSerializer<NodeID>
+    {
+        public override void Deserialize(ref NodeID obj)
+        {
+            var iriLen = reader.ReadInt32();
+            obj.Iri = UTF8Encoding.Default.GetString(reader.ReadBytes(iriLen));
+            var remoteLen = reader.ReadInt32();
+            obj.Remote = UTF8Encoding.Default.GetString(reader.ReadBytes(remoteLen));
+        }
+
+        public override void Serialize(ref NodeID obj)
+        {
+            Span<byte> memory = stackalloc byte[obj.GetKeyBytesSize()];
+            obj.WriteKeyBytes(memory);
+            writer.Write(memory);
+        }
+    }
+    public sealed partial class NodeID : IComparable, IComparable<NodeID>
+        , scg.IEqualityComparer<NodeID>
+        , IFasterEqualityComparer<NodeID>
     {
         private static IMurmurHash3 hasher = System.Data.HashFunction.MurmurHash.MurmurHash3Factory.Instance.Create();
         public int CompareTo(object obj)
@@ -219,31 +271,49 @@ namespace Ahghee.Grpc
 
         public int GetKeyBytesSize()
         {
-            return System.Text.Encoding.UTF8.GetByteCount(this.remote_) +
+            var lens = sizeof(int) * 2;
+            return lens + System.Text.Encoding.UTF8.GetByteCount(this.remote_) +
                    System.Text.Encoding.UTF8.GetByteCount(this.iri_);
         }
 
         public void WriteKeyBytes(Span<byte> output)
         {
-            var written = System.Text.Encoding.UTF8.GetBytes(this.iri_,output);
-            var nextPart = output.Slice(written);
-            System.Text.Encoding.UTF8.GetBytes(this.remote_,nextPart);
+            var iriLen = System.Text.Encoding.UTF8.GetByteCount(this.iri_);
+            var remoteLen = System.Text.Encoding.UTF8.GetByteCount(this.remote_);
+            
+            // write and move
+            iriLen.IntoSpan(output);
+            var iriDest = output.Slice(sizeof(int));
+            
+            // write and move
+            var offset = System.Text.Encoding.UTF8.GetBytes(this.iri_,iriDest);
+            var nextPart = iriDest.Slice(offset);
+            
+            // write and move
+            remoteLen.IntoSpan(nextPart);
+            var remoteMem = nextPart.Slice(sizeof(int));
+            
+            // write, no move
+            System.Text.Encoding.UTF8.GetBytes(this.remote_, remoteMem);
         }
         
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        // public int GetHashCodeGoodDistributionLessAllocation(NodeID obj)
-        // {
-        //     int len = System.Text.Encoding.UTF8.GetByteCount(obj.remote_) +
-        //               System.Text.Encoding.UTF8.GetByteCount(obj.iri_);
-        //     int toadd = 4 - (len % 4);
-        //     Span<byte> array = stackalloc  byte[len + toadd];
-        //     var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,array);
-        //     var arra2 = array.Slice(written);
-        //     System.Text.Encoding.UTF8.GetBytes(obj.iri_,arra2);
-        //     var hash = hasher.ComputeHash(array);
-        //     return BitConverter.ToInt32(hash.Hash, 0);
-        // }
+        public bool Equals(ref NodeID x, ref NodeID y)
+        {
+            return x != null && x.Equals(y);
+        }
+        
+        public long GetHashCode64(ref NodeID obj)
+        {
+            var array = new byte[System.Text.Encoding.UTF8.GetByteCount(obj.remote_) + System.Text.Encoding.UTF8.GetByteCount(obj.iri_)];
+            var written = System.Text.Encoding.UTF8.GetBytes(obj.remote_,0,obj.remote_.Length,array,0);
+            System.Text.Encoding.UTF8.GetBytes(obj.iri_,0,obj.iri_.Length,array,written);
+            var hash = hasher.ComputeHash(array);
+            var bits = hash.BitLength;
+            return bits > 32 ? BitConverter.ToInt64(hash.Hash) : BitConverter.ToInt32(hash.Hash);
+        }
     }
+    
+    
 
     public sealed partial class DataBlock : IComparable<DataBlock>, IComparable
     {

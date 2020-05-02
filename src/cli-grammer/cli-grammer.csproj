@@ -3,6 +3,7 @@
     <PropertyGroup>
         <RootNamespace>cli_grammer</RootNamespace>
         <TargetFrameworks>netstandard2.1;netcoreapp3.1</TargetFrameworks>
+        <Platforms>x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>

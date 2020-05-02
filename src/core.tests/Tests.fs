@@ -6,6 +6,7 @@ open Xunit.Abstractions
 open Ahghee
 open Ahghee
 open Ahghee.Grpc
+open Ahghee.Grpc
 open Ahghee.Utils
 open Ahghee.TinkerPop
 open App.Metrics
@@ -19,8 +20,7 @@ open System.Threading.Tasks
 open FSharp.Data
 open Google.Protobuf.Collections
 open RocksDbSharp
-open cli;
-
+open cli
 type StorageType =
     | Memory
     | GrpcFile
@@ -72,6 +72,91 @@ type MyTests(output:ITestOutputHelper) =
         g.Flush()
         g
 
+    [<Fact>]
+    member __.``Can Dispose Faster KV``()=
+        let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("index-"+ Path.GetRandomFileName())))
+        let index = new Ahghee.Grpc.NodeIndex(Path.Combine( dir.FullName, "node-" ))
+        index.Dispose()
+    
+    [<Fact>]
+    member __.``Can Put KV in Faster KV``()=
+        let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("index-"+ Path.GetRandomFileName())))
+        let index = new NodeIndex(Path.Combine( dir.FullName, "node-" ))
+        let key = ABtoyId "1"
+        key.Pointer.Length <- uint64 42
+        let value = key.Pointer
+        index.RMW(ref key, ref value )
+        let def = NullMemoryPointer( )
+        let out = new Pointers()
+        index.Read(ref key, ref def, ref out )
+        
+        Assert.True ( out.Pointers_.Count > 0 )       
+        
+        index.Dispose()
+
+    [<Fact>]
+    member __.``Can Put multiple KV in Faster KV``()=
+        let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("index-"+ Path.GetRandomFileName())))
+        use index = new NodeIndex(Path.Combine( dir.FullName, "node-" ))
+        let count = 10
+        for id in [| 1 .. count |] do
+            output.WriteLine <| sprintf "putting -> "
+            for offset in [| 1 .. count |] do
+                let key = ABtoyId <| id.ToString()
+                key.Pointer.Offset <- uint64 offset
+                key.Pointer.Length <- uint64 offset
+                let value = key.Pointer
+                index.RMW(ref key, ref value )
+                output.WriteLine <| sprintf "%A" value
+        
+            let key = ABtoyId <| id.ToString()
+            let def = NullMemoryPointer()
+//            new MemoryPointer()
+//            def.Offset <- uint64 12345
+            let out = new Pointers()
+            index.Read(ref key, ref def, ref out )
+            for p in out.Pointers_ do
+                output.WriteLine <| sprintf "found\n%A" p
+            Assert.InRange ( out.Pointers_.Count , count , count)
+
+    [<Fact>]
+    member __.``Can Put dedupe KV in Faster KV``()=
+        let dir = IO.Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory,("index-"+ Path.GetRandomFileName())))
+        use index = new NodeIndex(Path.Combine( dir.FullName, "node-" ))
+        let count = 10
+        for id in [| 1 .. count |] do
+            
+            for offset in [| 1 .. count |] do
+                let key = ABtoyId <| id.ToString()
+                key.Pointer.Offset <- uint64 offset
+                key.Pointer.Length <- uint64 offset
+                let value = key.Pointer
+                index.RMW(ref key, ref value )
+        
+            for offset in [| 1 .. count |] do
+                let key = ABtoyId <| id.ToString()
+                key.Pointer.Offset <- uint64 offset
+                key.Pointer.Length <- uint64 offset
+                let value = key.Pointer
+                index.RMW(ref key, ref value )
+                
+            for offset in [| 1 .. count |] do
+                let key = ABtoyId <| id.ToString()
+                key.Pointer.Offset <- uint64 offset
+                key.Pointer.Length <- uint64 offset
+                let value = key.Pointer
+                index.RMW(ref key, ref value )    
+            
+            let key = ABtoyId <| id.ToString()
+            let def = NullMemoryPointer()
+//            new MemoryPointer()
+//            def.Offset <- uint64 12345
+            let out = new Pointers()
+            index.Read(ref key, ref def, ref out )
+        
+            Assert.InRange ( out.Pointers_.Count , count , count)
+    
+    
     [<Fact>]
     member __.``Can create an InternalIRI type`` () =
         let id = DBA ( ABtoyId "1" ) 
