@@ -12,6 +12,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.FASTER" Version="2020.4.27.1" />
     <PackageReference Include="System.Data.HashFunction.MurmurHash" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>

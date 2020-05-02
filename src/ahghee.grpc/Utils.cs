@@ -8,6 +8,14 @@ namespace Ahghee.Grpc
 {
     public static class Utils
     {
+        public static void IntoSpan(this int number, Span<byte> dest)
+        {
+            var sizeBytes = BitConverter.GetBytes(number);
+            for (var i = 0; i < sizeBytes.Length; i++)
+            {
+                dest[i] = sizeBytes[i];
+            } 
+        }
         public static MemoryPointer NullMemoryPointer()
         {
             var mp = new MemoryPointer
