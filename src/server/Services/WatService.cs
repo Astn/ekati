@@ -5,10 +5,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Ahghee;
 using Ahghee.Grpc;
 using Antlr4.Runtime;
+using cli;
 using cli.antlr;
 using cli_grammer;
 using Google.Protobuf.WellKnownTypes;
@@ -18,6 +20,7 @@ using Utils = Ahghee.Utils;
 
 namespace server
 {
+    
     public class WatService : Ahghee.Grpc.WatDbService.WatDbServiceBase
     {
         private readonly ILogger<WatService> _logger;
@@ -74,6 +77,79 @@ namespace server
             return cpuPercent;
         }
 
+        private async Task ParseNTStream(Stream data)
+        {
+            ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
+
+            var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
+            parser.BuildParseTree = true;
+
+            async Task GroupAndAdd(List<Node> list)
+            {
+                var nodes = list.GroupBy(n => n.Id, (key, ns) =>
+                {
+                    return new Node
+                    {
+                        Id = key,
+                        Attributes = {ns.SelectMany(_n => _n.Attributes)}
+                    };
+                });
+                await _db.Add(nodes.ToList());
+            }
+
+            parser.AddParseListener(new NtriplesListener(async (node) =>
+            {
+                batch.Enqueue(node);
+
+                // because we dealing with triples, we may get a bunch for the same nodeId
+                // do a little grouping to reduce the amount of fragments we create
+                if (batch.Count <= 600) return;
+                var mine = new List<Node>();
+                while (!batch.IsEmpty)
+                {
+                    if (batch.TryDequeue(out var nnnnnn))
+                    {
+                        mine.Add(nnnnnn);    
+                    }
+                }
+                
+                await GroupAndAdd(mine);
+            }));
+
+            parser.AddErrorListener(new ErrorListener());
+            NTRIPLESParser.TripleContext cc = null;
+
+            for (;; cc = parser.triple())
+            {
+                if (cc?.exception != null
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
+                )
+                {
+                    Console.WriteLine(cc.exception.Message);
+                    Console.WriteLine(
+                        $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+                }
+                
+                if (parser.CurrentToken.Type == TokenConstants.Eof)
+                {
+                    break;
+                }
+            }
+            // deal with the remainder of the batch.
+            var mine2 = new List<Node>();
+            while (!batch.IsEmpty)
+            {
+                if (batch.TryDequeue(out var nnnnnn))
+                {
+                    mine2.Add(nnnnnn);    
+                }
+            }
+            if (mine2.Count > 0)
+            {
+                await GroupAndAdd(mine2);
+            }
+        }
 
         public override async Task<LoadFileResponse> Load(LoadFile request, ServerCallContext context)
         {
@@ -96,77 +172,63 @@ namespace server
                             data = File.OpenRead(request.Path);
                         }
                         await using var cleanup = data;
-                        ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
-                        var sw = Stopwatch.StartNew();
-                        var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
-                        parser.BuildParseTree = true;
-
-                        async Task GroupAndAdd(List<Node> list)
+                        await using var bs = new BufferedStream(data, 4096);
                         {
-                            var nodes = list.GroupBy(n => n.Id, (key, ns) =>
+                            long lastCopyPostition = 0;
+                            var lastNewLinePosition = 0;
+                            var unreadCount = 0L;
+                            var memory = new byte[81920];
+                            await using var mainView = new MemoryStream(memory);
+                            do
                             {
-                                return new Node
+                                var newBytesAdded = await bs.ReadAsync(memory, (int)unreadCount, (int)(memory.Length - unreadCount));
+                                lastCopyPostition = unreadCount + newBytesAdded;
+                                if (lastCopyPostition == 0)
+                                    break;
+                                // move back to beginning
+                                mainView.Seek(0, SeekOrigin.Begin);
+                                // find the last new line
+                                var tr = new StreamReader(mainView, Encoding.ASCII, true, -1, true);
+                                
+                                var lnlpcheck = 0;
+                                var lnlpcheckf =0;
+                                var slashcnt = 0;
+                                while (lnlpcheck <= lastCopyPostition )
                                 {
-                                    Id = key,
-                                    Attributes = {ns.SelectMany(_n => _n.Attributes)}
-                                };
-                            });
-                            await _db.Add(nodes.ToList());
-                        }
-
-                        parser.AddParseListener(new NtriplesListener(async (node) =>
-                        {
-                            batch.Enqueue(node);
-
-                            // because we dealing with triples, we may get a bunch for the same nodeId
-                            // do a little grouping to reduce the amount of fragments we create
-                            if (batch.Count <= 600) return;
-                            var mine = new List<Node>();
-                            while (!batch.IsEmpty)
-                            {
-                                if (batch.TryDequeue(out var nnnnnn))
-                                {
-                                    mine.Add(nnnnnn);    
+                                    lnlpcheck++;
+                                    var c = (char) tr.Read();
+                                    // if (c == '\\')
+                                    // {
+                                    //     slashcnt++;
+                                    // }
+                                    // else
+                                    // {
+                                    //     slashcnt = 0;
+                                    // }
+                                    // period is the statement terminator, not newline.
+                                    // if slashs before the . are odd then the dot is escaped.
+                                    // if we are inside a quote block though... we in trouble.
+                                    if (c == '\n' )//&& slashcnt % 1 == 0) 
+                                    {
+                                        lnlpcheckf = lnlpcheck;
+                                       // lastNewLinePosition = Convert.ToInt32(mainView.Position);    
+                                    }
                                 }
-                            }
-                            
-                            await GroupAndAdd(mine);
-                        }));
 
-                        parser.AddErrorListener(new ErrorListener());
-                        NTRIPLESParser.TripleContext cc = null;
+                                lastNewLinePosition = lnlpcheckf;
 
-                        for (;; cc = parser.triple())
-                        {
-                            if (cc?.exception != null
-                                //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
-                                //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
-                            )
-                            {
-                                Console.WriteLine(cc.exception.Message);
-                                Console.WriteLine(
-                                    $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
-                            }
-                            
-                            if (parser.CurrentToken.Type == TokenConstants.Eof)
-                            {
-                                break;
-                            }
+                                // create a vew up to that position;
+                                var pageView = new MemoryStream(memory, 0, lastNewLinePosition);
+
+                                // run the parser on that pageView.
+                                await ParseNTStream(pageView);
+                                // move the end of the stream that we didn't read back to the beginning
+                                unreadCount = lastCopyPostition - lastNewLinePosition;
+                                Buffer.BlockCopy(memory, lastNewLinePosition, memory, 0,
+                                    Convert.ToInt32(unreadCount));
+                                
+                            } while (lastCopyPostition > 0);
                         }
-                        // deal with the remainder of the batch.
-                        var mine2 = new List<Node>();
-                        while (!batch.IsEmpty)
-                        {
-                            if (batch.TryDequeue(out var nnnnnn))
-                            {
-                                mine2.Add(nnnnnn);    
-                            }
-                        }
-                        if (mine2.Count > 0)
-                        {
-                            await GroupAndAdd(mine2);
-                        }
-                       // _db.Flush();
                     }
                     catch (Exception e)
                     {
