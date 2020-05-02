@@ -35,7 +35,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
 
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
-    let ``Index of NodeID -> MemoryPointer`` = new NodeIdIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
+    let ``Index of NodeID -> MemoryPointer`` = new NodeIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     
     let IndexNodeIds (nids:seq<NodeID>) =
         ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 

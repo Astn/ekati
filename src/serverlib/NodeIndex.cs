@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FASTER.core;
 using Google.Protobuf.Collections;
@@ -11,7 +12,7 @@ namespace Ahghee.Grpc
         private FasterKV<NodeID, Pointers, MemoryPointer, Pointers, Empty, Funcs> _kv;
         private ClientSession<NodeID, Pointers, MemoryPointer, Pointers, Empty, Funcs> _session;
         private IDevice _objfile;
-
+        private MemoryPointer __default = new MemoryPointer();
         public NodeIndex(string file)
         {
             _logfile = Devices.CreateLogDevice(file + ".log");
@@ -32,6 +33,30 @@ namespace Ahghee.Grpc
             _session = _kv.NewSession();
         }
 
+        public void AddOrUpdateBatch(IEnumerable<NodeID> ids)
+        {
+            foreach (var icd in ids)
+            {
+                var id = icd;
+                var ptr = id.Pointer;
+                _session.RMW(ref id, ref ptr, Empty.Default, 0);
+            }
+        }
+        public bool TryGetValue(NodeID id, ref Pointers ptrs)
+        {
+            var status = _session.Read(ref id, ref __default, ref ptrs, Empty.Default, 0);
+            return status == Status.OK;
+        }
+
+        public IEnumerable<Pointers> Iter()
+        {
+            var scanner = _kv.Log.Scan(_kv.Log.BeginAddress, _kv.Log.TailAddress);
+            while (scanner.GetNext(out var info))
+            {
+                var value = scanner.GetValue();
+                yield return value;
+            }
+        }
         public void RMW(ref NodeID key, ref MemoryPointer value)
         {
             _session.RMW(ref key, ref value, Empty.Default, 0);
@@ -77,9 +102,14 @@ namespace Ahghee.Grpc
         public void ConcurrentReader(ref NodeID key, ref MemoryPointer input, ref Pointers value, ref Pointers dst)
         {
             var copied = new RepeatedField<MemoryPointer>();
-            copied.AddRange(dst.Pointers_);
-            copied.AddRange(value.Pointers_);
+            if(dst!=null)
+                copied.AddRange(dst.Pointers_);
+            else
+                dst = new Pointers();
+            if(value!=null)
+                copied.AddRange(value.Pointers_);
             //if(input!=null) copied.Add(input);
+            
             dst.Pointers_.Clear();
             dst.Pointers_.AddRange(copied.Distinct());
         }
