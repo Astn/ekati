@@ -1,10 +1,17 @@
 using System;
+using System.Buffers.Text;
+using System.IO;
 using System.Security.Principal;
+using System.Text;
 using Ahghee;
 using Ahghee.Grpc;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Misc;
+using Antlr4.Runtime.Tree;
 using cli_grammer;
 using Google.Protobuf;
 using Range = Ahghee.Grpc.Range;
+using Utils = Ahghee.Grpc.Utils;
 
 namespace cli
 {
@@ -96,7 +103,7 @@ namespace cli
             var pred = ctx.GetText().Trim('<', '>');
             return pred.ToDataBlockNodeID();
         }
-        
+
         public static NodeID ToNodeId(this NTRIPLESParser.SubjContext ctx, Func<string,string> BNToId)
         {
             var subIRI = ctx.IRI()?.GetText()?.Trim('<', '>');
