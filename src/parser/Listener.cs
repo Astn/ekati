@@ -42,22 +42,30 @@ namespace cli.antlr
         }
         public override void ExitTriple(NTRIPLESParser.TripleContext context)
         {
-            var nodeId = context.subj().ToNodeId(BNToId);
-
-            var pred = context.pred().ToDataBlock();
-
-            var obj = context.obj().ToDataBlock(BNToId);
-            var node = new Node();
-            node.Id = nodeId;
-            node.Attributes.Add(new KeyValue
+            try
             {
-                Key = new TMD
+                var nodeId = context.subj().ToNodeId(BNToId);
+
+                var pred = context.pred().ToDataBlock();
+
+                var obj = context.obj().ToDataBlock(BNToId);
+                var node = new Node();
+                node.Id = nodeId;
+                node.Attributes.Add(new KeyValue
                 {
-                    Data = pred,
-                },
-                Value = obj
-            });
-            _gotNode(node);
+                    Key = new TMD
+                    {
+                        Data = pred,
+                    },
+                    Value = obj
+                });
+                _gotNode(node);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Uh.. got this -->\n{context.GetText()}\n<-- Ends here");
+                throw;
+            }
         }
     }
     

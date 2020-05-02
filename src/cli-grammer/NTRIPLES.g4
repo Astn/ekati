@@ -102,7 +102,9 @@ fragment EXP
    : [Ee] [+\-]? INT
    ;
 
-fragment COMMENT : '#' .*?  -> skip;
+COMMENT 
+    : (' #' | '.#' ) .*?  -> skip
+    ;
    
 WS
    : [ \t\r\n] + -> skip

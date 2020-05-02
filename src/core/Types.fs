@@ -13,6 +13,9 @@ open System
 open System.Buffers
 open System.Linq
 open System.Threading
+open Microsoft.FSharp.NativeInterop
+open System.Runtime.InteropServices
+open System.Runtime.InteropServices
 
 type NodeIdHash = int
 
@@ -45,7 +48,8 @@ type NodeIdIndex (indexFile:string) =
         (b, len)
     
     let TryGetValueInternal (nid:NodeID) (value: Pointers byref) =
-        let keybytes = BitConverter.GetBytes(nid.GetHashCode())
+        let keybytes = Array.zeroCreate (nid.GetKeyBytesSize())
+        nid.WriteKeyBytes(new Span<byte>(keybytes))
         let valueBytes = db.Get(keybytes)
         if valueBytes = null || valueBytes.Length = 0 then 
             value <- null
@@ -68,40 +72,37 @@ type NodeIdIndex (indexFile:string) =
 
     member __.Iter() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst() 
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
                 repeatedField.MergeFrom(codedinputStream)
                 yield repeatedField
-                it.Next()
+                it.Next() |> ignore
         }
     
     member __.IterKey() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst()
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 yield bytes
-                it.Next()
+                it.Next() |> ignore
         }
         
 
     member __.IterKV() =
         seq {
-            use mutable it = db.NewIterator()
-            it.SeekToFirst()
+            use mutable it = db.NewIterator().SeekToFirst()
             while it.Valid() do
                 let repeatedField = new Pointers()
                 let bytes = it.Value()
                 let codedinputStream = new CodedInputStream(bytes,0,bytes.Length)
                 repeatedField.MergeFrom(codedinputStream)
                 yield (it.Key(), repeatedField)
-                it.Next()
+                it.Next() |> ignore
         }        
         
     
@@ -115,17 +116,34 @@ type NodeIdIndex (indexFile:string) =
         // for keys with no values we just perform the Put operation.
         let writeBatch = new WriteBatch()
         // todo: use writeBatch.MergeV to do it all in one operation.
-        nids
-            |> Seq.iter(fun kvp ->
-                    let hash = kvp.GetHashCode() |> BitConverter.GetBytes
-                    let (ptrsB,ptrsL) =
-                        let pts = Pointers()
-                        pts.Pointers_.Add( kvp.Pointer)
-                        pts |> writeRP
-
-                    writeBatch.Merge (hash, Convert.ToUInt64( hash.Length), ptrsB, Convert.ToUInt64(ptrsL),null) |> ignore
-                )
-        db.Write(writeBatch)        
+        let toFree = List<nativeint>()
+        try
+            nids
+                |> Seq.iter(fun nodeId ->
+                        let size = nodeId.GetKeyBytesSize()
+                        let nativeMemory = Marshal.AllocHGlobal(size);
+                        let keybytesspan = new Span<byte>(nativeMemory.ToPointer(), size)
+                        nodeId.WriteKeyBytes(keybytesspan)
+                        
+                        let (valueBytesManaged,valueBytesLegth) =
+                            let pts = Pointers()
+                            pts.Pointers_.Add( nodeId.Pointer)
+                            pts |> writeRP
+                            
+                        let nativeMemoryValue = Marshal.AllocHGlobal(valueBytesLegth)
+                        toFree.Add(nativeMemory);
+                        toFree.Add(nativeMemoryValue);
+                        Marshal.Copy (valueBytesManaged, 0, nativeMemoryValue, valueBytesLegth)
+                        let np :nativeptr<byte> = nativeMemory |> NativePtr.ofNativeInt
+                        let npv : nativeptr<byte> = nativeMemoryValue |> NativePtr.ofNativeInt
+                        
+                        writeBatch.Merge (np, Convert.ToUInt64( size ), npv, Convert.ToUInt64(valueBytesLegth), null ) |> ignore
+                    )
+            db.Write(writeBatch)
+        finally
+            toFree
+                |> Seq.iter (fun ptr ->  Marshal.FreeHGlobal ptr |> ignore)
+                |> ignore
         ()
             
     member __.AddOrUpdateCS (nodes:seq<NodeID>) =

@@ -232,7 +232,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
-    member __.``Can get IDs after load tinkerpop-crew.xml into graph`` storeType =
+    member __.``Can get IDs after load tinkercrew into graph`` storeType =
          let g = 
              match storeType with 
              | "StorageType.Memory" ->   new MemoryStore() :> IStorage
@@ -419,7 +419,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>]
-    member __.``Can get labelV after load tinkerpop-crew.xml into graph`` db =
+    member __.``Can get labelV after load tinkercrew into graph`` db =
          let g = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
@@ -445,7 +445,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml Age has meta type int and comes out as int`` db =
+    member __.``After load tinkercrew Age has meta type int and comes out as int`` db =
          let g = __.toyGraph (dbtype db)
                   
          output.WriteLine("g.Nodes length: {0}", g.Nodes() |> Seq.length )
@@ -470,7 +470,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("file", 0)>]
     [<InlineData("file", 1)>]
     [<InlineData("file", 2)>]
-    member __.``After load tinkerpop-crew.xml multiple flush do not destroy data`` db flushes =
+    member __.``After load tinkercrew multiple flush do not destroy data`` db flushes =
          let g = __.toyGraph (dbtype db)
          
          for i in 0 .. flushes do
@@ -498,7 +498,7 @@ type MyTests(output:ITestOutputHelper) =
     [<InlineData("file", 0)>]
     [<InlineData("file", 1)>]
     [<InlineData("file", 2)>]
-    member __.``After load tinkerpop-crew.xml multiple adds do not destroy data`` db flushes =
+    member __.``After load tinkercrew multiple adds do not destroy data`` db flushes =
          let g = __.toyGraph (dbtype db)
          
          for i in 0 .. flushes do
@@ -522,7 +522,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>]  
-    member __.``After load tinkerpop-crew.xml Nodes have 'out.knows' Edges`` db =
+    member __.``After load tinkercrew Nodes have 'out.knows' Edges`` db =
         let g = __.toyGraph (dbtype db)
               
         let attrName = "out.knows"
@@ -542,7 +542,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'out.created' Edges`` db =        
+    member __.``After load tinkercrew Nodes have 'out.created' Edges`` db =        
         let g = __.toyGraph (dbtype db)
         let attrName = "out.created"
         let actual = __.CollectValues attrName g                                         
@@ -562,7 +562,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'in.knows' Edges`` db =
+    member __.``After load tinkercrew Nodes have 'in.knows' Edges`` db =
         let g = __.toyGraph (dbtype db)
               
         let attrName = "in.knows"
@@ -580,7 +580,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml Nodes have 'in.created' Edges`` db =        
+    member __.``After load tinkercrew Nodes have 'in.created' Edges`` db =        
         let sortedByNodeIdEdgeId (data: list<string * string * TMD>) = 
             data 
             |> List.sortBy (fun (a,b,c) -> 
@@ -609,7 +609,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml has Edge-nodes`` db =        
+    member __.``After load tinkercrew has Edge-nodes`` db =        
         let g = __.toyGraph (dbtype db)
         let attrName = "labelE"
         let actual = __.CollectValues attrName g                                       
@@ -631,7 +631,7 @@ type MyTests(output:ITestOutputHelper) =
     [<Theory>]
     [<InlineData("mem")>]
     [<InlineData("file")>] 
-    member __.``After load tinkerpop-crew.xml has node data`` db =        
+    member __.``After load tinkercrew has node data`` db =        
         let g = __.toyGraph (dbtype db)
         output.WriteLine(sprintf "%A" (g.Nodes()))
         Assert.NotEmpty(g.Nodes())
