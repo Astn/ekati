@@ -63,7 +63,10 @@ namespace Ahghee.Grpc
                 value.Pointers_.Add(input);
         }
 
-        public void CopyUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers oldValue, ref Pointers newValue) => newValue.Pointers_.AddRange(oldValue.Pointers_);
+        public void CopyUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers oldValue, ref Pointers newValue)
+        {
+            newValue.Pointers_.AddRange(oldValue.Pointers_);
+        }
 
         public bool InPlaceUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers value) { value.Pointers_.Add(input); return true; }
 
@@ -78,7 +81,7 @@ namespace Ahghee.Grpc
             copied.AddRange(value.Pointers_);
             //if(input!=null) copied.Add(input);
             dst.Pointers_.Clear();
-            dst.Pointers_.AddRange(copied);
+            dst.Pointers_.AddRange(copied.Distinct());
         }
 
         public bool ConcurrentWriter(ref NodeID key, ref Pointers src, ref Pointers dst)

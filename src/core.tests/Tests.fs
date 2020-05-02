@@ -126,21 +126,21 @@ type MyTests(output:ITestOutputHelper) =
         let count = 10
         for id in [| 1 .. count |] do
             
-            for offset in [| 101 * id .. 100 * id + count |] do
+            for offset in [| 1 .. count |] do
                 let key = ABtoyId <| id.ToString()
                 key.Pointer.Offset <- uint64 offset
                 key.Pointer.Length <- uint64 offset
                 let value = key.Pointer
                 index.RMW(ref key, ref value )
         
-            for offset in [| 101 * id .. 100 * id + count |] do
+            for offset in [| 1 .. count |] do
                 let key = ABtoyId <| id.ToString()
                 key.Pointer.Offset <- uint64 offset
                 key.Pointer.Length <- uint64 offset
                 let value = key.Pointer
                 index.RMW(ref key, ref value )
                 
-            for offset in [| 101 * id .. 100 * id + count |] do
+            for offset in [| 1 .. count |] do
                 let key = ABtoyId <| id.ToString()
                 key.Pointer.Offset <- uint64 offset
                 key.Pointer.Length <- uint64 offset
