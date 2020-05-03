@@ -68,36 +68,39 @@ namespace Ahghee.Grpc {
             "RGF0YUJsb2NrGogBCg9Db21wYXJlQ29tcG91bmQSMQoEbGVmdBgBIAEoCzIj",
             "LmFoZ2hlZS5ncnBjLkZpbHRlck9wZXJhdG9yLkNvbXBhcmUSDgoGQk9PTE9Q",
             "GAIgASgJEjIKBXJpZ2h0GAMgASgLMiMuYWhnaGVlLmdycGMuRmlsdGVyT3Bl",
-            "cmF0b3IuQ29tcGFyZSKQAQoEU3RlcBItCgZmb2xsb3cYASABKAsyGy5haGdo",
-            "ZWUuZ3JwYy5Gb2xsb3dPcGVyYXRvckgAEiwKBXdoZXJlGAIgASgLMhsuYWhn",
-            "aGVlLmdycGMuRmlsdGVyT3BlcmF0b3JIABIfCgRuZXh0GAMgASgLMhEuYWhn",
-            "aGVlLmdycGMuU3RlcEIKCghvcGVyYXRvciI2CgVRdWVyeRIfCgRzdGVwGAEg",
-            "ASgLMhEuYWhnaGVlLmdycGMuU3RlcBIMCgRpcmlzGAIgAygJIh4KC1B1dFJl",
-            "c3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgingEKEkdldE1ldHJpY3NSZXNwb25z",
-            "ZRI3CgdtZXRyaWNzGAEgAygLMiYuYWhnaGVlLmdycGMuR2V0TWV0cmljc1Jl",
-            "c3BvbnNlLk1ldHJpYxpPCgZNZXRyaWMSDQoFdmFsdWUYASABKAISDAoEbmFt",
-            "ZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVz",
-            "dGFtcCIiChFHZXRNZXRyaWNzUmVxdWVzdBINCgVuYW1lcxgBIAMoCSJ3Cg9H",
-            "ZXRTdGF0c1JlcXVlc3QSMAoFc3RhdHMYASADKAsyIS5haGdoZWUuZ3JwYy5H",
-            "ZXRTdGF0c1JlcXVlc3QuU3RhdBoyCgRTdGF0Eg0KBXZhbHVlGAEgASgCEg0K",
-            "BXRvcGljGAIgASgJEgwKBHN0YXQYAyABKAkiIQoQR2V0U3RhdHNSZXNwb25z",
-            "ZRINCgVuYW1lcxgBIAMoCSIhChBMaXN0U3RhdHNSZXF1ZXN0Eg0KBW1hdGNo",
-            "GAEgAygJIiIKEUxpc3RTdGF0c1Jlc3BvbnNlEg0KBW5hbWVzGAEgAygJIiMK",
-            "E0xpc3RQb2xpY2llc1JlcXVlc3QSDAoEaXJpcxgBIAMoCSI4ChRMaXN0UG9s",
-            "aWNpZXNSZXNwb25zZRIgCgVub2RlcxgBIAMoCzIRLmFoZ2hlZS5ncnBjLk5v",
-            "ZGUiJgoITG9hZEZpbGUSDAoEdHlwZRgBIAEoCRIMCgRwYXRoGAIgASgJIhIK",
-            "EExvYWRGaWxlUmVzcG9uc2Uy6QMKDFdhdERiU2VydmljZRI+CgRMb2FkEhUu",
-            "YWhnaGVlLmdycGMuTG9hZEZpbGUaHS5haGdoZWUuZ3JwYy5Mb2FkRmlsZVJl",
-            "c3BvbnNlIgASNAoDUHV0EhEuYWhnaGVlLmdycGMuTm9kZRoYLmFoZ2hlZS5n",
-            "cnBjLlB1dFJlc3BvbnNlIgASMAoDR2V0EhIuYWhnaGVlLmdycGMuUXVlcnka",
-            "ES5haGdoZWUuZ3JwYy5Ob2RlIgAwARJPCgpHZXRNZXRyaWNzEh4uYWhnaGVl",
-            "LmdycGMuR2V0TWV0cmljc1JlcXVlc3QaHy5haGdoZWUuZ3JwYy5HZXRNZXRy",
-            "aWNzUmVzcG9uc2UiABJJCghHZXRTdGF0cxIcLmFoZ2hlZS5ncnBjLkdldFN0",
-            "YXRzUmVxdWVzdBodLmFoZ2hlZS5ncnBjLkdldFN0YXRzUmVzcG9uc2UiABJM",
-            "CglMaXN0U3RhdHMSHS5haGdoZWUuZ3JwYy5MaXN0U3RhdHNSZXF1ZXN0Gh4u",
-            "YWhnaGVlLmdycGMuTGlzdFN0YXRzUmVzcG9uc2UiABJHCgxMaXN0UG9saWNp",
-            "ZXMSIC5haGdoZWUuZ3JwYy5MaXN0UG9saWNpZXNSZXF1ZXN0GhEuYWhnaGVl",
-            "LmdycGMuTm9kZSIAMAFiBnByb3RvMw=="));
+            "cmF0b3IuQ29tcGFyZSIcCgtMaW1pdEZpbHRlchINCgV2YWx1ZRgBIAEoBSIb",
+            "CgpTa2lwRmlsdGVyEg0KBXZhbHVlGAEgASgFIuUBCgRTdGVwEi0KBmZvbGxv",
+            "dxgBIAEoCzIbLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9ySAASLQoGZmls",
+            "dGVyGAIgASgLMhsuYWhnaGVlLmdycGMuRmlsdGVyT3BlcmF0b3JIABIpCgVs",
+            "aW1pdBgEIAEoCzIYLmFoZ2hlZS5ncnBjLkxpbWl0RmlsdGVySAASJwoEc2tp",
+            "cBgFIAEoCzIXLmFoZ2hlZS5ncnBjLlNraXBGaWx0ZXJIABIfCgRuZXh0GAMg",
+            "ASgLMhEuYWhnaGVlLmdycGMuU3RlcEIKCghvcGVyYXRvciI2CgVRdWVyeRIf",
+            "CgRzdGVwGAEgASgLMhEuYWhnaGVlLmdycGMuU3RlcBIMCgRpcmlzGAIgAygJ",
+            "Ih4KC1B1dFJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgingEKEkdldE1ldHJp",
+            "Y3NSZXNwb25zZRI3CgdtZXRyaWNzGAEgAygLMiYuYWhnaGVlLmdycGMuR2V0",
+            "TWV0cmljc1Jlc3BvbnNlLk1ldHJpYxpPCgZNZXRyaWMSDQoFdmFsdWUYASAB",
+            "KAISDAoEbmFtZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3Rv",
+            "YnVmLlRpbWVzdGFtcCIiChFHZXRNZXRyaWNzUmVxdWVzdBINCgVuYW1lcxgB",
+            "IAMoCSJ3Cg9HZXRTdGF0c1JlcXVlc3QSMAoFc3RhdHMYASADKAsyIS5haGdo",
+            "ZWUuZ3JwYy5HZXRTdGF0c1JlcXVlc3QuU3RhdBoyCgRTdGF0Eg0KBXZhbHVl",
+            "GAEgASgCEg0KBXRvcGljGAIgASgJEgwKBHN0YXQYAyABKAkiIQoQR2V0U3Rh",
+            "dHNSZXNwb25zZRINCgVuYW1lcxgBIAMoCSIhChBMaXN0U3RhdHNSZXF1ZXN0",
+            "Eg0KBW1hdGNoGAEgAygJIiIKEUxpc3RTdGF0c1Jlc3BvbnNlEg0KBW5hbWVz",
+            "GAEgAygJIiMKE0xpc3RQb2xpY2llc1JlcXVlc3QSDAoEaXJpcxgBIAMoCSI4",
+            "ChRMaXN0UG9saWNpZXNSZXNwb25zZRIgCgVub2RlcxgBIAMoCzIRLmFoZ2hl",
+            "ZS5ncnBjLk5vZGUiJgoITG9hZEZpbGUSDAoEdHlwZRgBIAEoCRIMCgRwYXRo",
+            "GAIgASgJIhIKEExvYWRGaWxlUmVzcG9uc2Uy6QMKDFdhdERiU2VydmljZRI+",
+            "CgRMb2FkEhUuYWhnaGVlLmdycGMuTG9hZEZpbGUaHS5haGdoZWUuZ3JwYy5M",
+            "b2FkRmlsZVJlc3BvbnNlIgASNAoDUHV0EhEuYWhnaGVlLmdycGMuTm9kZRoY",
+            "LmFoZ2hlZS5ncnBjLlB1dFJlc3BvbnNlIgASMAoDR2V0EhIuYWhnaGVlLmdy",
+            "cGMuUXVlcnkaES5haGdoZWUuZ3JwYy5Ob2RlIgAwARJPCgpHZXRNZXRyaWNz",
+            "Eh4uYWhnaGVlLmdycGMuR2V0TWV0cmljc1JlcXVlc3QaHy5haGdoZWUuZ3Jw",
+            "Yy5HZXRNZXRyaWNzUmVzcG9uc2UiABJJCghHZXRTdGF0cxIcLmFoZ2hlZS5n",
+            "cnBjLkdldFN0YXRzUmVxdWVzdBodLmFoZ2hlZS5ncnBjLkdldFN0YXRzUmVz",
+            "cG9uc2UiABJMCglMaXN0U3RhdHMSHS5haGdoZWUuZ3JwYy5MaXN0U3RhdHNS",
+            "ZXF1ZXN0Gh4uYWhnaGVlLmdycGMuTGlzdFN0YXRzUmVzcG9uc2UiABJHCgxM",
+            "aXN0UG9saWNpZXMSIC5haGdoZWUuZ3JwYy5MaXN0UG9saWNpZXNSZXF1ZXN0",
+            "GhEuYWhnaGVlLmdycGMuTm9kZSIAMAFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -117,7 +120,9 @@ namespace Ahghee.Grpc {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator), global::Ahghee.Grpc.FilterOperator.Parser, new[]{ "Compare" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.Compare), global::Ahghee.Grpc.FilterOperator.Types.Compare.Parser, new[]{ "KevValueCmp", "CompoundCmp" }, new[]{ "CmpType" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue), global::Ahghee.Grpc.FilterOperator.Types.CompareKeyValue.Parser, new[]{ "Property", "MATHOP", "Value" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.FilterOperator.Types.CompareCompound), global::Ahghee.Grpc.FilterOperator.Types.CompareCompound.Parser, new[]{ "Left", "BOOLOP", "Right" }, null, null, null, null)}),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Step), global::Ahghee.Grpc.Step.Parser, new[]{ "Follow", "Where", "Next" }, new[]{ "Operator" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.LimitFilter), global::Ahghee.Grpc.LimitFilter.Parser, new[]{ "Value" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.SkipFilter), global::Ahghee.Grpc.SkipFilter.Parser, new[]{ "Value" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Step), global::Ahghee.Grpc.Step.Parser, new[]{ "Follow", "Filter", "Limit", "Skip", "Next" }, new[]{ "Operator" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Query), global::Ahghee.Grpc.Query.Parser, new[]{ "Step", "Iris" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.PutResponse), global::Ahghee.Grpc.PutResponse.Parser, new[]{ "Success" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.GetMetricsResponse), global::Ahghee.Grpc.GetMetricsResponse.Parser, new[]{ "Metrics" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.GetMetricsResponse.Types.Metric), global::Ahghee.Grpc.GetMetricsResponse.Types.Metric.Parser, new[]{ "Value", "Name", "Time" }, null, null, null, null)}),
@@ -3601,6 +3606,264 @@ namespace Ahghee.Grpc {
 
   }
 
+  public sealed partial class LimitFilter : pb::IMessage<LimitFilter> {
+    private static readonly pb::MessageParser<LimitFilter> _parser = new pb::MessageParser<LimitFilter>(() => new LimitFilter());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<LimitFilter> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[11]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public LimitFilter() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public LimitFilter(LimitFilter other) : this() {
+      value_ = other.value_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public LimitFilter Clone() {
+      return new LimitFilter(this);
+    }
+
+    /// <summary>Field number for the "value" field.</summary>
+    public const int ValueFieldNumber = 1;
+    private int value_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Value {
+      get { return value_; }
+      set {
+        value_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as LimitFilter);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(LimitFilter other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Value != other.Value) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Value != 0) hash ^= Value.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Value != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(Value);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Value != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Value);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(LimitFilter other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Value != 0) {
+        Value = other.Value;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Value = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class SkipFilter : pb::IMessage<SkipFilter> {
+    private static readonly pb::MessageParser<SkipFilter> _parser = new pb::MessageParser<SkipFilter>(() => new SkipFilter());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<SkipFilter> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[12]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SkipFilter() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SkipFilter(SkipFilter other) : this() {
+      value_ = other.value_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public SkipFilter Clone() {
+      return new SkipFilter(this);
+    }
+
+    /// <summary>Field number for the "value" field.</summary>
+    public const int ValueFieldNumber = 1;
+    private int value_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Value {
+      get { return value_; }
+      set {
+        value_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as SkipFilter);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(SkipFilter other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Value != other.Value) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Value != 0) hash ^= Value.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (Value != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(Value);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (Value != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Value);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(SkipFilter other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Value != 0) {
+        Value = other.Value;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Value = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
   public sealed partial class Step : pb::IMessage<Step> {
     private static readonly pb::MessageParser<Step> _parser = new pb::MessageParser<Step>(() => new Step());
     private pb::UnknownFieldSet _unknownFields;
@@ -3609,7 +3872,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[11]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3631,8 +3894,14 @@ namespace Ahghee.Grpc {
         case OperatorOneofCase.Follow:
           Follow = other.Follow.Clone();
           break;
-        case OperatorOneofCase.Where:
-          Where = other.Where.Clone();
+        case OperatorOneofCase.Filter:
+          Filter = other.Filter.Clone();
+          break;
+        case OperatorOneofCase.Limit:
+          Limit = other.Limit.Clone();
+          break;
+        case OperatorOneofCase.Skip:
+          Skip = other.Skip.Clone();
           break;
       }
 
@@ -3655,14 +3924,36 @@ namespace Ahghee.Grpc {
       }
     }
 
-    /// <summary>Field number for the "where" field.</summary>
-    public const int WhereFieldNumber = 2;
+    /// <summary>Field number for the "filter" field.</summary>
+    public const int FilterFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Ahghee.Grpc.FilterOperator Where {
-      get { return operatorCase_ == OperatorOneofCase.Where ? (global::Ahghee.Grpc.FilterOperator) operator_ : null; }
+    public global::Ahghee.Grpc.FilterOperator Filter {
+      get { return operatorCase_ == OperatorOneofCase.Filter ? (global::Ahghee.Grpc.FilterOperator) operator_ : null; }
       set {
         operator_ = value;
-        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Where;
+        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Filter;
+      }
+    }
+
+    /// <summary>Field number for the "limit" field.</summary>
+    public const int LimitFieldNumber = 4;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.LimitFilter Limit {
+      get { return operatorCase_ == OperatorOneofCase.Limit ? (global::Ahghee.Grpc.LimitFilter) operator_ : null; }
+      set {
+        operator_ = value;
+        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Limit;
+      }
+    }
+
+    /// <summary>Field number for the "skip" field.</summary>
+    public const int SkipFieldNumber = 5;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.SkipFilter Skip {
+      get { return operatorCase_ == OperatorOneofCase.Skip ? (global::Ahghee.Grpc.SkipFilter) operator_ : null; }
+      set {
+        operator_ = value;
+        operatorCase_ = value == null ? OperatorOneofCase.None : OperatorOneofCase.Skip;
       }
     }
 
@@ -3682,7 +3973,9 @@ namespace Ahghee.Grpc {
     public enum OperatorOneofCase {
       None = 0,
       Follow = 1,
-      Where = 2,
+      Filter = 2,
+      Limit = 4,
+      Skip = 5,
     }
     private OperatorOneofCase operatorCase_ = OperatorOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3710,7 +4003,9 @@ namespace Ahghee.Grpc {
         return true;
       }
       if (!object.Equals(Follow, other.Follow)) return false;
-      if (!object.Equals(Where, other.Where)) return false;
+      if (!object.Equals(Filter, other.Filter)) return false;
+      if (!object.Equals(Limit, other.Limit)) return false;
+      if (!object.Equals(Skip, other.Skip)) return false;
       if (!object.Equals(Next, other.Next)) return false;
       if (OperatorCase != other.OperatorCase) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -3720,7 +4015,9 @@ namespace Ahghee.Grpc {
     public override int GetHashCode() {
       int hash = 1;
       if (operatorCase_ == OperatorOneofCase.Follow) hash ^= Follow.GetHashCode();
-      if (operatorCase_ == OperatorOneofCase.Where) hash ^= Where.GetHashCode();
+      if (operatorCase_ == OperatorOneofCase.Filter) hash ^= Filter.GetHashCode();
+      if (operatorCase_ == OperatorOneofCase.Limit) hash ^= Limit.GetHashCode();
+      if (operatorCase_ == OperatorOneofCase.Skip) hash ^= Skip.GetHashCode();
       if (next_ != null) hash ^= Next.GetHashCode();
       hash ^= (int) operatorCase_;
       if (_unknownFields != null) {
@@ -3740,13 +4037,21 @@ namespace Ahghee.Grpc {
         output.WriteRawTag(10);
         output.WriteMessage(Follow);
       }
-      if (operatorCase_ == OperatorOneofCase.Where) {
+      if (operatorCase_ == OperatorOneofCase.Filter) {
         output.WriteRawTag(18);
-        output.WriteMessage(Where);
+        output.WriteMessage(Filter);
       }
       if (next_ != null) {
         output.WriteRawTag(26);
         output.WriteMessage(Next);
+      }
+      if (operatorCase_ == OperatorOneofCase.Limit) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Limit);
+      }
+      if (operatorCase_ == OperatorOneofCase.Skip) {
+        output.WriteRawTag(42);
+        output.WriteMessage(Skip);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -3759,8 +4064,14 @@ namespace Ahghee.Grpc {
       if (operatorCase_ == OperatorOneofCase.Follow) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Follow);
       }
-      if (operatorCase_ == OperatorOneofCase.Where) {
-        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Where);
+      if (operatorCase_ == OperatorOneofCase.Filter) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Filter);
+      }
+      if (operatorCase_ == OperatorOneofCase.Limit) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Limit);
+      }
+      if (operatorCase_ == OperatorOneofCase.Skip) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Skip);
       }
       if (next_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Next);
@@ -3789,11 +4100,23 @@ namespace Ahghee.Grpc {
           }
           Follow.MergeFrom(other.Follow);
           break;
-        case OperatorOneofCase.Where:
-          if (Where == null) {
-            Where = new global::Ahghee.Grpc.FilterOperator();
+        case OperatorOneofCase.Filter:
+          if (Filter == null) {
+            Filter = new global::Ahghee.Grpc.FilterOperator();
           }
-          Where.MergeFrom(other.Where);
+          Filter.MergeFrom(other.Filter);
+          break;
+        case OperatorOneofCase.Limit:
+          if (Limit == null) {
+            Limit = new global::Ahghee.Grpc.LimitFilter();
+          }
+          Limit.MergeFrom(other.Limit);
+          break;
+        case OperatorOneofCase.Skip:
+          if (Skip == null) {
+            Skip = new global::Ahghee.Grpc.SkipFilter();
+          }
+          Skip.MergeFrom(other.Skip);
           break;
       }
 
@@ -3819,11 +4142,11 @@ namespace Ahghee.Grpc {
           }
           case 18: {
             global::Ahghee.Grpc.FilterOperator subBuilder = new global::Ahghee.Grpc.FilterOperator();
-            if (operatorCase_ == OperatorOneofCase.Where) {
-              subBuilder.MergeFrom(Where);
+            if (operatorCase_ == OperatorOneofCase.Filter) {
+              subBuilder.MergeFrom(Filter);
             }
             input.ReadMessage(subBuilder);
-            Where = subBuilder;
+            Filter = subBuilder;
             break;
           }
           case 26: {
@@ -3831,6 +4154,24 @@ namespace Ahghee.Grpc {
               Next = new global::Ahghee.Grpc.Step();
             }
             input.ReadMessage(Next);
+            break;
+          }
+          case 34: {
+            global::Ahghee.Grpc.LimitFilter subBuilder = new global::Ahghee.Grpc.LimitFilter();
+            if (operatorCase_ == OperatorOneofCase.Limit) {
+              subBuilder.MergeFrom(Limit);
+            }
+            input.ReadMessage(subBuilder);
+            Limit = subBuilder;
+            break;
+          }
+          case 42: {
+            global::Ahghee.Grpc.SkipFilter subBuilder = new global::Ahghee.Grpc.SkipFilter();
+            if (operatorCase_ == OperatorOneofCase.Skip) {
+              subBuilder.MergeFrom(Skip);
+            }
+            input.ReadMessage(subBuilder);
+            Skip = subBuilder;
             break;
           }
         }
@@ -3847,7 +4188,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[12]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4002,7 +4343,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[13]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4131,7 +4472,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[14]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4450,7 +4791,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[15]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4571,7 +4912,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[16]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4884,7 +5225,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[17]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[19]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5005,7 +5346,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[18]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[20]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5126,7 +5467,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[19]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[21]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5247,7 +5588,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[20]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[22]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5368,7 +5709,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[21]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[23]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5489,7 +5830,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[22]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[24]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5646,7 +5987,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[23]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[25]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

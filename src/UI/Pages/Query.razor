@@ -9,6 +9,7 @@
 @using cli.antlr
 @using cli_grammer
 @using Grpc.Core.Utils
+@using Microsoft.AspNetCore.Components.Rendering
 @inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
 @inject IJSRuntime JsRuntime;
 @inject HttpClient Http
@@ -17,81 +18,84 @@
 <h3 >Query</h3>
 <CommandBar Items=@commands />
 <div style="display: table; clear: both;">
-    <div id="monaco_container" style="width: 40%; height: 500px; float: left;" ></div>
-    <div  style="float: right; width: 60%; overflow: hidden; background-color: black; ">
-        <Graph Nodes="@Nodes"></Graph>    
+    <div style="width: 40%; height: 500px; float: left;">
+        <div id="monaco_container" style="width: 100%; height: 100%;"></div>
+                @foreach (var pi in ProgressItems)
+                {
+                    var myPI = pi;
+                    <div >
+                        <button @onclick="@(() => { ProgressItems.Remove(myPI);})">X</button>
+                        @myPI.Count - @myPI.Message
+                    </div>
+                }
     </div>
-    <div>
-        @if (IsLoading > 0)
-        {
-            var label = $"{IsLoading} - Processing";
-            <Spinner Size=@SpinnerSize.Small Label="@label" ></Spinner>
-        }
+    <div style="float: right; width: 60%; overflow: scroll; background-color: black; ">
+        <Graph Nodes="@Nodes"></Graph>
     </div>
 </div>
 <div>
     
-        @if (Nodes.Any())
-        {
-            var headers = (from node in Nodes
-                from attr in node.Attributes
-                let keyD = attr.Key.Data.ToDisplayString()
-                select (keyD)).OrderBy(x=> x).Distinct().ToList();
-            
-            <table>
-                <thead>
-                <tr>
-                    <th>id</th>
-                    @foreach (var h in headers)
-                    {
-                        <th>@h</th>
-                    }
-                </tr>
-                </thead>
-                <tbody>
-                @{
-                    foreach (var n in Nodes.Skip(skip).Take(take))
-                    {
-                        <tr>
-                            <td>@n.Id.Iri</td>
-                            @foreach (var h in headers)
-                            {
-                                var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList();
-                                if (!vals.Any())
-                                {
-                                    <td><i>null</i></td>
-                                }
-                                else
-                                {
-                                    <td>
-
-                                        @if (vals.Count == 1)
-                                        {
-                                            <span>@vals[0].Value.Data.ToDisplayString()</span>
-                                        }
-                                        else
-                                        {
-                                            <ul>
-                                                @foreach (var a in vals.Take(10))
-                                                {
-                                                    //var key = a.Key.Data.ToDisplayString();
-                                                    var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#");
-                                                    <li>@val</li>
-                                                }
-                                            </ul>
-                                        }
-                                    </td>
-                                }
-                            }
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>     
-            
-                        
-            
-        }
+@*         @if (Nodes.Any()) *@
+@*         { *@
+@*             var headers = (from node in Nodes *@
+@*                 from attr in node.Attributes *@
+@*                 let keyD = attr.Key.Data.ToDisplayString() *@
+@*                 select (keyD)).OrderBy(x=> x).Distinct().ToList(); *@
+@*              *@
+@*             <table> *@
+@*                 <thead> *@
+@*                 <tr> *@
+@*                     <th>id</th> *@
+@*                     @foreach (var h in headers) *@
+@*                     { *@
+@*                         <th>@h</th> *@
+@*                     } *@
+@*                 </tr> *@
+@*                 </thead> *@
+@*                 <tbody> *@
+@*                 @{ *@
+@*                     foreach (var n in Nodes.Skip(skip).Take(take)) *@
+@*                     { *@
+@*                         <tr> *@
+@*                             <td>@n.Id.Iri</td> *@
+@*                             @foreach (var h in headers) *@
+@*                             { *@
+@*                                 var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList(); *@
+@*                                 if (!vals.Any()) *@
+@*                                 { *@
+@*                                     <td><i>null</i></td> *@
+@*                                 } *@
+@*                                 else *@
+@*                                 { *@
+@*                                     <td> *@
+@* *@
+@*                                         @if (vals.Count == 1) *@
+@*                                         { *@
+@*                                             <span>@vals[0].Value.Data.ToDisplayString()</span> *@
+@*                                         } *@
+@*                                         else *@
+@*                                         { *@
+@*                                             <ul> *@
+@*                                                 @foreach (var a in vals.Take(10)) *@
+@*                                                 { *@
+@*                                                     //var key = a.Key.Data.ToDisplayString(); *@
+@*                                                     var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#"); *@
+@*                                                     <li>@val</li> *@
+@*                                                 } *@
+@*                                             </ul> *@
+@*                                         } *@
+@*                                     </td> *@
+@*                                 } *@
+@*                             } *@
+@*                         </tr> *@
+@*                     } *@
+@*                 } *@
+@*                 </tbody> *@
+@*             </table>      *@
+@*              *@
+@*                          *@
+@*              *@
+@*         } *@
 </div>  
 
 @code {
@@ -103,8 +107,21 @@
 
     int skip = 0;
     int take = 10;
-    int took = 0;  
-    
+    int took = 0;
+    int Limit = 100;
+    List<ProgressItem> ProgressItems { get; set; } = new List<ProgressItem>();
+    internal class ProgressItem
+    {
+        public string Message { get; set; }
+        public int Count { get; set; }
+        public bool InProgress { get; set; }
+    }
+
+    private void OnDismiss(ProgressItem pi)
+    {
+        ProgressItems.Remove(pi);
+        this.StateHasChanged();
+    }
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
@@ -194,6 +211,32 @@
             return string.Empty;
         }
     }
+
+    private void AttachLimitStep(Ahghee.Grpc.Query query)
+    {
+        var limitStep = new Ahghee.Grpc.Step
+        {
+            Limit = new LimitFilter
+            {
+                Value = Limit
+            }
+        };
+        
+        if (query.Step != null)
+        {
+            var lastStep = query.Step;
+            while (lastStep.Next != null)
+            {
+                lastStep = lastStep.Next;
+            }
+            lastStep.Next = limitStep;
+        }
+        else
+        {
+            query.Step = limitStep;
+        }
+        
+    }
     
     private async Task Run()
     {
@@ -203,27 +246,42 @@
         parser.BuildParseTree = true;
         parser.AddParseListener(listener: new Listener(async (nodes) =>
         {
-            Source = "";
+            var pi = new ProgressItem
+            {
+                Message = "Putting Nodes",
+                Count = 0,
+                InProgress = true
+            };
+            ProgressItems.Add(pi);
             foreach (var node in nodes)
             {
-                IsLoading++;
-                this.StateHasChanged();
+                pi.Count++;
                 await wat.PutAsync(node);
-                IsLoading--;
-                Source += "\nput:" + node.Id.Iri;
-                this.StateHasChanged();
+                pi.Count--;
             }
+            this.StateHasChanged();
+            pi.InProgress = false;
+            this.StateHasChanged();
         }, async (nids, step) =>
         {
             var q = new Ahghee.Grpc.Query();
             q.Iris.AddRange(nids.Select(x => x.Iri));
-            q.Step = step;
+            
+             AttachLimitStep(q);
 
-            IsLoading++;
+            
+            var pi = new ProgressItem
+            {
+                Message = "Getting Nodes",
+                Count = 0,
+                InProgress = true
+            };
+            ProgressItems.Add(pi);
+            
             this.StateHasChanged();
             var stream = wat.Get(q);
             var head = await stream.ResponseHeadersAsync;
-            Source = "";
+            
             this.StateHasChanged();
             await stream.ResponseStream.ForEachAsync(async node =>
             {
@@ -231,30 +289,28 @@
                 {
                     this.Nodes.Add(node);
                 }
-                else
-                {
-                    return;
-                }
-
-    // todo: show it
-                Source += "\n" + node.Id.Iri.ToString();
+                pi.Count++;
             });
-            IsLoading--;
+            pi.InProgress = false;
             this.StateHasChanged();
         }, () => { },
             async (loadType, path) =>
             {
-                Console.WriteLine($"Loading: {loadType} @ {path}");
-                IsLoading++;
+                var pi = new ProgressItem
+                {
+                    Message = "Loading Nodes: "+ path,
+                    Count = 1,
+                    InProgress = true
+                };
+                ProgressItems.Add(pi);
                 this.StateHasChanged();
                 await wat.LoadAsync(new LoadFile
                 {
                     Type = loadType,
                     Path = path.Trim('\"')
                 });
-                IsLoading--;
+                pi.Count--;
                 this.StateHasChanged();
-                Console.WriteLine($"Finished Loading: {loadType} @ {path}");
             }));
         parser.AddErrorListener(new ErrorListener());
         AHGHEEParser.CommandContext cc = null;
@@ -266,9 +322,13 @@
     //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
                 )
             {
-                Console.WriteLine(cc.exception.Message);
-                Console.WriteLine(
-                    $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+                var pi = new ProgressItem
+                {
+                    Message = $"{cc.exception.Message} - found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}",
+                    Count = 0,
+                    InProgress = true
+                };
+                ProgressItems.Add(pi);
             }
 
             if (parser.CurrentToken.Type == TokenConstants.Eof)

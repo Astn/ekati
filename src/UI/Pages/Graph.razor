@@ -1,4 +1,5 @@
 @using Ahghee.Grpc
+@using FASTER.core
 @inject IJSRuntime JSRuntime;
 
 
@@ -11,12 +12,21 @@
     [Parameter]
     public List<Node> Nodes { get; set; }
 
+    private int lasthash = 0;
     private ElementReference d3Container;
     private string uniqueId = Guid.NewGuid().ToString().Replace("-", "");
     protected override void OnAfterRender(bool firstRender)
     {
         base.OnAfterRender(firstRender);
-        DoIt();
+        
+        // tod: like should we render?
+        // be great to know if the nodes we have now are different from the nodes we had last time.
+        var newHash = Nodes.Select(n => n.Id.Iri.GetHashCode()).Aggregate(0, (acc, next) => acc ^ next);
+        if (newHash != lasthash)
+        {
+            lasthash = newHash;
+            DoIt();
+        }
         //this.StateHasChanged();
     }
 
@@ -27,8 +37,20 @@
 
     public async Task DoIt()
     {
+        // we dont' want to send extra junk down.
+        // filter to only attributes that are edges.
+        var lessData =  Nodes.Select(n =>
+        {
+            var nn = new Node();
+            nn.MergeFrom(n);
+            nn.Fragments.Clear();
+            var edges = nn.Attributes.Where(a => a.Value.Data.Nodeid!=null).ToList();
+            nn.Attributes.Clear();
+            nn.Attributes.AddRange(edges);
+            return nn;
+        });
         await JSRuntime.InvokeVoidAsync(
-            "d3Interop.renderGraph", uniqueId, Nodes);
+            "d3Interop.renderGraph", uniqueId, lessData);
     }
     
 }

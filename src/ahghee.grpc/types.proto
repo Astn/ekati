@@ -110,11 +110,18 @@ message FilterOperator {
     }
     Compare compare = 1;
 }
-
+message LimitFilter {
+    int32 value =1;
+}
+message SkipFilter {
+    int32 value =1;
+}
 message Step {
     oneof operator {
         FollowOperator follow = 1;
-        FilterOperator where = 2;
+        FilterOperator filter = 2;
+        LimitFilter limit = 4;
+        SkipFilter skip = 5;
     }
     Step next = 3;
 }

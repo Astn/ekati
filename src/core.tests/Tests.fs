@@ -373,6 +373,149 @@ type MyTests(output:ITestOutputHelper) =
          Assert.Equal<Node>(nodes,n1)
  
     [<Theory>]
+    [<InlineData("StorageType.GrpcFile", 1)>]
+    [<InlineData("StorageType.GrpcFile", 3)>]
+    [<InlineData("StorageType.GrpcFile", 5)>] 
+    [<InlineData("StorageType.GrpcFile", 7)>] 
+    member __.``Query * Limit limits`` storeType limit =
+         let g = 
+             match storeType with 
+             | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+             | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
+             | _ -> raise <| new NotImplementedException() 
+                  
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
+         let task = g.Add nodes 
+         task.Wait()
+         g.Flush()
+        
+         let query = new Step()
+         query.Limit <- new LimitFilter()
+         query.Limit.Value <- limit
+         
+         let result = g.Items([ABtoyId "*"] , query )
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+                    |> Seq.toList
+                    
+         Assert.InRange ( result.Length, limit , limit)
+
+    [<Theory>]
+    [<InlineData("StorageType.GrpcFile", 0)>]
+    [<InlineData("StorageType.GrpcFile", 1)>]
+    [<InlineData("StorageType.GrpcFile", 3)>]
+    [<InlineData("StorageType.GrpcFile", 5)>] 
+    [<InlineData("StorageType.GrpcFile", 7)>] 
+    member __.``Query * Skip skips`` storeType skip =
+         let g = 
+             match storeType with 
+             | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+             | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
+             | _ -> raise <| new NotImplementedException() 
+                  
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
+         let task = g.Add nodes 
+         task.Wait()
+         g.Flush()
+        
+         let baseQuery = new Step()
+         baseQuery.Limit <- new LimitFilter()
+         baseQuery.Limit.Value <- 1
+         
+         let query = new Step()
+         query.Skip <- new SkipFilter()
+         query.Skip.Value <- skip
+         
+         let baseresult =
+                    g.Items([ABtoyId "*"] , baseQuery )
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+                    |> Seq.toList
+         
+         let result =
+                    g.Items([ABtoyId "*"] , query )
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+                    |> Seq.toList
+      
+         let get item =
+                        item
+                        |> List.map (fun struct(i,j) -> j)
+                        |> List.head
+      
+         let baseItem = get baseresult
+         let otherItem = get result
+         
+         if skip = 0 then
+             Assert.Equal ( baseItem , otherItem )|> ignore
+         else
+             Assert.NotEqual ( baseItem , otherItem )|> ignore
+
+    [<Theory>]
+    [<InlineData("StorageType.GrpcFile", 0, 2)>]
+    [<InlineData("StorageType.GrpcFile", 1, 2)>]
+    [<InlineData("StorageType.GrpcFile", 2, 2)>]
+    [<InlineData("StorageType.GrpcFile", 3, 2)>] 
+    [<InlineData("StorageType.GrpcFile", 4, 2)>] 
+    member __.``Query * Skip Take skips and Takes`` storeType skip take=
+         let g = 
+             match storeType with 
+             | "StorageType.Memory" ->   new MemoryStore() :> IStorage
+             | "StorageType.GrpcFile" -> new GrpcFileStore(testConfig()) :> IStorage
+             | _ -> raise <| new NotImplementedException() 
+                  
+         let nodes = buildNodesTheCrew |> List.ofSeq |> List.sortBy (fun x -> x.Id.Iri)
+         let task = g.Add nodes 
+         task.Wait()
+         g.Flush()
+        
+         let baseQuery = new Step()
+         baseQuery.Skip <- new SkipFilter()
+         baseQuery.Skip.Value <- 0
+         baseQuery.Next <- new Step()
+         baseQuery.Next.Limit <- new LimitFilter()
+         baseQuery.Next.Limit.Value <- 2
+         
+         let query = new Step()
+         query.Skip <- new SkipFilter()
+         query.Skip.Value <- skip
+         query.Next <- new Step()
+         query.Next.Limit <- new LimitFilter()
+         query.Next.Limit.Value <- take
+         
+         let baseresult =
+                    g.Items([ABtoyId "*"] , baseQuery )
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+                    |> Seq.toList
+         
+         let result =
+                    g.Items([ABtoyId "*"] , query )
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+                    |> Seq.toList
+      
+         let get item =
+                        item
+                        |> List.map (fun struct(i,j) -> j)
+                        |> List.head
+      
+         let baseItem1 = get baseresult
+         let baseItem2 = get ( baseresult |> List.tail )
+         let otherItem1 = get result
+         let otherItem2 = get ( result |> List.tail)
+         
+         Assert.InRange (result.Length, take, take)
+         
+         if skip = 0 then
+             Assert.Equal ( baseItem1 , otherItem1 )|> ignore
+             Assert.Equal ( baseItem2 , otherItem2 )|> ignore
+         else
+             Assert.NotEqual ( baseItem1 , otherItem1 )|> ignore
+             Assert.NotEqual ( baseItem2 , otherItem2 )|> ignore
+
+    
+    [<Theory>]
     //[<InlineData("StorageType.Memory")>]
     [<InlineData("StorageType.GrpcFile")>] 
     member __.``When I put a nodes in their values have MemoryPointers when I get them out`` storeType =

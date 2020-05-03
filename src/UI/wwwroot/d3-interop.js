@@ -32,14 +32,25 @@ window.d3Interop = {
     },
   renderGraph:  function renderGraph(elementid, data) {
 
-      console.log("renderGraph",elementid,data);
+      //console.log("renderGraph",elementid,data);
       if(data.length === 0){
           d3.selectAll("svg > *").remove();
           return ;
       }
 
       var ctr = 0;
-      var width = 2000, height = 2000
+      var width = 10000, height = 10000
+      var viewBoxScale = 50; // full size is 100
+      var deltax = 0;
+      var deltay = 0;
+      var panx = 0;
+      var pany = 0;
+      var centerX=width/2 + panx;
+      var centerY=height/2 + pany;
+      var vbWidth = (width/100)  * viewBoxScale;
+      var vbHeight = (height/100) * viewBoxScale;
+      var topleftX = (centerX - vbWidth/2);
+      var topleftY = (centerY - vbHeight/2);
       const nodes = data.map(d => d.id);
       const links = data.map(d => d.attributes
           .filter(a => a.value?.data?.nodeid !== null)
@@ -63,20 +74,53 @@ window.d3Interop = {
       const simulation = d3.forceSimulation(nodes)
           .force("link", forceL )
           .force("charge", d3.forceManyBody().strength(-800))
-          .force("x", d3.forceX(width/2))
-          .force("y", d3.forceY(height/2));    
-      // .force("x", d3.forceX())
-          // .force("y", d3.forceY());
+          .force("x", d3.forceX(centerX))
+          .force("y", d3.forceY(centerY))    ;
+          //.force("x", d3.forceX())
+          //.force("y", d3.forceY());
 
       d3.selectAll("svg > *").remove();
       const svg = d3.select("svg")
-          .attr("viewBox", [width/2 - width/10, height/2 - height/10, width/5, height/5])
+          .attr("viewBox", [topleftX,topleftY, vbWidth, vbHeight])
           .style("font", "8px sans-serif")
           .style("fill", "#686868")
           .style("background-color","#181818");
       
           //.attr("viewBox", [-width , -height , width*2, height*2])
+      
+      // attach zoom.
+      svg.call(d3.zoom().on("zoom",function(){
+          if(d3.event?.sourceEvent?.deltaY && d3.event?.sourceEvent?.deltaY !== 0) {
+              var factor = d3.event.sourceEvent.deltaY / 100; // get percent change -0.03
+              viewBoxScale = viewBoxScale + viewBoxScale * factor;
+              vbWidth = (width / 100) * viewBoxScale;
+              vbHeight = (height / 100) * viewBoxScale;
+              topleftX = (centerX - vbWidth / 2);
+              topleftY = (centerY - vbHeight / 2);
+              console.log("zoomevent", d3.event.sourceEvent.deltaY);
+              svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
+          } else if(d3.event.sourceEvent.layerX && d3.event.sourceEvent.layerY ){
+              console.log("someevent", d3.event);
+
+              var projectedHeight = d3.event.sourceEvent.explicitOriginalTarget.clientHeight;
+              var projectedWidth =d3.event.sourceEvent.explicitOriginalTarget.clientWidth;
+              var scalingX = d3.event.sourceEvent.layerX / projectedWidth;
+              var scalingY = d3.event.sourceEvent.layerY / projectedHeight;
+              var fixedX =  scalingX * (width);
+              var fixedY = scalingY * (height);
+              // invert it
+              centerX = fixedX;
+              centerY = fixedY;
+              vbWidth = (width/100)  * viewBoxScale;
+              vbHeight = (height/100) * viewBoxScale;
+              topleftX = (centerX - vbWidth/2);
+              topleftY = (centerY - vbHeight/2);
+              svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
+              
+          }
           
+      }));
+      
       console.log("renderGraph:3",svg);
       
       

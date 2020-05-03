@@ -18,19 +18,19 @@
 
 
 <!--    <ItemGroup>-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESBaseListener.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESBaseVisitor.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESLexer.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESListener.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESParser.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\NTRIPLESVisitor.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESBaseListener.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESBaseVisitor.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESLexer.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESListener.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESParser.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESVisitor.cs" />-->
 
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseListener.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEELexer.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEListener.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEParser.cs" />-->
-<!--      <Compile Include="obj\Debug\netstandard2.1\AHGHEEVisitor.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEBaseListener.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEELexer.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEListener.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEParser.cs" />-->
+<!--      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEVisitor.cs" />-->
 <!--    </ItemGroup>-->
 
 
