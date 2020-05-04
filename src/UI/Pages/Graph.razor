@@ -11,7 +11,7 @@
 @code {
     [Parameter]
     public List<Node> Nodes { get; set; }
-
+    private Dictionary<string,string> prefix = new Dictionary<string, string>();
     private int lasthash = 0;
     private ElementReference d3Container;
     private string uniqueId = Guid.NewGuid().ToString().Replace("-", "");
@@ -37,32 +37,58 @@
         return base.OnInitializedAsync();
     }
 
+    string prefixBuilder = "a";
+    public string nextPrefix(string longform)
+    {
+        var next = prefixBuilder + ":";
+        
+        if (prefixBuilder[^1] != 'z')
+        {
+            prefixBuilder = prefixBuilder[..^1] + (char)(prefixBuilder[^1] + 1);    
+        }
+        else
+        {
+            prefixBuilder = prefixBuilder[..^1] + "aa";
+        }
+        return next;
+    }
+    public string getPrefix(string iri)
+    {
+        var lastSlash = iri.LastIndexOf('/');
+        var longForm = "*";
+        if (lastSlash >= 0)
+        {
+           longForm = iri.Substring(0, lastSlash + 1);
+        }
+
+        if (!prefix.ContainsKey(longForm))
+        {
+            prefix[longForm] = nextPrefix(longForm);
+        }
+        
+        return iri.Replace(longForm, prefix[longForm]);
+    }
+    
     public async Task DoIt()
     {
         // we dont' want to send extra junk down.
         // filter to only attributes that are edges.
         try
         {
-
-            
             Console.WriteLine("cleaning it");
             var lessData = Nodes.Select(n =>
             {
-                var nn = new Node();
-                nn.MergeFrom(n);
-                nn.Fragments.Clear();
-                var edges = nn.Attributes
+                var edges = n.Attributes
                     
                     .Where(a => a.Value.Data.Nodeid != null)
                     .GroupBy(kv => 
-                        kv.Key.Data?.Nodeid?.Iri ??
-                        kv.Key.Data?.Str,
-                    kv =>
-                        kv.Value.Data.Nodeid.Iri);
+                        kv.Key.Data?.Nodeid?.Iri != null ? getPrefix(kv.Key.Data?.Nodeid?.Iri) : kv.Key.Data?.Str,
+                    kv => 
+                        getPrefix(kv.Value.Data.Nodeid.Iri));
         // all we need is iri, label, iri
-                return (n.Id.Iri,edges);
+                return (getPrefix(n.Id.Iri),edges);
             })
-                .GroupBy(x=> x.Iri,x => x.edges)
+                .GroupBy(x=> getPrefix(x.Item1),x => x.edges)
                 .Select(x =>
                 {
                     return new node

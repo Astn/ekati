@@ -33,69 +33,73 @@
         <Graph Nodes="@Nodes"></Graph>
     </div>
 </div>
-<div>
+<div style="padding: 5px;">
     
-@*         @if (Nodes.Any()) *@
-@*         { *@
-@*             var headers = (from node in Nodes *@
-@*                 from attr in node.Attributes *@
-@*                 let keyD = attr.Key.Data.ToDisplayString() *@
-@*                 select (keyD)).OrderBy(x=> x).Distinct().ToList(); *@
-@*              *@
-@*             <table> *@
-@*                 <thead> *@
-@*                 <tr> *@
-@*                     <th>id</th> *@
-@*                     @foreach (var h in headers) *@
-@*                     { *@
-@*                         <th>@h</th> *@
-@*                     } *@
-@*                 </tr> *@
-@*                 </thead> *@
-@*                 <tbody> *@
-@*                 @{ *@
-@*                     foreach (var n in Nodes.Skip(skip).Take(take)) *@
-@*                     { *@
-@*                         <tr> *@
-@*                             <td>@n.Id.Iri</td> *@
-@*                             @foreach (var h in headers) *@
-@*                             { *@
-@*                                 var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList(); *@
-@*                                 if (!vals.Any()) *@
-@*                                 { *@
-@*                                     <td><i>null</i></td> *@
-@*                                 } *@
-@*                                 else *@
-@*                                 { *@
-@*                                     <td> *@
-@* *@
-@*                                         @if (vals.Count == 1) *@
-@*                                         { *@
-@*                                             <span>@vals[0].Value.Data.ToDisplayString()</span> *@
-@*                                         } *@
-@*                                         else *@
-@*                                         { *@
-@*                                             <ul> *@
-@*                                                 @foreach (var a in vals.Take(10)) *@
-@*                                                 { *@
-@*                                                     //var key = a.Key.Data.ToDisplayString(); *@
-@*                                                     var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#"); *@
-@*                                                     <li>@val</li> *@
-@*                                                 } *@
-@*                                             </ul> *@
-@*                                         } *@
-@*                                     </td> *@
-@*                                 } *@
-@*                             } *@
-@*                         </tr> *@
-@*                     } *@
-@*                 } *@
-@*                 </tbody> *@
-@*             </table>      *@
-@*              *@
-@*                          *@
-@*              *@
-@*         } *@
+        @if (Nodes.Any())
+        {
+            var headers = (from node in Nodes.Skip(skip).Take(take)
+                from attr in node.Attributes
+                let keyD = attr.Key.Data.ToDisplayString()
+                select (keyD)).OrderBy(x=> x).Distinct().ToList();
+            
+            <table>
+                <thead>
+                <tr>
+                    <th>id</th>
+                    @foreach (var h in headers)
+                    {
+                        <th>@h</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @{
+                    foreach (var n in Nodes.Skip(skip).Take(take))
+                    {
+                        <tr>
+                            <td>@n.Id.Iri</td>
+                            @foreach (var h in headers)
+                            {
+                                var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList();
+                                if (!vals.Any())
+                                {
+                                    <td><i>null</i></td>
+                                }
+                                else
+                                {
+                                    <td>
+
+                                        @if (vals.Count == 1)
+                                        {
+                                            <span>@vals[0].Value.Data.ToDisplayString()</span>
+                                        }
+                                        else
+                                        {
+                                            <ul>
+                                                @foreach (var a in vals.Take(3))
+                                                {
+                                                    //var key = a.Key.Data.ToDisplayString();
+                                                    var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#");
+                                                    <li>@val</li>
+                                                }
+                                                @if (vals.Count > 3)
+                                                {
+                                                    <li>...</li>
+                                                }
+                                            </ul>
+                                        }
+                                    </td>
+                                }
+                            }
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>     
+            
+                        
+            
+        }
 </div>  
 
 @code {

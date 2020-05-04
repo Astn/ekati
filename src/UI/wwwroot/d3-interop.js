@@ -30,7 +30,17 @@ window.d3Interop = {
     A${r},${r} 0 0,1 ${d.target.x},${d.target.y}
   `;
     },
-  renderGraph:  function renderGraph(elementid, data) {
+  toReScale: function toReScale(inputY){
+      xMax = 30;
+      xMin = 4;
+
+      yMax = 1000;
+      yMin = 0;
+
+      percent = (inputY - yMin) / (yMax - yMin);
+      return percent * (xMax - xMin) + xMin;
+  },
+  renderGraphInternal:  function renderGraphInternal(elementid, data) {
       if(data.length === 0){
           d3.selectAll("svg > *").remove();
           return ;
@@ -38,7 +48,7 @@ window.d3Interop = {
 
       var ctr = 0;
       var width = 10000, height = 10000
-      var viewBoxScale = 50; // full size is 100
+      var viewBoxScale = this.toReScale(data.length ); // full size is 100
       var deltax = 0;
       var deltay = 0;
       var panx = 0;
@@ -206,7 +216,7 @@ window.d3Interop = {
       node.append("text")
           .attr("x", 8)
           .attr("y", "0.31em")
-          .text(d => d.iri)
+          .text(d => d.source)
           .attr("fill", "#888888")
           .attr("stroke", "none");
 
@@ -220,6 +230,11 @@ window.d3Interop = {
       invalidation.then(() => simulation.stop());
 
       return svg.node();
-  }, 
+  },
+  renderGraph: function renderGreaph(elementid, data) {
+    setTimeout(function(){
+            window.d3Interop.renderGraphInternal(elementid, data);
+        });
+  }
 };
 
