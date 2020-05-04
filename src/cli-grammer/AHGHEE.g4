@@ -117,9 +117,9 @@ follow
     : 'follow' (anynum | edgenum )
     ;         
 compare
-    : wfkey MATHOP wfvalue
+    : '(' compare BOOLOP compare ')'
+    |  wfkey MATHOP wfvalue
     | '(' wfkey MATHOP wfvalue ')'
-    | '(' compare BOOLOP compare ')'
     ;    
 edgenum
     : value range?
@@ -180,7 +180,14 @@ fragment INT
 fragment EXP
    : [Ee] [+\-]? INT
    ;
-   
+
+COMMENT
+    : '/*' .*? '*/' -> skip //channel(COMMENTS)
+    ;
+
+LINE_COMMENT
+    : '//' ~[\r\n]* -> skip //channel(COMMENTS)
+    ;
 WS
    : [ \t\n\r] + -> skip
    ;
