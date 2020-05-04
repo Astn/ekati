@@ -1,0 +1,8 @@
+from mcr.microsoft.com/dotnet/core/sdk:3.1
+
+WORKDIR /home
+
+RUN git clone git@github.com:Astn/ekati.git
+RUN cd ekati/src/server
+
+CMD ["dotnet", "run"]
