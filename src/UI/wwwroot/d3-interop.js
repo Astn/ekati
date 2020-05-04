@@ -23,6 +23,52 @@ window.d3Interop = {
             .on("drag", dragged)
             .on("end", dragended);
     },
+    dragViewPort: function dragViewPort(simulation, svg){
+        function dragstarted(d) {
+            //if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        }
+
+        function dragged(d) {
+            this.viewBox.baseVal.x -= d3.event.dx;
+            this.viewBox.baseVal.y -= d3.event.dy;
+        }
+
+        function dragended(d) {
+            //if (!d3.event.active) simulation.alphaTarget(0);
+        }
+
+        return d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended);
+    },
+    zoomViewPort: function zoomViewPort(simulation, svg){
+        function dragstarted(d) {
+            //if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        }
+
+        function zoom(d) {
+            var factor = d3.event.sourceEvent.deltaY / 100; // get percent change -0.03
+            if(isNaN(factor) || factor === Infinity || factor === -Infinity){
+                return;
+            }
+            var widthChange = (this.viewBox.baseVal.width * factor);
+            var heightChange = (this.viewBox.baseVal.height * factor);
+            this.viewBox.baseVal.x -= widthChange / 2;
+            this.viewBox.baseVal.y -= heightChange / 2;
+            this.viewBox.baseVal.width += widthChange;
+            this.viewBox.baseVal.height += heightChange;
+        }
+
+        function dragended(d) {
+            //if (!d3.event.active) simulation.alphaTarget(0);
+        }
+
+        return d3.zoom()
+            .on("start", dragstarted)
+            .on("zoom", zoom)
+            .on("end", dragended);
+    },
     linkArk: function (d) {
         const r = Math.hypot(d.target.x - d.source.x, d.target.y - d.source.y);
         return `
@@ -105,59 +151,9 @@ window.d3Interop = {
           clickY = d3.event.sourceEvent.layerY;
           return true;
       }
-      // attach zoom.
-     
-      svg.call(d3.zoom()
-          .on("start",clicked)
-          .on("zoom",function(){
-          if (!d3.event.sourceEvent.defaultPrevented) return; // clicked or something
-          // zoom
-          if(d3.event?.sourceEvent?.deltaY && d3.event?.sourceEvent?.deltaY !== 0) {
-              var factor = d3.event.sourceEvent.deltaY / 100; // get percent change -0.03
-              viewBoxScale = viewBoxScale + viewBoxScale * factor;
-              vbWidth = (width / 100) * viewBoxScale;
-              vbHeight = (height / 100) * viewBoxScale;
-              topleftX = (centerX - vbWidth / 2);
-              topleftY = (centerY - vbHeight / 2);
-              console.log("zoomevent", d3.event.sourceEvent.deltaY);
-              if(isNaN(topleftX) || topleftX === Infinity || topleftX === -Infinity) {topleftX = 0; oops=true;}
-              if(isNaN(topleftY) || topleftY === Infinity || topleftY === -Infinity) {topleftY = 0; oops=true;}
-              if(isNaN(vbWidth)) {vbWidth = width; oops = true;}
-              if(isNaN(vbHeight)) {vbHeight = height; oops = true;}
-              svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
-          } else if(d3.event.sourceEvent.layerX && d3.event.sourceEvent.layerY ){
-           // drag
-              console.log("someevent", d3.event);
-
-              // todo: this is not the right way to do this, it's not correctly taking the viewBoxScale into account
-              // and I feel like we are doing more then we need in here.
-              var projectedHeight = d3.event.sourceEvent.explicitOriginalTarget.clientHeight;
-              var projectedWidth =d3.event.sourceEvent.explicitOriginalTarget.clientWidth;
-              var scalingX = (clickX - d3.event.sourceEvent.layerX) / projectedWidth;
-              var scalingY = (clickY - d3.event.sourceEvent.layerY) / projectedHeight;
-              var deltaX =  (scalingX * (width)) * 0.2;
-              var deltaY = (scalingY * (height)) * 0.2;
-              
-              centerX = (width/2) + deltaX;
-              centerY = (height/2) + deltaY;
-              vbWidth = (width/100)  * viewBoxScale;
-              vbHeight = (height/100) * viewBoxScale;
-              topleftX = (centerX - vbWidth/2);
-              topleftY = (centerY - vbHeight/2);
-              
-              var oops = false;
-              if(isNaN(topleftX) || topleftX === Infinity || topleftX === -Infinity) {topleftX = 0; oops=true;}
-              if(isNaN(topleftY) || topleftY === Infinity || topleftY === -Infinity) {topleftY = 0; oops=true;}
-              if(isNaN(vbWidth)) {vbWidth = width; oops = true;}
-              if(isNaN(vbHeight)) {vbHeight = height; oops = true;}
-              
-              if (!oops){
-                svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
-              }
-              
-          }
-          
-      }));
+      // attach Pan.
+      svg.call(this.dragViewPort(simulation), svg);
+      svg.call(this.zoomViewPort(simulation));
       
       console.log("renderGraph:3",svg);
       
