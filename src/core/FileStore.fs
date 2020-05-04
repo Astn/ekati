@@ -40,21 +40,22 @@ type ClusterServices(log: string -> unit) =
 type GrpcFileStore(config:Config) = 
 
     let clusterServices = new ClusterServices(config.log)
-
+    let writers bcs = 
+        bcs    
+        |>  Seq.map (fun (i) -> 
+                
+            let partition = FileStorePartition(config,i,clusterServices)   
+            
+            (partition.IORequests(), partition.Thread(), partition)
+            )            
+        |> Array.ofSeq
     let PartitionWriters = 
         let bcs = 
             seq {for i in 0 .. (config.ParitionCount - 1) do 
                  yield i}
             |> Array.ofSeq
-        let writers = 
-            bcs    
-            |>  Seq.map (fun (i) -> 
-                    
-                let partition = FileStorePartition(config,i,clusterServices)   
-                
-                (partition.IORequests(), partition.Thread(), partition)
-                )            
-            |> Array.ofSeq
+            
+        let writers = writers bcs
         
         for i in 0 .. (writers.Length - 1) do
             let (_,_,part) = writers.[i]

@@ -31,8 +31,6 @@ window.d3Interop = {
   `;
     },
   renderGraph:  function renderGraph(elementid, data) {
-
-      //console.log("renderGraph",elementid,data);
       if(data.length === 0){
           d3.selectAll("svg > *").remove();
           return ;
@@ -53,25 +51,27 @@ window.d3Interop = {
       var vbHeight = (height/100) * viewBoxScale;
       var topleftX = (centerX - vbWidth/2);
       var topleftY = (centerY - vbHeight/2);
-      const nodes = data.map(d => d.id);
-      const links = data.map(d => d.attributes
-          .filter(a => a.value?.data?.nodeid !== null)
-          .map(a => {
-              ctr = ctr +1;
-              return {
-                  "source": d.id.iri,
-                  "target": a.value.data.nodeid.iri,
-                  "type": a.key.data.str,
-                  "myid": `${ctr}`
-              };
-          })).flat()
+
+      const nodes = data.map(d => {return {source:d.source}} );
+      const links = data.map(d => 
+          d.edges.map(typ => {
+              ctr = ctr + 1;
+              var fjdsk = typ.target.map(t => {
+                  return {
+                      "source": d.source,
+                      "target": t,
+                      "type" : typ.type,
+                      "myid" : `${ctr}`
+              }});
+              return fjdsk;
+          }).flat()).flat()
           .filter(l => {
-              return nodes.find(n => n.iri === l.source) && nodes.find(n => n.iri === l.target);
+              return nodes.find(n => n.source === l.target);
           });
 
       const types = Array.from(new Set(links.map(d => d.type)));
       const color = d3.scaleOrdinal(types, d3.schemeCategory10);
-      const forceL = d3.forceLink(links).id(d => d.iri);
+      const forceL = d3.forceLink(links).id(d => d.source);
 
       const simulation = d3.forceSimulation(nodes)
           .force("link", forceL )

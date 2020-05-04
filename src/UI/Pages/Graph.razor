@@ -21,7 +21,9 @@
         
         // tod: like should we render?
         // be great to know if the nodes we have now are different from the nodes we had last time.
-        var newHash = Nodes.Select(n => n.Id.Iri.GetHashCode()).Aggregate(0, (acc, next) => acc ^ next);
+        var newHash = Nodes
+            .Select(n => n.Id.Iri.GetHashCode())
+            .Aggregate(0, (acc, next) => acc ^ next);
         if (newHash != lasthash)
         {
             lasthash = newHash;
@@ -39,21 +41,67 @@
     {
         // we dont' want to send extra junk down.
         // filter to only attributes that are edges.
-        Console.WriteLine("cleaning it");
-        var lessData =  Nodes.Select(n =>
+        try
         {
-            var nn = new Node();
-            nn.MergeFrom(n);
-            nn.Fragments.Clear();
-            var edges = nn.Attributes.Where(a => a.Value.Data.Nodeid!=null).ToList();
-            nn.Attributes.Clear();
-            nn.Attributes.AddRange(edges);
-            return nn;
-        });
-        Console.WriteLine("cleaning it - finished, rendering");
-        await JSRuntime.InvokeVoidAsync(
-            "d3Interop.renderGraph", uniqueId, lessData);
-        Console.WriteLine("RenderGraph - finished");
+
+            
+            Console.WriteLine("cleaning it");
+            var lessData = Nodes.Select(n =>
+            {
+                var nn = new Node();
+                nn.MergeFrom(n);
+                nn.Fragments.Clear();
+                var edges = nn.Attributes
+                    
+                    .Where(a => a.Value.Data.Nodeid != null)
+                    .GroupBy(kv => 
+                        kv.Key.Data?.Nodeid?.Iri ??
+                        kv.Key.Data?.Str,
+                    kv =>
+                        kv.Value.Data.Nodeid.Iri);
+        // all we need is iri, label, iri
+                return (n.Id.Iri,edges);
+            })
+                .GroupBy(x=> x.Iri,x => x.edges)
+                .Select(x =>
+                {
+                    return new node
+                    {
+                        source = x.Key,
+                        edges = x.SelectMany(y =>
+                            y.Select(z =>
+                                new edge
+                                {
+                                    type = z.Key,
+                                    target = z.ToList()
+                                })
+                            ).ToList()
+                    };
+                })
+                .ToList();
+
+            Console.WriteLine("cleaning it - finished, rendering");
+            Console.WriteLine(lessData);
+            await JSRuntime.InvokeVoidAsync( "d3Interop.renderGraph", uniqueId, lessData);
+            Console.WriteLine("RenderGraph - finished");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            Console.WriteLine(e.StackTrace);
+            throw;
+        }
     }
-    
+
+    public class node
+    {
+        public string source { get; set; }
+        public List<edge> edges { get; set; } = new List<edge>();
+    }
+
+    public class edge
+    {
+        public string type { get; set; }
+        public List<string> target { get; set; } = new List<string>();
+    }
 }
