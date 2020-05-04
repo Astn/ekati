@@ -110,6 +110,10 @@ window.d3Interop = {
               topleftX = (centerX - vbWidth / 2);
               topleftY = (centerY - vbHeight / 2);
               console.log("zoomevent", d3.event.sourceEvent.deltaY);
+              if(isNaN(topleftX) || topleftX === Infinity || topleftX === -Infinity) {topleftX = 0; oops=true;}
+              if(isNaN(topleftY) || topleftY === Infinity || topleftY === -Infinity) {topleftY = 0; oops=true;}
+              if(isNaN(vbWidth)) {vbWidth = width; oops = true;}
+              if(isNaN(vbHeight)) {vbHeight = height; oops = true;}
               svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
           } else if(d3.event.sourceEvent.layerX && d3.event.sourceEvent.layerY ){
            // drag
