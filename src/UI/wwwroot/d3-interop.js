@@ -45,6 +45,8 @@ window.d3Interop = {
       var deltay = 0;
       var panx = 0;
       var pany = 0;
+      var clickX = 0;
+      var clickY = 0;
       var centerX=width/2 + panx;
       var centerY=height/2 + pany;
       var vbWidth = (width/100)  * viewBoxScale;
@@ -87,9 +89,19 @@ window.d3Interop = {
           .style("background-color","#181818");
       
           //.attr("viewBox", [-width , -height , width*2, height*2])
-      
+      function clicked() {
+          if(d3.event.sourceEvent.type === "wheel") return false;
+          clickX = d3.event.sourceEvent.layerX;
+          clickY = d3.event.sourceEvent.layerY;
+          return true;
+      }
       // attach zoom.
-      svg.call(d3.zoom().on("zoom",function(){
+     
+      svg.call(d3.zoom()
+          .on("start",clicked)
+          .on("zoom",function(){
+          if (!d3.event.sourceEvent.defaultPrevented) return; // clicked or something
+          // zoom
           if(d3.event?.sourceEvent?.deltaY && d3.event?.sourceEvent?.deltaY !== 0) {
               var factor = d3.event.sourceEvent.deltaY / 100; // get percent change -0.03
               viewBoxScale = viewBoxScale + viewBoxScale * factor;
@@ -100,22 +112,34 @@ window.d3Interop = {
               console.log("zoomevent", d3.event.sourceEvent.deltaY);
               svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
           } else if(d3.event.sourceEvent.layerX && d3.event.sourceEvent.layerY ){
+           // drag
               console.log("someevent", d3.event);
 
+              // todo: this is not the right way to do this, it's not correctly taking the viewBoxScale into account
+              // and I feel like we are doing more then we need in here.
               var projectedHeight = d3.event.sourceEvent.explicitOriginalTarget.clientHeight;
               var projectedWidth =d3.event.sourceEvent.explicitOriginalTarget.clientWidth;
-              var scalingX = d3.event.sourceEvent.layerX / projectedWidth;
-              var scalingY = d3.event.sourceEvent.layerY / projectedHeight;
-              var fixedX =  scalingX * (width);
-              var fixedY = scalingY * (height);
-              // invert it
-              centerX = fixedX;
-              centerY = fixedY;
+              var scalingX = (clickX - d3.event.sourceEvent.layerX) / projectedWidth;
+              var scalingY = (clickY - d3.event.sourceEvent.layerY) / projectedHeight;
+              var deltaX =  (scalingX * (width)) * 0.2;
+              var deltaY = (scalingY * (height)) * 0.2;
+              
+              centerX = (width/2) + deltaX;
+              centerY = (height/2) + deltaY;
               vbWidth = (width/100)  * viewBoxScale;
               vbHeight = (height/100) * viewBoxScale;
               topleftX = (centerX - vbWidth/2);
               topleftY = (centerY - vbHeight/2);
-              svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
+              
+              var oops = false;
+              if(isNaN(topleftX) || topleftX === Infinity || topleftX === -Infinity) {topleftX = 0; oops=true;}
+              if(isNaN(topleftY) || topleftY === Infinity || topleftY === -Infinity) {topleftY = 0; oops=true;}
+              if(isNaN(vbWidth)) {vbWidth = width; oops = true;}
+              if(isNaN(vbHeight)) {vbHeight = height; oops = true;}
+              
+              if (!oops){
+                svg.attr("viewBox", [topleftX, topleftY, vbWidth, vbHeight])
+              }
               
           }
           
