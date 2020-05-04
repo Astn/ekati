@@ -39,6 +39,7 @@
     {
         // we dont' want to send extra junk down.
         // filter to only attributes that are edges.
+        Console.WriteLine("cleaning it");
         var lessData =  Nodes.Select(n =>
         {
             var nn = new Node();
@@ -49,8 +50,10 @@
             nn.Attributes.AddRange(edges);
             return nn;
         });
+        Console.WriteLine("cleaning it - finished, rendering");
         await JSRuntime.InvokeVoidAsync(
             "d3Interop.renderGraph", uniqueId, lessData);
+        Console.WriteLine("RenderGraph - finished");
     }
     
 }
