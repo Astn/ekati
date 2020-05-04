@@ -160,8 +160,6 @@
         this.StateHasChanged();
     }
 
-    
-
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -172,7 +170,48 @@
 
         isInitializing = true;
 
-        var text = "get austin |> follow * 1";
+        var text = @"
+
+
+
+
+// c style comments - highlight and ctrl+/ or command+/
+// load graphml ""https://raw.githubusercontent.com/Astn/ekati/master/src/core/tinkerpop-modern.xml""
+
+// you can find lots of 'nt' data to download from wikidata https://www.wikidata.org/wiki/Special:EntityData
+// load nt ""https://www.wikidata.org/wiki/Special:EntityData/Q23.nt""
+
+// multi-line comments also supported
+
+/* 
+get ""*"" 
+	|> limit 500
+    |> follow * 1
+	|> limit 500
+	|> follow * 1
+	|> limit 500
+*/
+
+// put some data in
+// put ""your/wonderful/id"" 
+//     ""key"":""value"",
+//     ""key2"":""value2"",
+//     ""linkname"":@""someid"",
+//     ""anotherlink"":@""anotherid"";
+
+//     ""someid""
+//         ""likes"":@""your/wonderful/id"",
+//         ""doesnt/like"":@""anotherid"";
+
+//     ""anotherid""
+//         ""name"":""whatever you like"",
+//         ""follows"":@""1"";  
+
+// get it back out
+// get ""your/wonderful/id"" 
+// 	|> follow * 3
+
+";
 
         try
         {
@@ -180,7 +219,7 @@
         }
         catch (Exception e)
         {
-            Logger.LogError("1something with monaco", e);
+            Logger.LogError("Something with monaco", e);
             text = null;
         }
 
@@ -233,7 +272,12 @@
             {
                 lastStep = lastStep.Next;
             }
-            lastStep.Next = limitStep;
+
+            // we only attach if the user didn't put their own limit step on the query.
+            if (lastStep.OperatorCase != Step.OperatorOneofCase.Limit)
+            {
+                lastStep.Next = limitStep;
+            }
         }
         else
         {
@@ -270,10 +314,9 @@
         {
             var q = new Ahghee.Grpc.Query();
             q.Iris.AddRange(nids.Select(x => x.Iri));
-            
-             AttachLimitStep(q);
+            q.Step = step;
+            AttachLimitStep(q);
 
-            
             var pi = new ProgressItem
             {
                 Message = "Getting Nodes",
