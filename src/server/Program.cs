@@ -24,6 +24,11 @@ namespace server
                 {
                     webBuilder.ConfigureKestrel(options =>
                     {
+                        // Unable to start ASP.NET Core gRPC app on macOS
+                        // Kestrel doesn't support HTTP/2 with TLS on macOS and older Windows versions such as Windows 7.
+                        // The ASP.NET Core gRPC template and samples use TLS by default.
+                        // You'll see the following error message when you attempt to start the gRPC server:
+                        
                         // Setup a HTTP/2 endpoint without TLS.
                       //  options.ListenLocalhost(5000, o => o.Protocols = 
                       //      HttpProtocols.Http2);

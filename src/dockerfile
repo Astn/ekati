@@ -5,4 +5,6 @@ WORKDIR /home
 RUN git clone git@github.com:Astn/ekati.git
 RUN cd ekati/src/server
 
+WORKDIR /home/ekati/src/server
+
 CMD ["dotnet", "run"]
