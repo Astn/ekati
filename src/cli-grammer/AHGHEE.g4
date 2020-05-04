@@ -96,7 +96,19 @@ pipe
 pipecmd
     : follow
     | wherefilter
+    | limitfilter
+    | skipfilter
     ;   
+
+skipfilter
+    : 'skip' NUMBER
+    | 'offset' NUMBER
+    ;
+
+limitfilter
+    : 'limit' NUMBER
+    | 'take' NUMBER
+    ;
 
 wherefilter
     : 'filter' compare
@@ -128,7 +140,7 @@ anynum
     ;    
         
 MATHOP
-    : '=='|'<'|'<='|'>='|'>' ;    
+    : '=='|'<'|'<='|'>='|'>'|'!=' ;    
 BOOLOP
     : '&&' | '||' ;
 

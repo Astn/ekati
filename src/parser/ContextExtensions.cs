@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Text;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Security.Principal;
 using System.Text;
 using Ahghee;
@@ -317,6 +318,21 @@ namespace cli
             filter.Compare = ctx.compare()?.ToCompare();
             return filter;
         }
+
+        public static SkipFilter ToSkipOperator(this AHGHEEParser.SkipfilterContext ctx)
+        {
+            var filter = new SkipFilter();
+            filter.Value = Int32.Parse(ctx.NUMBER().GetText());
+            return filter;
+        }
+        
+        public static LimitFilter ToLimitOperator(this AHGHEEParser.LimitfilterContext ctx)
+        {
+            var filter = new LimitFilter();
+            filter.Value = Int32.Parse(ctx.NUMBER().GetText());
+            return filter;
+        }
+        
         public static Step ToPipeFlow(this AHGHEEParser.PipeContext ctx)
         {
             var cmd = ctx.pipecmd();
@@ -335,10 +351,31 @@ namespace cli
                 var filter = cmd.wherefilter().ToFilterOperator();
                 return new Step()
                 {
-                    Where = filter,
+                    Filter = filter,
                     Next = ctx.pipe()?.ToPipeFlow()
                 };
             }
+
+            if (cmd.skipfilter() != null)
+            {
+                var skip = cmd.skipfilter().ToSkipOperator();
+                return new Step()
+                {
+                    Skip = skip,
+                    Next = ctx.pipe()?.ToPipeFlow()
+                };
+            }
+            
+            if (cmd.limitfilter() != null)
+            {
+                var limit = cmd.limitfilter().ToLimitOperator();
+                return new Step()
+                {
+                    Limit = limit,
+                    Next = ctx.pipe()?.ToPipeFlow()
+                };
+            }
+            
             throw new NotImplementedException("Only Follow and Filter are available in PipeContext so far.");
         }
     }

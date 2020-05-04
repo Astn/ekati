@@ -1,22 +1,34 @@
 @using Ahghee.Grpc
+@using FASTER.core
 @inject IJSRuntime JSRuntime;
 
 
 
-<svg id="@uniqueId" @ref="d3Container" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="@uniqueId" @ref="d3Container" style="overflow: hidden;" xmlns="http://www.w3.org/2000/svg"></svg>
 
 
 
 @code {
     [Parameter]
     public List<Node> Nodes { get; set; }
-
+    private Dictionary<string,string> prefix = new Dictionary<string, string>();
+    private int lasthash = 0;
     private ElementReference d3Container;
     private string uniqueId = Guid.NewGuid().ToString().Replace("-", "");
     protected override void OnAfterRender(bool firstRender)
     {
         base.OnAfterRender(firstRender);
-        DoIt();
+        
+        // tod: like should we render?
+        // be great to know if the nodes we have now are different from the nodes we had last time.
+        var newHash = Nodes
+            .Select(n => n.Id.Iri.GetHashCode())
+            .Aggregate(0, (acc, next) => acc ^ next);
+        if (newHash != lasthash)
+        {
+            lasthash = newHash;
+            DoIt();
+        }
         //this.StateHasChanged();
     }
 
@@ -25,10 +37,97 @@
         return base.OnInitializedAsync();
     }
 
-    public async Task DoIt()
+    string prefixBuilder = "a";
+    public string nextPrefix(string longform)
     {
-        await JSRuntime.InvokeVoidAsync(
-            "d3Interop.renderGraph", uniqueId, Nodes);
+        var next = prefixBuilder + ":";
+        
+        if (prefixBuilder[^1] != 'z')
+        {
+            prefixBuilder = prefixBuilder[..^1] + (char)(prefixBuilder[^1] + 1);    
+        }
+        else
+        {
+            prefixBuilder = prefixBuilder[..^1] + "aa";
+        }
+        return next;
+    }
+    public string getPrefix(string iri)
+    {
+        var lastSlash = iri.LastIndexOf('/');
+        var longForm = "*";
+        if (lastSlash >= 0)
+        {
+           longForm = iri.Substring(0, lastSlash + 1);
+        }
+
+        if (!prefix.ContainsKey(longForm))
+        {
+            prefix[longForm] = nextPrefix(longForm);
+        }
+        
+        return iri.Replace(longForm, prefix[longForm]);
     }
     
+    public async Task DoIt()
+    {
+        // we dont' want to send extra junk down.
+        // filter to only attributes that are edges.
+        try
+        {
+            Console.WriteLine("cleaning it");
+            var lessData = Nodes.Select(n =>
+            {
+                var edges = n.Attributes
+                    
+                    .Where(a => a.Value.Data.Nodeid != null)
+                    .GroupBy(kv => 
+                        kv.Key.Data?.Nodeid?.Iri != null ? getPrefix(kv.Key.Data?.Nodeid?.Iri) : kv.Key.Data?.Str,
+                    kv => 
+                        getPrefix(kv.Value.Data.Nodeid.Iri));
+        // all we need is iri, label, iri
+                return (getPrefix(n.Id.Iri),edges);
+            })
+                .GroupBy(x=> getPrefix(x.Item1),x => x.edges)
+                .Select(x =>
+                {
+                    return new node
+                    {
+                        source = x.Key,
+                        edges = x.SelectMany(y =>
+                            y.Select(z =>
+                                new edge
+                                {
+                                    type = z.Key,
+                                    target = z.ToList()
+                                })
+                            ).ToList()
+                    };
+                })
+                .ToList();
+
+            Console.WriteLine("cleaning it - finished, rendering");
+            Console.WriteLine(lessData);
+            await JSRuntime.InvokeVoidAsync( "d3Interop.renderGraph", uniqueId, lessData);
+            Console.WriteLine("RenderGraph - finished");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            Console.WriteLine(e.StackTrace);
+            throw;
+        }
+    }
+
+    public class node
+    {
+        public string source { get; set; }
+        public List<edge> edges { get; set; } = new List<edge>();
+    }
+
+    public class edge
+    {
+        public string type { get; set; }
+        public List<string> target { get; set; } = new List<string>();
+    }
 }

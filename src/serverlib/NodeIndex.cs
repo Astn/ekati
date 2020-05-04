@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using FASTER.core;
 using Google.Protobuf.Collections;
 
@@ -13,26 +15,75 @@ namespace Ahghee.Grpc
         private ClientSession<NodeID, Pointers, MemoryPointer, Pointers, Empty, Funcs> _session;
         private IDevice _objfile;
         private MemoryPointer __default = new MemoryPointer();
+        private bool _runCheckpointThread = true;
+        private readonly string _checkpointDir;
+
         public NodeIndex(string file)
         {
+            var continueSession = (File.Exists(file + ".log")
+                                   || File.Exists(file + ".obj.log"));
+            if (!continueSession)
+            {
+                File.Create(file + ".log");
+                File.Create(file + ".obj.log");
+            }
+            
             _logfile = Devices.CreateLogDevice(file + ".log");
             _objfile = Devices.CreateLogDevice(file + ".obj.log");
-
+            _checkpointDir = Path.Combine(Directory.GetParent(file).FullName, "checkpoints");
             _kv = new FasterKV<NodeID, Pointers, MemoryPointer, Pointers, Empty, Funcs>
                 (1L << 20, new Funcs(), new LogSettings
             {
                 LogDevice = _logfile,
-                ObjectLogDevice = _objfile
+                ObjectLogDevice = _objfile 
             },
-                null,
+                new CheckpointSettings
+                {
+                    CheckpointDir = _checkpointDir,
+                    CheckPointType = CheckpointType.Snapshot
+                },
                 new SerializerSettings<NodeID, Pointers>
                 {
                     keySerializer = () => new NodeIDSerializer(),
                     valueSerializer = () => new PointersSerializer()
                 });
-            _session = _kv.NewSession();
+
+
+            if (continueSession)
+            {
+                _kv.Recover();
+                _session = _kv.ResumeSession("s1", out CommitPoint cp);
+            }
+            else
+            {
+                _session = _kv.NewSession("s1");
+            }
+
+            IssuePeriodicCheckpoints();
         }
 
+        private void IssuePeriodicCheckpoints()
+        {
+            var t = new Thread(() => 
+            {
+                try
+                {
+                    while(_runCheckpointThread) 
+                    {
+                        Thread.Sleep(60000);
+                        Commit();
+                       
+                        
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            });
+            t.Start();
+        }
         public void AddOrUpdateBatch(IEnumerable<NodeID> ids)
         {
             foreach (var icd in ids)
@@ -48,6 +99,27 @@ namespace Ahghee.Grpc
             return status == Status.OK;
         }
 
+        private void Commit()
+        {
+            _kv.Log.Flush(false);
+            //_kv.ReadCache.Flush(false);
+            _kv.TakeFullCheckpoint(out Guid token);
+            _kv.CompleteCheckpointAsync().GetAwaiter().GetResult();
+            // cleanup previous checkpoints.
+            // note, if we doing incremental checkpointing then this likely doesn't work..
+            var checkpoints = Directory.EnumerateDirectories(Path.Combine(_checkpointDir, "cpr-checkpoints"))
+                .Concat(Directory.EnumerateDirectories(Path.Combine(_checkpointDir, "index-checkpoints")))
+                .Select(di => new DirectoryInfo(di))
+                .OrderBy(di => di.CreationTimeUtc)
+                .Skip(4)
+                .Where(dirName => dirName.Name != token.ToString());
+
+            foreach (var oldCheckpoint in checkpoints)
+            {
+                // TODO: setup a checkpoint policy that lets us do full and incremenal checkpoints
+                oldCheckpoint.Delete(true);
+            }
+        }
         public IEnumerable<Pointers> Iter()
         {
             var scanner = _kv.Log.Scan(_kv.Log.BeginAddress, _kv.Log.TailAddress);
@@ -69,6 +141,7 @@ namespace Ahghee.Grpc
 
         public void Dispose()
         {
+            _runCheckpointThread = false;
             _session?.Dispose();
             _kv?.Dispose();
             _logfile.Close();
@@ -90,6 +163,10 @@ namespace Ahghee.Grpc
 
         public void CopyUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers oldValue, ref Pointers newValue)
         {
+            if (newValue == null)
+            {
+                newValue = new Pointers();
+            }
             newValue.Pointers_.AddRange(oldValue.Pointers_);
         }
 

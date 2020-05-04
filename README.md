@@ -106,6 +106,78 @@ get "your/wonderful/id", "anotherid" |> follow * 1
 ```
 ![Basic UI](/docs/query4.png)
 
+## Graphs
+#### wikidata's dbo_snapshots.nt limit 1000
+
+![Basic UI](/docs/big.png)
+zoom in
+![Basic UI](/docs/big_zoom.png)
+
+## Test langauge
+
+Some examples and 
+[See Grammar](/docs/ekati.lang.rrd.html)
+
+### Put Command
+
+```json
+put "me" 
+        "type": "person",
+        "name": "Austin",
+        "fingers": 10,
+        "height": 6.42,
+        "likes": @"dogs";
+    "dogs"
+        "type": "group",
+        "member": @"newfie",
+        "member": @"lab",
+        "member": @"bulldog";
+    "newfie"
+        "type": "dog",
+        "loves": @"me";
+    "lab"
+        "type": "dog",
+        "likes": @"me";
+    "bulldog"
+        "type": "dog",
+        "sits on": @"me";       
+```
+
+### Get command
+
+```json
+get "*" 
+    |> filter "type"="person"
+    |> skip 50 
+    |> take 10
+```
+
+```json
+get "me" 
+    |> follow * 3
+    |> take 100
+```
+
+```json
+get "me" 
+    |> follow "likes" 1
+    |> follow "member" 1
+    |> filter "type" = "dog"
+    |> follow "loves" 1
+    |> take 100
+```
+
+### Load command
+
+```json
+load nt "C:\\Users\\austi\\Downloads\\latest-lexemes.nt"
+```
+
+```json
+load graphml "https://raw.githubusercontent.com/Astn/ekati/master/src/core/tinkerpop-modern.xml"
+```
+
+
 ## Good reading
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
 - [BigTable](https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf)

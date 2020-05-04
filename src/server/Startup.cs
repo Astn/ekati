@@ -25,7 +25,8 @@ namespace server
 
             services.AddSingleton(sp =>
             {
-                return new Ahghee.GrpcFileStore(new Config(
+                var lifetimeEvents = sp.GetService<IHostApplicationLifetime>();
+                var ekati = new Ahghee.GrpcFileStore(new Config(
                     Convert.ToInt32(1), //Environment.ProcessorCount * .75),
                     FSharpFunc<string, Unit>.FromConverter(
                         input => { return null; }),
@@ -33,6 +34,15 @@ namespace server
                     AppMetrics
                         .CreateDefaultBuilder()
                         .Build())) as IStorage;
+
+                lifetimeEvents.ApplicationStopping.Register(() =>
+                {
+                    Console.WriteLine("Ekati got shutdown event. Calling Stop");
+                    ekati.Stop();
+                    Console.WriteLine("Ekati got shutdown event. Stop Finished");
+                });
+                
+                return ekati;
             });
 
             // services.AddGrpcWeb(o => o.GrpcWebEnabled = true);

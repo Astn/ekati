@@ -341,11 +341,12 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
             let writeLastPos (pos : int64) =
                 bw.Seek (0, SeekOrigin.Begin) |> ignore
                 bw.Write (pos)
-
+            let mutable lastFlushPos = lastPosition
             let FLUSHWRITES () =   
-                if lastOpIsWrite then 
+                if lastOpIsWrite then
                     stream.Flush()
                     writeLastPos(lastPosition)
+                    lastFlushPos <- lastPosition
             try
                 let reader = bc.Reader
                 let alldone = reader.Completion
@@ -355,14 +356,22 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     if reader.TryRead(&nio) = false then
                         let nioWaitTimer = config.Metrics.Measure.Timer.Time(Metrics.PartitionMetrics.QueueEmptyWaitTime, tags)
                         // sleep for now.
+                        
+                            
+                            
                         // todo: use this down time to do cleanup and compaction and other maintance tasks.
                         reader.WaitToReadAsync().AsTask()
                             |> Async.AwaitTask
                             |> Async.RunSynchronously
                             |> ignore
-                            
+                        if(lastPosition <> lastFlushPos) then
+                            //might as well do a flush
+                            FLUSHWRITES()
+                        
                         nio <- myNoOp // set NoOp so we can loop and check alldone.IsCompleted again.
-                        nioWaitTimer.Dispose()    
+                        nioWaitTimer.Dispose()
+                        
+                        
                     match nio with
                     | Add(tcs,items) -> 
                         try

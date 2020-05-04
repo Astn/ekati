@@ -197,17 +197,7 @@ namespace server
                                 {
                                     lnlpcheck++;
                                     var c = (char) tr.Read();
-                                    // if (c == '\\')
-                                    // {
-                                    //     slashcnt++;
-                                    // }
-                                    // else
-                                    // {
-                                    //     slashcnt = 0;
-                                    // }
-                                    // period is the statement terminator, not newline.
-                                    // if slashs before the . are odd then the dot is escaped.
-                                    // if we are inside a quote block though... we in trouble.
+
                                     if (c == '\n' )//&& slashcnt % 1 == 0) 
                                     {
                                         lnlpcheckf = lnlpcheck;
@@ -283,12 +273,13 @@ namespace server
                     Remote = "",
                     Pointer = Utils.NullMemoryPointer()
                 }), request.Step);
-
+                var sendCount = 0;
                 foreach (var chunk in resutl)
                 {
                     var (z, b) = chunk;
                     if (b.IsLeft)
                     {
+                        sendCount++;
                         await responseStream.WriteAsync(b.Left);
                     }
                     else
@@ -296,6 +287,7 @@ namespace server
                         _logger.LogError(b.Right, "Failure processing query");
                     }
                 }
+                _logger.LogInformation($"Sent back {sendCount} items.");
             }
             catch (Exception e)
             {
