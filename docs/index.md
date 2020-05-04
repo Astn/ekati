@@ -30,7 +30,7 @@ Right now you can import a few file formats (ttl, graphml) supporting other file
 
 There is the beginnings of a UI, that runs in your browser.
 
-![Basic UI](/docs/UI-load-graphml.png)
+![Basic UI](UI-load-graphml.png)
 
 # Tech
 
@@ -72,15 +72,15 @@ view some of it
 ```
 get "1" |> follow * 2
 ```
-![Basic UI](/docs/query1.png)
+![Basic UI](query1.png)
 ```
 get "6" |> follow * 2
 ```
-![Basic UI](/docs/query2.png)
+![Basic UI](query2.png)
 ```
 get "2", "4"
 ```
-![Basic UI](/docs/query3.png)
+![Basic UI](query3.png)
 ## Enter some data
 
 ```
@@ -104,19 +104,19 @@ put "your/wonderful/id"
 ```
 get "your/wonderful/id", "anotherid" |> follow * 1     
 ```
-![Basic UI](/docs/query4.png)
+![Basic UI](query4.png)
 
 ## Graphs
 #### wikidata's dbo_snapshots.nt limit 1000
 
-![Basic UI](/docs/big.png)
+![Basic UI](big.png)
 zoom in
-![Basic UI](/docs/big_zoom.png)
+![Basic UI](big_zoom.png)
 
 ## Test langauge
 
 Some examples and 
-[See Grammar](/docs/ekati.lang.rrd.html)
+[See Grammar](ekati.lang.rrd.html)
 
 ### Put Command
 
