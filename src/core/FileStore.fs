@@ -204,7 +204,18 @@ type GrpcFileStore(config:Config) =
             | null -> step
             | next when next.OperatorCase <> step.OperatorCase -> step
             | next when step.OperatorCase = Step.OperatorOneofCase.None -> step
-            | next when step.OperatorCase = Step.OperatorOneofCase.Limit -> step
+            | next when step.OperatorCase = Step.OperatorOneofCase.Skip ->
+                let maxSkip = new Step()
+                maxSkip.Skip <- new SkipFilter()
+                maxSkip.Skip.Value <- max step.Skip.Value next.Skip.Value
+                maxSkip.Next <- next.Next
+                MergeSameSteps maxSkip
+            | next when step.OperatorCase = Step.OperatorOneofCase.Limit ->
+                let minLimit = new Step()
+                minLimit.Limit <- new LimitFilter()
+                minLimit.Limit.Value <- min step.Limit.Value next.Limit.Value
+                minLimit.Next <- next.Next
+                MergeSameSteps minLimit
             | next when step.OperatorCase = Step.OperatorOneofCase.Skip -> step
             | next when step.OperatorCase = Step.OperatorOneofCase.Filter ->
                 let andedFilter = new Step()

@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using FASTER.core;
+using Google.Protobuf;
 using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
@@ -124,18 +125,12 @@ namespace Ahghee.Grpc
     {
         public override void Deserialize(ref Pointers obj)
         {
-            var inputStream = new pb.CodedInputStream(reader.BaseStream, true);
-            obj.MergeFrom(inputStream);
+            obj.MergeDelimitedFrom(reader.BaseStream);
         }
 
         public override void Serialize(ref Pointers obj)
         {
-            var len = obj.CalculateSize();
-            var mem = new byte[len];
-            var outputStream = new pb.CodedOutputStream(mem);
-            obj.WriteTo(outputStream);
-            outputStream.Flush();
-            writer.Write(mem);
+            obj.WriteDelimitedTo(writer.BaseStream);
         }
     }
     public class NodeIDSerializer : BinaryObjectSerializer<NodeID>
