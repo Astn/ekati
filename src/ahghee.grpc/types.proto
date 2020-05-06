@@ -38,14 +38,14 @@ message DataBlock {
         float f = 9;
         bool b = 10;
         MemoryPointer memorypointer = 11;
-        DataBlockArray array = 12;
+        Array array = 12;
         Map map = 13;
         //todo: add support for protobuf any
         //google.protobuf.Any any = 5;
     }
 }
 
-message DataBlockArray{
+message Array{
     repeated DataBlock item = 1;
 }
 message Map{
