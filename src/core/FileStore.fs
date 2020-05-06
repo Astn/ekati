@@ -270,7 +270,7 @@ type GrpcFileStore(config:Config) =
         // TODO: Read all the fragments, not just the first one.
         let t = 
             if (nid.Pointer = Utils.NullMemoryPointer()) then
-                Console.WriteLine ("Read using Index")
+                //Console.WriteLine ("Read using Index")
                 let mutable mp:Pointers = null
                 if(part.Index().TryGetValue(nid, &mp)) then 
                     while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()

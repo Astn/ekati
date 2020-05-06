@@ -3,7 +3,35 @@
 @inject IJSRuntime JSRuntime;
 
 
-
+<div style="float:left; padding-left: 10px;">
+    <input type="checkbox" name="node names" @onchange="@(async (t) =>
+                                                        {
+                                                            showNodeLabels = !showNodeLabels;
+                                                            await JSRuntime.InvokeVoidAsync("d3Interop.showNodeLabels", showNodeLabels);
+                                                        })"/> Node Names
+    <input type="checkbox" name="edge names" @onchange="@(async (t) =>
+                                                       {
+                                                           showEdgeLabels = !showEdgeLabels;
+                                                           await JSRuntime.InvokeVoidAsync("d3Interop.showEdgeLabels", showEdgeLabels);
+                                                       })"/> Edge Names
+    <input type="checkbox" checked="true" name="nodes" @onchange="@(async (t) =>
+                                                        {
+                                                            showNodes = !showNodes;
+                                                           await JSRuntime.InvokeVoidAsync("d3Interop.showNodes", showNodes);
+                                                        })"/> Nodes
+    <input type="checkbox" checked="true" name="edges" @onchange="@(async (t) =>
+                                                        {
+                                                            showNodes = !showNodes;
+                                                           await  JSRuntime.InvokeVoidAsync("d3Interop.showEdges", showNodes);
+                                                        })"/> Edges
+    
+    <input type="checkbox" name="pause" @onchange="@(async (t) =>
+                                                            {
+                                                                pauseLayout = !pauseLayout;
+                                                               await  JSRuntime.InvokeVoidAsync("d3Interop.pauseLayout", pauseLayout);
+                                                            })"/> Pause Layout
+    
+</div>
 <svg id="@uniqueId" @ref="d3Container" style="overflow: hidden;" xmlns="http://www.w3.org/2000/svg"></svg>
 
 
@@ -11,6 +39,12 @@
 @code {
     [Parameter]
     public List<Node> Nodes { get; set; }
+
+    bool showNodeLabels = false;
+    bool showEdgeLabels = false;
+    bool showNodes = true;
+    bool showLabels = true;
+    bool pauseLayout = false;
     private Dictionary<string,string> prefix = new Dictionary<string, string>();
     private int lasthash = 0;
     private ElementReference d3Container;
@@ -44,11 +78,11 @@
         
         if (prefixBuilder[^1] != 'z')
         {
-            prefixBuilder = prefixBuilder[..^1] + (char)(prefixBuilder[^1] + 1);    
+            prefixBuilder = prefixBuilder.Substring(0,prefixBuilder.Length-1) + (char)((int)prefixBuilder[^1] + 1);    
         }
         else
         {
-            prefixBuilder = prefixBuilder[..^1] + "aa";
+            prefixBuilder = prefixBuilder.Substring(0,prefixBuilder.Length-1) + "aa";
         }
         return next;
     }
