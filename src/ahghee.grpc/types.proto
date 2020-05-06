@@ -38,9 +38,18 @@ message DataBlock {
         float f = 9;
         bool b = 10;
         MemoryPointer memorypointer = 11;
+        DataBlockArray array = 12;
+        Map map = 13;
         //todo: add support for protobuf any
         //google.protobuf.Any any = 5;
     }
+}
+
+message DataBlockArray{
+    repeated DataBlock item = 1;
+}
+message Map{
+    repeated KeyValue attributes = 1;
 }
 
 message TMD {
