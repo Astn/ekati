@@ -5,7 +5,6 @@
 @using Microsoft.Extensions.Logging
 @using Antlr4
 @using Antlr4.Runtime
-@using BlazorFabric
 @using cli.antlr
 @using cli_grammer
 @using Grpc.Core.Utils
@@ -16,7 +15,10 @@
 @inject ILogger<Query> Logger
 
 <h3 >Query</h3>
-<CommandBar Items=@commands />
+<div>
+    <button @onclick="@((o) => { this.Run(); })">Run</button>
+    <button @onclick="@((o) => { this.Clear(); })">Clear</button>
+</div>
 <div style="display: table; clear: both;">
     <div style="width: 40%; height: 500px; float: left;">
         <div id="monaco_container" style="width: 100%; height: 100%;"></div>
@@ -103,7 +105,7 @@
 </div>  
 
 @code {
-    private List<CommandBarItem> commands;
+
     bool isInitializing;
     public bool IsInitialized;
     public int IsLoading;
@@ -130,18 +132,6 @@
     {
         base.OnInitialized();
         
-        commands = new List<CommandBarItem>
-        {
-            new CommandBarItem() {Text = "Run", IconName = "Play", Key = "1", Command = new RelayCommand((o) => { this.Run(); }, (o)=>true)},
-            new CommandBarItem() {Text = "Clear", IconName = "Clear", Key = "2", Command = new RelayCommand((o) => { Clear(); },(o)=>true)},
-            new CommandBarItem() {Text = "Up", IconName = "CaretSolidUp", Key = "3", Command = new RelayCommand((o) => { 
-                                                                                                                           if(skip>0)
-                                                                                                                           skip -= take; },(o)=>true)},
-            new CommandBarItem() {Text = "Down", IconName = "CaretSolidDown", Key = "4", Command = new RelayCommand((o) => { 
-                                                                                                                               if(skip< Nodes.Count)
-                                                                                                                               skip += take; },(o)=>true)}
-        };
-
         Nodes = new List<Node>();
     }
 
