@@ -879,54 +879,6 @@ type MyTests(output:ITestOutputHelper) =
         Assert.Equal("value",value2)
         ()
 
-    [<Fact>]
-    member __.NodeIndexCanWriteAndReadKeyValue () = 
-        let temp = Path.GetTempPath()
-        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
-        use nodeIndex = new NodeIdIndex(path) 
-        let id = ABtoyId "1"
-        
-        id.Pointer <- Utils.NullMemoryPointer()
-        id.Pointer.Offset <- 100UL
-        id.Pointer.Length <- 200UL
-
-        let value = nodeIndex.AddOrUpdateBatch [| id |]
-        let mutable outvalue : Pointers = (new Pointers())
-        let success = nodeIndex.TryGetValue (id, &outvalue)
-        Assert.True success
-        let fp = new Pointers()
-        fp.Pointers_.Add(id.Pointer)
-        Assert.Equal<MemoryPointer>(fp.Pointers_,    outvalue.Pointers_)
-        ()
-
-    [<Fact>]
-    member __.NodeIndexCanWriteAndReadMultipleSameKey () = 
-        let temp = Path.GetTempPath()
-        let path = Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName()))
-        use nodeIndex = new NodeIdIndex(path) 
-        let id = ABtoyId "1"
-        let fp = new Pointers()
-        let mp = Utils.NullMemoryPointer()
-        fp.Pointers_.Add(mp)
-        id.Pointer <- mp
-        
-        for off in [|1UL .. 5UL|] do
-            mp.Offset <- off * 100UL
-            mp.Length <- 200UL
-            nodeIndex.AddOrUpdateBatch ([|id|])
-
-        let mutable outvalue = new Pointers()
-        let success = nodeIndex.TryGetValue (id, &outvalue)
-        Assert.True success
-        
-        let mutable ctr = 1UL
-        for off in outvalue.Pointers_ do
-            Assert.Equal(off.Offset, ctr * 100UL)
-            ctr <- ctr+1UL
-            
-        ()
-      
-
     [<Theory>]
     [<InlineData("file")>] 
     member __.QueryWillNotReturnTheSameNodeMultipleTimes db = 

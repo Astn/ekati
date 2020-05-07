@@ -150,6 +150,20 @@ namespace Ahghee.Grpc
             writer.Write(memory);
         }
     }
+
+    public class NodeSerializer : BinaryObjectSerializer<Node>
+    {
+        public override void Deserialize(ref Node obj)
+        {
+            obj.MergeDelimitedFrom(reader.BaseStream);
+        }
+
+        public override void Serialize(ref Node obj)
+        {
+            obj.WriteDelimitedTo(writer.BaseStream);
+        }
+    }
+    
     public sealed partial class NodeID : IComparable, IComparable<NodeID>
         , scg.IEqualityComparer<NodeID>
         , IFasterEqualityComparer<NodeID>

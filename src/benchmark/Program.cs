@@ -21,83 +21,10 @@ using Utils = Ahghee.Grpc.Utils;
 namespace benchmark
 {
     [MinColumn, MaxColumn]
-    public class RocksDbSinglePut:IDisposable
-    {
-        private readonly RocksDb db;
-        private readonly NodeIdIndex nodeIndex;
-        private int ctr;
-        private readonly MemoryPointer mp;
-        private readonly Pointers rp;
-        private readonly ConcurrentDictionary<int,Pointers> cd= new ConcurrentDictionary<int,Pointers>();
-        private int idHash;
-        private NodeID Nodeid;
-        public RocksDbSinglePut()
-        {
-            var temp = Path.GetTempPath();
-            var options = (new DbOptions()).SetCreateIfMissing(true).EnableStatistics();
-            db = RocksDb.Open(options, Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName())));
-
-            nodeIndex = new NodeIdIndex(Environment.ExpandEnvironmentVariables(Path.Combine(temp, Path.GetRandomFileName())));
-            
-            Nodeid = new NodeID();
-            Nodeid.Pointer = Utils.NullMemoryPointer();
-            Nodeid.Remote = "graph";
-            Nodeid.Iri = "1";
-            
-            rp = new Pointers();
-            mp = Utils.NullMemoryPointer();
-            mp.Offset = 100UL;
-            mp.Length = 200UL;
-            rp.Pointers_.Add(mp);
-           
-
-        }
-        
-        [Benchmark(Baseline = true)]
-        public void PutRocksDbStrings()
-        {
-            db.Put(ctr.ToString(), "value");
-            Interlocked.Increment(ref ctr);
-        }
-        
-        [Benchmark]
-        public void PutNodeIdIndex()
-        {
-            Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
-            var idHash = Nodeid.GetHashCode();
-            nodeIndex.AddOrUpdateCS(new [] {Nodeid});   
-        }
-        [Benchmark]
-        public void PutConcurrentDictionary()
-        {
-            Nodeid.Iri = Interlocked.Increment(ref ctr).ToString();
-            var idHash = Nodeid.GetHashCode();
-            var value = cd.AddOrUpdate(idHash, rp, (id, rp) => rp);   
-        }
-
-        private void ReleaseUnmanagedResources()
-        {
-            db.Dispose();
-            (nodeIndex as IDisposable).Dispose();
-        }
-
-        public void Dispose()
-        {
-            ReleaseUnmanagedResources();
-            GC.SuppressFinalize(this);
-        }
-
-        ~RocksDbSinglePut()
-        {
-            ReleaseUnmanagedResources();
-        }
-    }
-    
-    [MinColumn, MaxColumn]
     public class CreatingNodeEmpty
     {
         [Benchmark(Baseline = true)]
-        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), Array.Empty<KeyValue>());
+        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), System.Array.Empty<KeyValue>());
 
     }
 
@@ -175,7 +102,7 @@ namespace benchmark
         public KeyValue MkKeyValueEmpty() => new KeyValue();
 
         [Benchmark]
-        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), Array.Empty<KeyValue>());
+        public Node MkNodeEmpty() => Ahghee.Utils.Node(new NodeID(), System.Array.Empty<KeyValue>());
 
         
         private static string _graph = "graph1";

@@ -30,84 +30,90 @@ namespace Ahghee.Grpc {
             "Bmxlbmd0aBgEIAEoBiIrCglUeXBlQnl0ZXMSDwoHdHlwZWlyaRgBIAEoCRIN",
             "CgVieXRlcxgCIAEoDCJSCgZOb2RlSUQSDgoGcmVtb3RlGAEgASgJEgsKA2ly",
             "aRgCIAEoCRIrCgdwb2ludGVyGAMgASgLMhouYWhnaGVlLmdycGMuTWVtb3J5",
-            "UG9pbnRlciKQAgoJRGF0YUJsb2NrEiUKBm5vZGVpZBgBIAEoCzITLmFoZ2hl",
+            "UG9pbnRlciLWAgoJRGF0YUJsb2NrEiUKBm5vZGVpZBgBIAEoCzITLmFoZ2hl",
             "ZS5ncnBjLk5vZGVJREgAEisKCW1ldGFieXRlcxgCIAEoCzIWLmFoZ2hlZS5n",
             "cnBjLlR5cGVCeXRlc0gAEg0KA3N0chgDIAEoCUgAEg0KA2kzMhgEIAEoBUgA",
             "Eg0KA2k2NBgFIAEoA0gAEg4KBHVpMzIYBiABKA1IABIOCgR1aTY0GAcgASgE",
             "SAASCwoBZBgIIAEoAUgAEgsKAWYYCSABKAJIABILCgFiGAogASgISAASMwoN",
             "bWVtb3J5cG9pbnRlchgLIAEoCzIaLmFoZ2hlZS5ncnBjLk1lbW9yeVBvaW50",
-            "ZXJIAEIGCgRkYXRhImgKA1RNRBIRCglUaW1lc3RhbXAYASABKAMSKAoITWV0",
-            "YURhdGEYAiABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSJAoERGF0YRgD",
-            "IAEoCzIWLmFoZ2hlZS5ncnBjLkRhdGFCbG9jayJKCghLZXlWYWx1ZRIdCgNr",
-            "ZXkYASABKAsyEC5haGdoZWUuZ3JwYy5UTUQSHwoFdmFsdWUYAiABKAsyEC5h",
-            "aGdoZWUuZ3JwYy5UTUQigQEKBE5vZGUSHwoCaWQYASABKAsyEy5haGdoZWUu",
-            "Z3JwYy5Ob2RlSUQSLQoJZnJhZ21lbnRzGAMgAygLMhouYWhnaGVlLmdycGMu",
-            "TWVtb3J5UG9pbnRlchIpCgphdHRyaWJ1dGVzGAQgAygLMhUuYWhnaGVlLmdy",
-            "cGMuS2V5VmFsdWUiOAoIUG9pbnRlcnMSLAoIcG9pbnRlcnMYASADKAsyGi5h",
-            "aGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVyIiEKBVJhbmdlEgwKBGZyb20YASAB",
-            "KAUSCgoCdG8YAiABKAUioAQKDkZvbGxvd09wZXJhdG9yEjoKCWZvbGxvd0Fu",
-            "eRgBIAEoCzIlLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkZvbGxvd0Fu",
-            "eUgAEjkKCmZvbGxvd0VkZ2UYAiABKAsyIy5haGdoZWUuZ3JwYy5Gb2xsb3dP",
-            "cGVyYXRvci5FZGdlTnVtSAAaLgoJRm9sbG93QW55EiEKBXJhbmdlGAEgASgL",
-            "MhIuYWhnaGVlLmdycGMuUmFuZ2UaVAoJRWRnZVJhbmdlEiQKBGVkZ2UYASAB",
-            "KAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sSIQoFcmFuZ2UYAiABKAsyEi5h",
-            "aGdoZWUuZ3JwYy5SYW5nZRqAAQoHRWRnZUNNUBIxCgRsZWZ0GAEgASgLMiMu",
-            "YWhnaGVlLmdycGMuRm9sbG93T3BlcmF0b3IuRWRnZU51bRIOCgZCT09MT1AY",
-            "AiABKAkSMgoFcmlnaHQYAyABKAsyIy5haGdoZWUuZ3JwYy5Gb2xsb3dPcGVy",
-            "YXRvci5FZGdlTnVtGoMBCgdFZGdlTnVtEjoKCWVkZ2VSYW5nZRgBIAEoCzIl",
-            "LmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkVkZ2VSYW5nZUgAEjYKB2Vk",
-            "Z2VDbXAYAiABKAsyIy5haGdoZWUuZ3JwYy5Gb2xsb3dPcGVyYXRvci5FZGdl",
-            "Q01QSABCBAoCb3BCCAoGRm9sbG93IuQDCg5GaWx0ZXJPcGVyYXRvchI0Cgdj",
-            "b21wYXJlGAEgASgLMiMuYWhnaGVlLmdycGMuRmlsdGVyT3BlcmF0b3IuQ29t",
-            "cGFyZRqcAQoHQ29tcGFyZRJCCgtrZXZWYWx1ZUNtcBgBIAEoCzIrLmFoZ2hl",
-            "ZS5ncnBjLkZpbHRlck9wZXJhdG9yLkNvbXBhcmVLZXlWYWx1ZUgAEkIKC2Nv",
-            "bXBvdW5kQ21wGAIgASgLMisuYWhnaGVlLmdycGMuRmlsdGVyT3BlcmF0b3Iu",
-            "Q29tcGFyZUNvbXBvdW5kSABCCQoHY21wVHlwZRpyCg9Db21wYXJlS2V5VmFs",
-            "dWUSKAoIUHJvcGVydHkYASABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2sS",
-            "DgoGTUFUSE9QGAIgASgJEiUKBVZhbHVlGAMgASgLMhYuYWhnaGVlLmdycGMu",
-            "RGF0YUJsb2NrGogBCg9Db21wYXJlQ29tcG91bmQSMQoEbGVmdBgBIAEoCzIj",
-            "LmFoZ2hlZS5ncnBjLkZpbHRlck9wZXJhdG9yLkNvbXBhcmUSDgoGQk9PTE9Q",
-            "GAIgASgJEjIKBXJpZ2h0GAMgASgLMiMuYWhnaGVlLmdycGMuRmlsdGVyT3Bl",
-            "cmF0b3IuQ29tcGFyZSIcCgtMaW1pdEZpbHRlchINCgV2YWx1ZRgBIAEoBSIb",
-            "CgpTa2lwRmlsdGVyEg0KBXZhbHVlGAEgASgFIuUBCgRTdGVwEi0KBmZvbGxv",
-            "dxgBIAEoCzIbLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9ySAASLQoGZmls",
-            "dGVyGAIgASgLMhsuYWhnaGVlLmdycGMuRmlsdGVyT3BlcmF0b3JIABIpCgVs",
-            "aW1pdBgEIAEoCzIYLmFoZ2hlZS5ncnBjLkxpbWl0RmlsdGVySAASJwoEc2tp",
-            "cBgFIAEoCzIXLmFoZ2hlZS5ncnBjLlNraXBGaWx0ZXJIABIfCgRuZXh0GAMg",
-            "ASgLMhEuYWhnaGVlLmdycGMuU3RlcEIKCghvcGVyYXRvciI2CgVRdWVyeRIf",
-            "CgRzdGVwGAEgASgLMhEuYWhnaGVlLmdycGMuU3RlcBIMCgRpcmlzGAIgAygJ",
-            "Ih4KC1B1dFJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgingEKEkdldE1ldHJp",
-            "Y3NSZXNwb25zZRI3CgdtZXRyaWNzGAEgAygLMiYuYWhnaGVlLmdycGMuR2V0",
-            "TWV0cmljc1Jlc3BvbnNlLk1ldHJpYxpPCgZNZXRyaWMSDQoFdmFsdWUYASAB",
-            "KAISDAoEbmFtZRgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3Rv",
-            "YnVmLlRpbWVzdGFtcCIiChFHZXRNZXRyaWNzUmVxdWVzdBINCgVuYW1lcxgB",
-            "IAMoCSJ3Cg9HZXRTdGF0c1JlcXVlc3QSMAoFc3RhdHMYASADKAsyIS5haGdo",
-            "ZWUuZ3JwYy5HZXRTdGF0c1JlcXVlc3QuU3RhdBoyCgRTdGF0Eg0KBXZhbHVl",
-            "GAEgASgCEg0KBXRvcGljGAIgASgJEgwKBHN0YXQYAyABKAkiIQoQR2V0U3Rh",
-            "dHNSZXNwb25zZRINCgVuYW1lcxgBIAMoCSIhChBMaXN0U3RhdHNSZXF1ZXN0",
-            "Eg0KBW1hdGNoGAEgAygJIiIKEUxpc3RTdGF0c1Jlc3BvbnNlEg0KBW5hbWVz",
-            "GAEgAygJIiMKE0xpc3RQb2xpY2llc1JlcXVlc3QSDAoEaXJpcxgBIAMoCSI4",
-            "ChRMaXN0UG9saWNpZXNSZXNwb25zZRIgCgVub2RlcxgBIAMoCzIRLmFoZ2hl",
-            "ZS5ncnBjLk5vZGUiJgoITG9hZEZpbGUSDAoEdHlwZRgBIAEoCRIMCgRwYXRo",
-            "GAIgASgJIhIKEExvYWRGaWxlUmVzcG9uc2Uy6QMKDFdhdERiU2VydmljZRI+",
-            "CgRMb2FkEhUuYWhnaGVlLmdycGMuTG9hZEZpbGUaHS5haGdoZWUuZ3JwYy5M",
-            "b2FkRmlsZVJlc3BvbnNlIgASNAoDUHV0EhEuYWhnaGVlLmdycGMuTm9kZRoY",
-            "LmFoZ2hlZS5ncnBjLlB1dFJlc3BvbnNlIgASMAoDR2V0EhIuYWhnaGVlLmdy",
-            "cGMuUXVlcnkaES5haGdoZWUuZ3JwYy5Ob2RlIgAwARJPCgpHZXRNZXRyaWNz",
-            "Eh4uYWhnaGVlLmdycGMuR2V0TWV0cmljc1JlcXVlc3QaHy5haGdoZWUuZ3Jw",
-            "Yy5HZXRNZXRyaWNzUmVzcG9uc2UiABJJCghHZXRTdGF0cxIcLmFoZ2hlZS5n",
-            "cnBjLkdldFN0YXRzUmVxdWVzdBodLmFoZ2hlZS5ncnBjLkdldFN0YXRzUmVz",
-            "cG9uc2UiABJMCglMaXN0U3RhdHMSHS5haGdoZWUuZ3JwYy5MaXN0U3RhdHNS",
-            "ZXF1ZXN0Gh4uYWhnaGVlLmdycGMuTGlzdFN0YXRzUmVzcG9uc2UiABJHCgxM",
-            "aXN0UG9saWNpZXMSIC5haGdoZWUuZ3JwYy5MaXN0UG9saWNpZXNSZXF1ZXN0",
-            "GhEuYWhnaGVlLmdycGMuTm9kZSIAMAFiBnByb3RvMw=="));
+            "ZXJIABIjCgVhcnJheRgMIAEoCzISLmFoZ2hlZS5ncnBjLkFycmF5SAASHwoD",
+            "bWFwGA0gASgLMhAuYWhnaGVlLmdycGMuTWFwSABCBgoEZGF0YSItCgVBcnJh",
+            "eRIkCgRpdGVtGAEgAygLMhYuYWhnaGVlLmdycGMuRGF0YUJsb2NrIjAKA01h",
+            "cBIpCgphdHRyaWJ1dGVzGAEgAygLMhUuYWhnaGVlLmdycGMuS2V5VmFsdWUi",
+            "aAoDVE1EEhEKCVRpbWVzdGFtcBgBIAEoAxIoCghNZXRhRGF0YRgCIAEoCzIW",
+            "LmFoZ2hlZS5ncnBjLkRhdGFCbG9jaxIkCgREYXRhGAMgASgLMhYuYWhnaGVl",
+            "LmdycGMuRGF0YUJsb2NrIkoKCEtleVZhbHVlEh0KA2tleRgBIAEoCzIQLmFo",
+            "Z2hlZS5ncnBjLlRNRBIfCgV2YWx1ZRgCIAEoCzIQLmFoZ2hlZS5ncnBjLlRN",
+            "RCKBAQoETm9kZRIfCgJpZBgBIAEoCzITLmFoZ2hlZS5ncnBjLk5vZGVJRBIt",
+            "CglmcmFnbWVudHMYAyADKAsyGi5haGdoZWUuZ3JwYy5NZW1vcnlQb2ludGVy",
+            "EikKCmF0dHJpYnV0ZXMYBCADKAsyFS5haGdoZWUuZ3JwYy5LZXlWYWx1ZSI4",
+            "CghQb2ludGVycxIsCghwb2ludGVycxgBIAMoCzIaLmFoZ2hlZS5ncnBjLk1l",
+            "bW9yeVBvaW50ZXIiIQoFUmFuZ2USDAoEZnJvbRgBIAEoBRIKCgJ0bxgCIAEo",
+            "BSKgBAoORm9sbG93T3BlcmF0b3ISOgoJZm9sbG93QW55GAEgASgLMiUuYWhn",
+            "aGVlLmdycGMuRm9sbG93T3BlcmF0b3IuRm9sbG93QW55SAASOQoKZm9sbG93",
+            "RWRnZRgCIAEoCzIjLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkVkZ2VO",
+            "dW1IABouCglGb2xsb3dBbnkSIQoFcmFuZ2UYASABKAsyEi5haGdoZWUuZ3Jw",
+            "Yy5SYW5nZRpUCglFZGdlUmFuZ2USJAoEZWRnZRgBIAEoCzIWLmFoZ2hlZS5n",
+            "cnBjLkRhdGFCbG9jaxIhCgVyYW5nZRgCIAEoCzISLmFoZ2hlZS5ncnBjLlJh",
+            "bmdlGoABCgdFZGdlQ01QEjEKBGxlZnQYASABKAsyIy5haGdoZWUuZ3JwYy5G",
+            "b2xsb3dPcGVyYXRvci5FZGdlTnVtEg4KBkJPT0xPUBgCIAEoCRIyCgVyaWdo",
+            "dBgDIAEoCzIjLmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkVkZ2VOdW0a",
+            "gwEKB0VkZ2VOdW0SOgoJZWRnZVJhbmdlGAEgASgLMiUuYWhnaGVlLmdycGMu",
+            "Rm9sbG93T3BlcmF0b3IuRWRnZVJhbmdlSAASNgoHZWRnZUNtcBgCIAEoCzIj",
+            "LmFoZ2hlZS5ncnBjLkZvbGxvd09wZXJhdG9yLkVkZ2VDTVBIAEIECgJvcEII",
+            "CgZGb2xsb3ci5AMKDkZpbHRlck9wZXJhdG9yEjQKB2NvbXBhcmUYASABKAsy",
+            "Iy5haGdoZWUuZ3JwYy5GaWx0ZXJPcGVyYXRvci5Db21wYXJlGpwBCgdDb21w",
+            "YXJlEkIKC2tldlZhbHVlQ21wGAEgASgLMisuYWhnaGVlLmdycGMuRmlsdGVy",
+            "T3BlcmF0b3IuQ29tcGFyZUtleVZhbHVlSAASQgoLY29tcG91bmRDbXAYAiAB",
+            "KAsyKy5haGdoZWUuZ3JwYy5GaWx0ZXJPcGVyYXRvci5Db21wYXJlQ29tcG91",
+            "bmRIAEIJCgdjbXBUeXBlGnIKD0NvbXBhcmVLZXlWYWx1ZRIoCghQcm9wZXJ0",
+            "eRgBIAEoCzIWLmFoZ2hlZS5ncnBjLkRhdGFCbG9jaxIOCgZNQVRIT1AYAiAB",
+            "KAkSJQoFVmFsdWUYAyABKAsyFi5haGdoZWUuZ3JwYy5EYXRhQmxvY2saiAEK",
+            "D0NvbXBhcmVDb21wb3VuZBIxCgRsZWZ0GAEgASgLMiMuYWhnaGVlLmdycGMu",
+            "RmlsdGVyT3BlcmF0b3IuQ29tcGFyZRIOCgZCT09MT1AYAiABKAkSMgoFcmln",
+            "aHQYAyABKAsyIy5haGdoZWUuZ3JwYy5GaWx0ZXJPcGVyYXRvci5Db21wYXJl",
+            "IhwKC0xpbWl0RmlsdGVyEg0KBXZhbHVlGAEgASgFIhsKClNraXBGaWx0ZXIS",
+            "DQoFdmFsdWUYASABKAUi5QEKBFN0ZXASLQoGZm9sbG93GAEgASgLMhsuYWhn",
+            "aGVlLmdycGMuRm9sbG93T3BlcmF0b3JIABItCgZmaWx0ZXIYAiABKAsyGy5h",
+            "aGdoZWUuZ3JwYy5GaWx0ZXJPcGVyYXRvckgAEikKBWxpbWl0GAQgASgLMhgu",
+            "YWhnaGVlLmdycGMuTGltaXRGaWx0ZXJIABInCgRza2lwGAUgASgLMhcuYWhn",
+            "aGVlLmdycGMuU2tpcEZpbHRlckgAEh8KBG5leHQYAyABKAsyES5haGdoZWUu",
+            "Z3JwYy5TdGVwQgoKCG9wZXJhdG9yIjYKBVF1ZXJ5Eh8KBHN0ZXAYASABKAsy",
+            "ES5haGdoZWUuZ3JwYy5TdGVwEgwKBGlyaXMYAiADKAkiHgoLUHV0UmVzcG9u",
+            "c2USDwoHc3VjY2VzcxgBIAEoCCKeAQoSR2V0TWV0cmljc1Jlc3BvbnNlEjcK",
+            "B21ldHJpY3MYASADKAsyJi5haGdoZWUuZ3JwYy5HZXRNZXRyaWNzUmVzcG9u",
+            "c2UuTWV0cmljGk8KBk1ldHJpYxINCgV2YWx1ZRgBIAEoAhIMCgRuYW1lGAIg",
+            "ASgJEigKBHRpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1w",
+            "IiIKEUdldE1ldHJpY3NSZXF1ZXN0Eg0KBW5hbWVzGAEgAygJIncKD0dldFN0",
+            "YXRzUmVxdWVzdBIwCgVzdGF0cxgBIAMoCzIhLmFoZ2hlZS5ncnBjLkdldFN0",
+            "YXRzUmVxdWVzdC5TdGF0GjIKBFN0YXQSDQoFdmFsdWUYASABKAISDQoFdG9w",
+            "aWMYAiABKAkSDAoEc3RhdBgDIAEoCSIhChBHZXRTdGF0c1Jlc3BvbnNlEg0K",
+            "BW5hbWVzGAEgAygJIiEKEExpc3RTdGF0c1JlcXVlc3QSDQoFbWF0Y2gYASAD",
+            "KAkiIgoRTGlzdFN0YXRzUmVzcG9uc2USDQoFbmFtZXMYASADKAkiIwoTTGlz",
+            "dFBvbGljaWVzUmVxdWVzdBIMCgRpcmlzGAEgAygJIjgKFExpc3RQb2xpY2ll",
+            "c1Jlc3BvbnNlEiAKBW5vZGVzGAEgAygLMhEuYWhnaGVlLmdycGMuTm9kZSIm",
+            "CghMb2FkRmlsZRIMCgR0eXBlGAEgASgJEgwKBHBhdGgYAiABKAkiEgoQTG9h",
+            "ZEZpbGVSZXNwb25zZTLpAwoMV2F0RGJTZXJ2aWNlEj4KBExvYWQSFS5haGdo",
+            "ZWUuZ3JwYy5Mb2FkRmlsZRodLmFoZ2hlZS5ncnBjLkxvYWRGaWxlUmVzcG9u",
+            "c2UiABI0CgNQdXQSES5haGdoZWUuZ3JwYy5Ob2RlGhguYWhnaGVlLmdycGMu",
+            "UHV0UmVzcG9uc2UiABIwCgNHZXQSEi5haGdoZWUuZ3JwYy5RdWVyeRoRLmFo",
+            "Z2hlZS5ncnBjLk5vZGUiADABEk8KCkdldE1ldHJpY3MSHi5haGdoZWUuZ3Jw",
+            "Yy5HZXRNZXRyaWNzUmVxdWVzdBofLmFoZ2hlZS5ncnBjLkdldE1ldHJpY3NS",
+            "ZXNwb25zZSIAEkkKCEdldFN0YXRzEhwuYWhnaGVlLmdycGMuR2V0U3RhdHNS",
+            "ZXF1ZXN0Gh0uYWhnaGVlLmdycGMuR2V0U3RhdHNSZXNwb25zZSIAEkwKCUxp",
+            "c3RTdGF0cxIdLmFoZ2hlZS5ncnBjLkxpc3RTdGF0c1JlcXVlc3QaHi5haGdo",
+            "ZWUuZ3JwYy5MaXN0U3RhdHNSZXNwb25zZSIAEkcKDExpc3RQb2xpY2llcxIg",
+            "LmFoZ2hlZS5ncnBjLkxpc3RQb2xpY2llc1JlcXVlc3QaES5haGdoZWUuZ3Jw",
+            "Yy5Ob2RlIgAwAWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.MemoryPointer), global::Ahghee.Grpc.MemoryPointer.Parser, new[]{ "Partitionkey", "Filename", "Offset", "Length" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TypeBytes), global::Ahghee.Grpc.TypeBytes.Parser, new[]{ "Typeiri", "Bytes" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.NodeID), global::Ahghee.Grpc.NodeID.Parser, new[]{ "Remote", "Iri", "Pointer" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.DataBlock), global::Ahghee.Grpc.DataBlock.Parser, new[]{ "Nodeid", "Metabytes", "Str", "I32", "I64", "Ui32", "Ui64", "D", "F", "B", "Memorypointer" }, new[]{ "Data" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.DataBlock), global::Ahghee.Grpc.DataBlock.Parser, new[]{ "Nodeid", "Metabytes", "Str", "I32", "I64", "Ui32", "Ui64", "D", "F", "B", "Memorypointer", "Array", "Map" }, new[]{ "Data" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Array), global::Ahghee.Grpc.Array.Parser, new[]{ "Item" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Map), global::Ahghee.Grpc.Map.Parser, new[]{ "Attributes" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.TMD), global::Ahghee.Grpc.TMD.Parser, new[]{ "Timestamp", "MetaData", "Data" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.KeyValue), global::Ahghee.Grpc.KeyValue.Parser, new[]{ "Key", "Value" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.Node), global::Ahghee.Grpc.Node.Parser, new[]{ "Id", "Fragments", "Attributes" }, null, null, null, null),
@@ -695,6 +701,12 @@ namespace Ahghee.Grpc {
         case DataOneofCase.Memorypointer:
           Memorypointer = other.Memorypointer.Clone();
           break;
+        case DataOneofCase.Array:
+          Array = other.Array.Clone();
+          break;
+        case DataOneofCase.Map:
+          Map = other.Map.Clone();
+          break;
       }
 
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -817,16 +829,38 @@ namespace Ahghee.Grpc {
 
     /// <summary>Field number for the "memorypointer" field.</summary>
     public const int MemorypointerFieldNumber = 11;
-    /// <summary>
-    ///todo: add support for protobuf any
-    ///google.protobuf.Any any = 5;
-    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public global::Ahghee.Grpc.MemoryPointer Memorypointer {
       get { return dataCase_ == DataOneofCase.Memorypointer ? (global::Ahghee.Grpc.MemoryPointer) data_ : null; }
       set {
         data_ = value;
         dataCase_ = value == null ? DataOneofCase.None : DataOneofCase.Memorypointer;
+      }
+    }
+
+    /// <summary>Field number for the "array" field.</summary>
+    public const int ArrayFieldNumber = 12;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.Array Array {
+      get { return dataCase_ == DataOneofCase.Array ? (global::Ahghee.Grpc.Array) data_ : null; }
+      set {
+        data_ = value;
+        dataCase_ = value == null ? DataOneofCase.None : DataOneofCase.Array;
+      }
+    }
+
+    /// <summary>Field number for the "map" field.</summary>
+    public const int MapFieldNumber = 13;
+    /// <summary>
+    ///todo: add support for protobuf any
+    ///google.protobuf.Any any = 5;
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Ahghee.Grpc.Map Map {
+      get { return dataCase_ == DataOneofCase.Map ? (global::Ahghee.Grpc.Map) data_ : null; }
+      set {
+        data_ = value;
+        dataCase_ = value == null ? DataOneofCase.None : DataOneofCase.Map;
       }
     }
 
@@ -845,6 +879,8 @@ namespace Ahghee.Grpc {
       F = 9,
       B = 10,
       Memorypointer = 11,
+      Array = 12,
+      Map = 13,
     }
     private DataOneofCase dataCase_ = DataOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -882,6 +918,8 @@ namespace Ahghee.Grpc {
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(F, other.F)) return false;
       if (B != other.B) return false;
       if (!object.Equals(Memorypointer, other.Memorypointer)) return false;
+      if (!object.Equals(Array, other.Array)) return false;
+      if (!object.Equals(Map, other.Map)) return false;
       if (DataCase != other.DataCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -900,6 +938,8 @@ namespace Ahghee.Grpc {
       if (dataCase_ == DataOneofCase.F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(F);
       if (dataCase_ == DataOneofCase.B) hash ^= B.GetHashCode();
       if (dataCase_ == DataOneofCase.Memorypointer) hash ^= Memorypointer.GetHashCode();
+      if (dataCase_ == DataOneofCase.Array) hash ^= Array.GetHashCode();
+      if (dataCase_ == DataOneofCase.Map) hash ^= Map.GetHashCode();
       hash ^= (int) dataCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -958,6 +998,14 @@ namespace Ahghee.Grpc {
         output.WriteRawTag(90);
         output.WriteMessage(Memorypointer);
       }
+      if (dataCase_ == DataOneofCase.Array) {
+        output.WriteRawTag(98);
+        output.WriteMessage(Array);
+      }
+      if (dataCase_ == DataOneofCase.Map) {
+        output.WriteRawTag(106);
+        output.WriteMessage(Map);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -998,6 +1046,12 @@ namespace Ahghee.Grpc {
       }
       if (dataCase_ == DataOneofCase.Memorypointer) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Memorypointer);
+      }
+      if (dataCase_ == DataOneofCase.Array) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Array);
+      }
+      if (dataCase_ == DataOneofCase.Map) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Map);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1052,6 +1106,18 @@ namespace Ahghee.Grpc {
             Memorypointer = new global::Ahghee.Grpc.MemoryPointer();
           }
           Memorypointer.MergeFrom(other.Memorypointer);
+          break;
+        case DataOneofCase.Array:
+          if (Array == null) {
+            Array = new global::Ahghee.Grpc.Array();
+          }
+          Array.MergeFrom(other.Array);
+          break;
+        case DataOneofCase.Map:
+          if (Map == null) {
+            Map = new global::Ahghee.Grpc.Map();
+          }
+          Map.MergeFrom(other.Map);
           break;
       }
 
@@ -1125,6 +1191,266 @@ namespace Ahghee.Grpc {
             Memorypointer = subBuilder;
             break;
           }
+          case 98: {
+            global::Ahghee.Grpc.Array subBuilder = new global::Ahghee.Grpc.Array();
+            if (dataCase_ == DataOneofCase.Array) {
+              subBuilder.MergeFrom(Array);
+            }
+            input.ReadMessage(subBuilder);
+            Array = subBuilder;
+            break;
+          }
+          case 106: {
+            global::Ahghee.Grpc.Map subBuilder = new global::Ahghee.Grpc.Map();
+            if (dataCase_ == DataOneofCase.Map) {
+              subBuilder.MergeFrom(Map);
+            }
+            input.ReadMessage(subBuilder);
+            Map = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Array : pb::IMessage<Array> {
+    private static readonly pb::MessageParser<Array> _parser = new pb::MessageParser<Array>(() => new Array());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Array> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[4]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Array() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Array(Array other) : this() {
+      item_ = other.item_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Array Clone() {
+      return new Array(this);
+    }
+
+    /// <summary>Field number for the "item" field.</summary>
+    public const int ItemFieldNumber = 1;
+    private static readonly pb::FieldCodec<global::Ahghee.Grpc.DataBlock> _repeated_item_codec
+        = pb::FieldCodec.ForMessage(10, global::Ahghee.Grpc.DataBlock.Parser);
+    private readonly pbc::RepeatedField<global::Ahghee.Grpc.DataBlock> item_ = new pbc::RepeatedField<global::Ahghee.Grpc.DataBlock>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<global::Ahghee.Grpc.DataBlock> Item {
+      get { return item_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Array);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Array other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!item_.Equals(other.item_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= item_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      item_.WriteTo(output, _repeated_item_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      size += item_.CalculateSize(_repeated_item_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Array other) {
+      if (other == null) {
+        return;
+      }
+      item_.Add(other.item_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            item_.AddEntriesFrom(input, _repeated_item_codec);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Map : pb::IMessage<Map> {
+    private static readonly pb::MessageParser<Map> _parser = new pb::MessageParser<Map>(() => new Map());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Map> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[5]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Map() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Map(Map other) : this() {
+      attributes_ = other.attributes_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Map Clone() {
+      return new Map(this);
+    }
+
+    /// <summary>Field number for the "attributes" field.</summary>
+    public const int AttributesFieldNumber = 1;
+    private static readonly pb::FieldCodec<global::Ahghee.Grpc.KeyValue> _repeated_attributes_codec
+        = pb::FieldCodec.ForMessage(10, global::Ahghee.Grpc.KeyValue.Parser);
+    private readonly pbc::RepeatedField<global::Ahghee.Grpc.KeyValue> attributes_ = new pbc::RepeatedField<global::Ahghee.Grpc.KeyValue>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<global::Ahghee.Grpc.KeyValue> Attributes {
+      get { return attributes_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Map);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Map other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!attributes_.Equals(other.attributes_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= attributes_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      attributes_.WriteTo(output, _repeated_attributes_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      size += attributes_.CalculateSize(_repeated_attributes_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Map other) {
+      if (other == null) {
+        return;
+      }
+      attributes_.Add(other.attributes_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            attributes_.AddEntriesFrom(input, _repeated_attributes_codec);
+            break;
+          }
         }
       }
     }
@@ -1139,7 +1465,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[4]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1336,7 +1662,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[5]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1505,7 +1831,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[6]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1680,7 +2006,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[7]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1801,7 +2127,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[8]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1958,7 +2284,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[9]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2874,7 +3200,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[10]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[12]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3614,7 +3940,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[11]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3743,7 +4069,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[12]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3872,7 +4198,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[13]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4188,7 +4514,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[14]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4343,7 +4669,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[15]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4472,7 +4798,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[16]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4791,7 +5117,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[17]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[19]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4912,7 +5238,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[18]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[20]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5225,7 +5551,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[19]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[21]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5346,7 +5672,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[20]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[22]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5467,7 +5793,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[21]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[23]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5588,7 +5914,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[22]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[24]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5709,7 +6035,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[23]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[25]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5830,7 +6156,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[24]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[26]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5987,7 +6313,7 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[25]; }
+      get { return global::Ahghee.Grpc.TypesReflection.Descriptor.MessageTypes[27]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

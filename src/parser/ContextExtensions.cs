@@ -11,6 +11,7 @@ using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using cli_grammer;
 using Google.Protobuf;
+using Array = Ahghee.Grpc.Array;
 using Range = Ahghee.Grpc.Range;
 using Utils = Ahghee.Grpc.Utils;
 
@@ -130,6 +131,58 @@ namespace cli
             };
         }
 
+        public static Array ToArray(this AHGHEEParser.ArrContext arr)
+        {
+            var outt = new Array();
+            foreach (var ar in arr.value())
+            {
+                outt.Item.Add(ar.ToDataBlock());
+            }
+
+            return outt;
+        }
+        public static Map ToMap(this AHGHEEParser.KvpsContext kvps)
+        {
+            try
+            {
+                var m = new Map();
+                foreach (var pair in kvps.pair())
+                {
+                    var kv = new KeyValue();
+                    kv.Key = new TMD();
+                    kv.Key.Data = new DataBlock();
+                    kv.Value = new TMD();
+                    if (pair.kvp() != null)
+                    {
+                        kv.Key.Data.Str = pair.kvp().STRING().GetText().Trim('"');    
+                        kv.Value.Data = pair.kvp().value().ToDataBlock();
+                    } else if(pair.edge()!=null)
+                    {
+                        kv.Key.Data.Str = pair.edge().STRING(0).GetText().Trim('"');
+                        kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
+                    }else if(pair.fedge()!=null)
+                    {
+                        kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
+                        kv.Value.Data.Str = pair.edge().STRING(1).GetText().Trim('"');
+                    }else if(pair.dedge()!=null)
+                    {
+                        kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
+                        kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
+                    }
+                                
+                    m.Attributes.Add(kv);
+                }
+                return m;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(kvps.GetText());
+                Console.WriteLine(ex.Message + "\n" + ex.StackTrace);
+                throw;
+            }
+
+            
+        }
         public static DataBlock ToDataBlock(this AHGHEEParser.ValueContext v)
         {
             var db = new DataBlock();
@@ -157,49 +210,50 @@ namespace cli
                 {
                     db.D = doub;
                 }
-            } else if (v.obj() != null)
+            } else if (v.obj() != null && v.obj().kvps() != null)
             {
-                var obj = v.obj().GetText();
-                try
-                {
-                    var nid = JsonParser.Default.Parse<NodeID>(obj);
-                    if (nid != null)
-                    {
-                        db.Nodeid = nid;
-                        db.Nodeid.Pointer = new MemoryPointer();
-                    }
-                }
-                catch (Exception e)
-                {
-                }
-                try
-                {
-                    var mp = JsonParser.Default.Parse<MemoryPointer>(obj);
-                    if (mp != null)
-                    {
-                        db.Memorypointer = mp;
-                    }
-                }
-                catch (Exception e)
-                {
-                }
-                try
-                {
-                    var tb = JsonParser.Default.Parse<TypeBytes>(obj);
-                    if (tb != null)
-                    {
-                        db.Metabytes = tb;
-                    }
-                }
-                catch (Exception e)
-                {
-                }
+                db.Map = v.obj().kvps().ToMap();
+                // try
+                // {
+                //     var nid = JsonParser.Default.Parse<NodeID>(obj);
+                //     if (nid != null)
+                //     {
+                //         db.Nodeid = nid;
+                //         db.Nodeid.Pointer = new MemoryPointer();
+                //     }
+                // }
+                // catch (Exception e)
+                // {
+                // }
+                // try
+                // {
+                //     var mp = JsonParser.Default.Parse<MemoryPointer>(obj);
+                //     if (mp != null)
+                //     {
+                //         db.Memorypointer = mp;
+                //     }
+                // }
+                // catch (Exception e)
+                // {
+                // }
+                // try
+                // {
+                //     var tb = JsonParser.Default.Parse<TypeBytes>(obj);
+                //     if (tb != null)
+                //     {
+                //         db.Metabytes = tb;
+                //     }
+                // }
+                // catch (Exception e)
+                // {
+                // }
                 // json object is not a native value type
-                
+
             } else if (v.arr() != null)
             {
+                db.Array = v.arr().ToArray();
                 // array is not a native value type.
-                
+
             } else if (!string.IsNullOrWhiteSpace(v.GetText()))
             {
                 var t = v.GetText().Trim('"');
