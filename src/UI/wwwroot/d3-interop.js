@@ -8,7 +8,10 @@ window.d3Interop = {
             // Post data to worker
             wak.postMessage({
                 type: 'dragged',
-                dragged: d,
+                dragged: {
+                    fx: d.fx,
+                    fy: d.fy
+                },
             });
             
         }
@@ -19,7 +22,10 @@ window.d3Interop = {
             // Post data to worker
             wak.postMessage({
                 type: 'dragged',
-                dragged: d,
+                dragged: {
+                    fx: d.fx,
+                    fy: d.fy
+                },
             });
         }
 
@@ -29,7 +35,10 @@ window.d3Interop = {
             // Post data to worker
             wak.postMessage({
                 type: 'dragged',
-                dragged: d,
+                dragged: {
+                    fx: d.fx,
+                    fy: d.fy
+                },
             });
         }
 
@@ -56,20 +65,42 @@ window.d3Interop = {
             .on("end", dragended);
     },
     zoomViewPort: function zoomViewPort(){
+        var desiredZoom = 0;
         function dragstarted(d) {
         }
 
         function zoom(d) {
-            var factor = d3.event.sourceEvent.deltaY / 100; // get percent change -0.03
+            if(d3.event.sourceEvent.deltaY > 0 && desiredZoom < 0 
+                || d3.event.sourceEvent.deltaY < 0 && desiredZoom > 0){
+                desiredZoom = 0;
+                desiredZoom += d3.event.sourceEvent.deltaY;
+            } else {
+                desiredZoom += d3.event.sourceEvent.deltaY;
+            }
+            var factor = desiredZoom / 100; // get percent change -0.03
             if(isNaN(factor) || factor === Infinity || factor === -Infinity){
                 return;
             }
             var widthChange = (this.viewBox.baseVal.width * factor);
             var heightChange = (this.viewBox.baseVal.height * factor);
-            this.viewBox.baseVal.x -= widthChange / 2;
-            this.viewBox.baseVal.y -= heightChange / 2;
-            this.viewBox.baseVal.width += widthChange;
-            this.viewBox.baseVal.height += heightChange;
+
+            const x = this.viewBox.baseVal.x - widthChange / 2;
+            const y = this.viewBox.baseVal.y - heightChange / 2;
+            const w =  this.viewBox.baseVal.width + widthChange;
+            const h = this.viewBox.baseVal.height + heightChange;
+            
+            
+            d3.select("svg")
+                .transition()           
+                .ease(d3.easePoly)        
+                .duration(1000)           
+                .attr('viewBox', x +' '+ y +' '+ w +' '+h)
+                .each('end', () => {
+                    desiredZoom = 0;
+                });     
+               
+            
+            
         }
 
         function dragended(d) {

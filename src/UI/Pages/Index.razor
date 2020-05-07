@@ -1,7 +1,208 @@
 ﻿@page "/"
+@using System.Diagnostics
+@using System.IO
+@using Ahghee.Grpc
+@using ChartJs.Blazor.ChartJS
+@using ChartJs.Blazor.ChartJS.Common
+@using ChartJs.Blazor.ChartJS.Common.Axes
+@using ChartJs.Blazor.ChartJS.Common.Axes.Ticks
+@using ChartJs.Blazor.ChartJS.Common.Enums
+@using ChartJs.Blazor.ChartJS.Common.Handlers
+@using ChartJs.Blazor.Charts
+@using ChartJs.Blazor.ChartJS.LineChart
+@using ChartJs.Blazor.ChartJS.Common.Properties
+@using ChartJs.Blazor.ChartJS.Common.Time
+@using ChartJs.Blazor.Util
+@using Google.Protobuf.WellKnownTypes
+@inject IJSRuntime JsRuntime;
+@inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
 
 <h1>Ekati</h1>
 
 Welcome to your new database.
+<div style="display: flex; flex-wrap: wrap;">
+@foreach (var __chart in Charts)
+{
+    var chart = __chart;
+    var innerChart = chart.Value.LineChart;
+    var innerConfig = chart.Value.LineConfig;
+    <ChartJs.Blazor.Charts.ChartJsLineChart @ref="innerChart" Config="@innerConfig" Width="600" Height="300"/>
+}
+</div>
 
+@code{
+    const string DeCh = "en-us";
+    private bool _localeChangeWasAttempted = false;
 
+    public Dictionary<string,ChartStuff> Charts { get; set; } = new Dictionary<string,ChartStuff>();
+    
+    public class ChartStuff
+    {
+        public LineConfig LineConfig { get; set; }
+        public ChartJsLineChart LineChart { get; set; } = new ChartJsLineChart();
+        public LineDataset<TimeTuple<float>> Dataset { get; set; }
+        public ChartStuff(string title, string yaxis, string xaxis)
+        {
+            LineConfig = MakeConfig(title, yaxis);
+            Dataset = MakeDataSet(xaxis);
+            LineConfig.Data.Datasets.Add(Dataset);
+        }
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        loadData();
+    }
+
+    static LineDataset<TimeTuple<float>> MakeDataSet(string label)
+    {
+        return new LineDataset<TimeTuple<float>>
+        {
+            BackgroundColor = ColorUtil.RandomColorString(),
+            BorderColor = ColorUtil.RandomColorString(),
+            Label = label,
+            Fill = false,
+            BorderWidth = 2,
+            PointRadius = 3,
+            PointBorderWidth = 1,
+            SteppedLine = SteppedLine.False
+        };
+    }
+    async Task loadData()
+    {
+        var refreshDelay = 5000;
+        var start = Stopwatch.StartNew();
+        var iteration = 0;
+        while(true)
+        {
+            var foo = await wat.GetMetricsAsync(new GetMetricsRequest());
+            start.Restart();
+            var anyAdded = false;
+            foreach (var metric in foo.Metrics)
+            {
+                if (Charts.ContainsKey(metric.Name) == false)
+                {
+                    Charts.Add(metric.Name, new ChartStuff(metric.Name.Split("|").First(), "", ""));
+                    // dont await this.
+                    if (anyAdded = false)
+                    {
+                        // resharper cant see we in a loop.. LOLz
+    // ReSharper disable once HeuristicUnreachableCode
+                        anyAdded = true;
+    #pragma warning disable 4014
+                        Task.Delay(5).ContinueWith(t =>
+    #pragma warning restore 4014
+                        {
+                            StateHasChanged();
+                        });
+                    }
+                }
+                var c = Charts[metric.Name];
+                var tt = new TimeTuple<float>(new Moment(metric.Time.ToDateTime())  , metric.Value / 1024 / 1024);
+                c.Dataset.Add(tt);
+                if (iteration > 1)
+                {
+                    StateHasChanged();
+                }
+                if (iteration > 2)
+                {
+                    await c.LineChart.Update();
+                }
+            }
+            await Task.Delay(Math.Abs(refreshDelay - (int)start.ElapsedMilliseconds));
+            iteration++;
+        }
+        
+       
+        
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await TryChangeLocale();
+    }
+
+    private async Task TryChangeLocale()
+    {
+        if (_localeChangeWasAttempted) return;
+        _localeChangeWasAttempted = true;
+
+        var locales = await JsRuntime.GetAvailableLocales();
+        bool localeChanged = false;
+        if (locales != null && locales.Contains(DeCh))
+        {
+            localeChanged = await JsRuntime.ChangeLocale(DeCh);
+        }
+
+        if (!localeChanged) Console.WriteLine($"Locale was not changed to {DeCh}. Either it already is {DeCh} or this locale doesn't exist.");
+    }
+    
+    private static LineConfig MakeConfig(string text, string units)
+    {
+        var lc = new LineConfig
+        {
+            Options = new LineOptions
+            {
+                Responsive = true,
+                Title = new OptionsTitle
+                {
+                    Display = true,
+                    Text = text
+                },
+                Legend = new Legend
+                {
+                    Display = false
+                },
+                Tooltips = new Tooltips
+                {
+                    Mode = InteractionMode.Nearest,
+                    Intersect = false
+                },
+                Scales = new Scales
+                {
+                    yAxes = new List<CartesianAxis>
+                    {
+                        new LinearCartesianAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = units
+                            }
+                        }
+                    },
+                    xAxes = new List<CartesianAxis>
+                    {
+                        new TimeAxis
+                        {
+                            Distribution = TimeDistribution.Series,
+                            Ticks = new TimeTicks
+                            {
+                                Source = TickSource.Data
+                            },
+                            Time = new TimeOptions
+                            {
+                                
+                                Unit = TimeMeasurement.Second,
+                                Round = TimeMeasurement.Second,
+                                TooltipFormat = "YYYY.MM.DD:HH:mm:ss",
+                                DisplayFormats = TimeDisplayFormats.DE_CH,
+                                MinUnit = TimeMeasurement.Millisecond
+                            },
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = ""
+                            }
+                        }
+                    }
+                },
+                Hover = new LineOptionsHover
+                {
+                    Intersect = true,
+                    Mode = InteractionMode.Y
+                }
+            }
+        };
+        lc.Data.Labels = new List<string>();
+        return lc;
+    }
+}
