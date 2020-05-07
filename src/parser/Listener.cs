@@ -17,58 +17,6 @@ using Google.Protobuf;
 
 namespace cli.antlr
 {
-
-    public class NtriplesListener : NTRIPLESBaseListener
-    {
-        private readonly Action<Node> _gotNode;
-        Dictionary<string,string> BNs = new Dictionary<string, string>();
-        private readonly string BNRoot = DateTime.UtcNow.ToString("u").Replace(" ",":").Replace(":",".");
-        public NtriplesListener(Action<Node> gotNode)
-        {
-            _gotNode = gotNode;
-        }
-
-        private string BNToId(string bn)
-        {
-            if (BNs.ContainsKey(bn))
-            {
-                return BNs[bn];
-            }
-    
-            //substring off the _:
-            var genIRI = $"blank:{BNRoot}:{bn.Substring(2)}";
-            BNs[bn] = genIRI;
-            return genIRI;
-        }
-        public override void ExitTriple(NTRIPLESParser.TripleContext context)
-        {
-            try
-            {
-                var nodeId = context.subj().ToNodeId(BNToId);
-
-                var pred = context.pred().ToDataBlock();
-
-                var obj = context.obj().ToDataBlock(BNToId);
-                var node = new Node();
-                node.Id = nodeId;
-                node.Attributes.Add(new KeyValue
-                {
-                    Key = new TMD
-                    {
-                        Data = pred,
-                    },
-                    Value = obj
-                });
-                _gotNode(node);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Uh.. got this -->\n{context.GetText()}\n<-- Ends here");
-                throw;
-            }
-        }
-    }
-    
     public class Listener : AHGHEEBaseListener
     {
        //private readonly IStorage _store;
@@ -95,93 +43,80 @@ namespace cli.antlr
         }
 
         public override void ExitPut(AHGHEEParser.PutContext context){
+            Console.WriteLine($"Found a put .. : {context.GetText()}");
             var pm = GetPrintMode(context.flags());  
             foreach(var nc in context.node()){
 
-                List<Node> _nodes = new List<Node>();
-                if (nc.obj() != null)
+                
+                try
                 {
-                    var n = JsonParser.Default.Parse<Node>( nc.GetText() );
-                    n.Id.Pointer = Utils.NullMemoryPointer();
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    _nodes.Add(n);
-                }
-                else if(nc.nodeid()!= null && nc.kvps() != null)
-                {
-                    var n = new Node();
-                    n.Id = new NodeID();
-                    if (nc.nodeid().obj() != null)
+                    Console.WriteLine($"Found a node.. : {nc.GetText()}");
+                
+                
+                    List<Node> _nodes = new List<Node>();
+                    if (nc.obj() != null)
                     {
-                        n.Id = JsonParser.Default.Parse<NodeID>(nc.nodeid().obj().GetText());
-                    }
-                    else
-                    {
-                        if (nc.nodeid().remote() != null)
+                        if (nc.obj().kvps() == null)
                         {
-                            n.Id.Remote = nc.nodeid().remote().GetText().Trim('"');
+                            Console.WriteLine($"testFor kvps: {nc.obj().kvps().GetText()}");
                         }
-
-                        n.Id.Iri = nc.nodeid().id().GetText().Trim('"');
+                        var m = nc.obj().kvps().ToMap();
+                        var n = new Node();
+                        n.Id = new NodeID();
+                        n.Id.Iri = m.Attributes.FirstOrDefault(a => a.Key?.Data?.Str != null)?.Key.Data.Str ?? $"epoc{DateTime.UtcNow.ToFileTime()}" ;
+                        n.Id.Pointer = Utils.NullMemoryPointer();
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        _nodes.Add(n);
+                        Console.WriteLine($"Added: {n.ToString()}");
                     }
-
-                    var vs = new List<KeyValue>();
-                    if (nc.kvps() != null)
+                    else if(nc.nodeid()!= null && nc.kvps() != null)
                     {
-                        var kvps = nc.kvps();
-                        if (kvps == null)
+                        var n = new Node();
+                        n.Id = new NodeID();
+                        if (nc.nodeid().obj() != null)
                         {
-                            kvps = nc.obj()?.kvps();
+                            n.Id = JsonParser.Default.Parse<NodeID>(nc.nodeid().obj().GetText());
                         }
-
-                        foreach (var pair in kvps.pair())
+                        else
                         {
-                            var kv = new KeyValue();
-                            kv.Key = new TMD();
-                            kv.Key.Data = new DataBlock();
-                            kv.Value = new TMD();
-                            if (pair.kvp() != null)
+                            if (nc.nodeid().remote() != null)
                             {
-                                kv.Value.Data = pair.kvp().value().ToDataBlock();
-                                kv.Key.Data.Str = pair.kvp().STRING().GetText().Trim('"');    
-                            } else if(pair.edge()!=null)
-                            {
-                                kv.Key.Data.Str = pair.edge().STRING(0).GetText().Trim('"');
-                                kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
-                            }else if(pair.fedge()!=null)
-                            {
-                                kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
-                                kv.Value.Data.Str = pair.edge().STRING(1).GetText().Trim('"');
-                            }else if(pair.dedge()!=null)
-                            {
-                                kv.Key.Data = pair.edge().STRING(0).GetText().Trim('"').ToDataBlockNodeID();
-                                kv.Value.Data = pair.edge().STRING(1).GetText().Trim('"').ToDataBlockNodeID();
+                                n.Id.Remote = nc.nodeid().remote().GetText().Trim('"');
                             }
+
+                            n.Id.Iri = nc.nodeid().id().GetText().Trim('"');
+                        }
+
+                        if (nc.kvps() != null)
+                        {
+                            var m = nc.kvps().ToMap();
                             
-                            vs.Add(kv);
+                            n.Attributes.AddRange(m.Attributes);
                         }
                         
+                        n.Id.Pointer = Utils.NullMemoryPointer();
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        n.Fragments.Add(Utils.NullMemoryPointer());
+                        _nodes.Add(n);
                     }
                     
-                    n.Attributes.AddRange(vs);
-                    
-                    n.Id.Pointer = Utils.NullMemoryPointer();
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    n.Fragments.Add(Utils.NullMemoryPointer());
-                    _nodes.Add(n);
+                    // n.Attributes.Add();
+                   // if ((pm & PrintMode.Verbose) != 0)
+                    {
+                        Console.WriteLine($"\nstatus> put({String.Join(", ", _nodes.Select(_=>_.Id.Iri))})");
+                    }
+                    // todo move the console stuff to the cli project.
+                    _adder(_nodes);
+                    flushed = false;
                 }
-                
-                // n.Attributes.Add();
-                if ((pm & PrintMode.Verbose) != 0)
+                catch (Exception e)
                 {
-                    Console.WriteLine($"\nstatus> put({String.Join(", ", _nodes.Select(_=>_.Id.Iri))})");
+                    Console.WriteLine(e);
                 }
-                // todo move the console stuff to the cli project.
-                var sw = Stopwatch.StartNew();
-                _adder(_nodes);
-                flushed = false;
+
             }
         }
 

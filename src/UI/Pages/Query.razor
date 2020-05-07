@@ -294,22 +294,32 @@ get ""*""
         parser.BuildParseTree = true;
         parser.AddParseListener(listener: new Listener(async (nodes) =>
         {
-            var pi = new ProgressItem
+            try
             {
-                Message = "Putting Nodes",
-                Count = 0,
-                InProgress = true
-            };
-            ProgressItems.Add(pi);
-            foreach (var node in nodes)
-            {
-                pi.Count++;
-                await wat.PutAsync(node);
-                pi.Count--;
+
+            
+                var pi = new ProgressItem
+                {
+                    Message = "Putting Nodes",
+                    Count = 0,
+                    InProgress = true
+                };
+                ProgressItems.Add(pi);
+                this.StateHasChanged();
+                foreach (var node in nodes)
+                {
+                    pi.Count++;
+                    await wat.PutAsync(node);
+                    pi.Count--;
+                }
+                this.StateHasChanged();     
+                pi.InProgress = false;
+                this.StateHasChanged();
             }
-            this.StateHasChanged();
-            pi.InProgress = false;
-            this.StateHasChanged();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ex {ex} stack: {ex.StackTrace}");
+            }
         }, async (nids, step) =>
         {
             var q = new Ahghee.Grpc.Query();
