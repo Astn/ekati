@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Ahghee;
 using Ahghee.Grpc;
 using Antlr4.Runtime;
+using Antlr4.Runtime.Misc;
+using Antlr4.Runtime.Tree;
 using cli;
 using cli.antlr;
 using cli_grammer;
@@ -77,6 +79,59 @@ namespace server
             return cpuPercent;
         }
 
+        private int ParseForNewLine(ReadOnlySpan<byte> data)
+        {
+            var newLinePos =0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                var c = (char) data[i];
+            
+                if (c == '\n' )
+                {
+                    newLinePos = i;   
+                }
+            }
+
+            return newLinePos;
+        }
+        private async Task<int> ParseNTStreamNoTree(Stream data)
+        {
+            ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
+
+            var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
+            //parser.TrimParseTree = true;
+            parser.BuildParseTree = true;
+            int lastValidPosition = 0;
+            parser.AddErrorListener(new ErrorListener());
+            NTRIPLESParser.TripleContext cc = null;
+            
+            for (;; cc = parser.triple())
+            {
+                if (cc?.exception != null
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
+                    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
+                )
+                {
+                    Console.WriteLine(cc.exception.Message);
+                    Console.WriteLine(
+                        $"found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+                }
+
+                if (cc != null)
+                {
+                    lastValidPosition = cc.Start.StartIndex;
+                    
+                }
+                //lastValidPosition = parser.CurrentToken.StopIndex;                
+                if (parser.CurrentToken.Type == TokenConstants.Eof)
+                {
+                    break;
+                }
+            }
+
+            return lastValidPosition;
+        }
+        
         private async Task ParseNTStream(Stream data)
         {
             ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
@@ -151,114 +206,132 @@ namespace server
             }
         }
 
-        public override async Task<LoadFileResponse> Load(LoadFile request, ServerCallContext context)
+        public override async Task Load(LoadFile request, IServerStreamWriter<LoadFileResponse> responseStream, ServerCallContext context)
         {
-            try
+            if (request.Type == "nt")
             {
-                if (request.Type == "nt")
+                Console.WriteLine($"Loading file: {request.Path}");
+                try
                 {
-                    Console.WriteLine($"Loading file: {request.Path}");
-                    try
+                    Stream data = null;
+                    var TotalLength = 0L;
+                    var TotalProgress = 0L;
+                    var totalLengthDetermined = false;
+                    if (!File.Exists(request.Path))
                     {
-                        Stream data = null;
-                        if (!File.Exists(request.Path))
-                        {
-                            // TODO; download it.
-                            var client = new HttpClient();
-                            data = await client.GetStreamAsync(request.Path);
-                        }
-                        else
-                        {
-                            data = File.OpenRead(request.Path);
-                        }
-                        await using var cleanup = data;
-                        await using var bs = new BufferedStream(data, 4096);
-                        {
-                            long lastCopyPostition = 0;
-                            var lastNewLinePosition = 0;
-                            var unreadCount = 0L;
-                            var memory = new byte[81920];
-                            await using var mainView = new MemoryStream(memory);
-                            do
-                            {
-                                var newBytesAdded = await bs.ReadAsync(memory, (int)unreadCount, (int)(memory.Length - unreadCount));
-                                lastCopyPostition = unreadCount + newBytesAdded;
-                                if (lastCopyPostition == 0)
-                                    break;
-                                // move back to beginning
-                                mainView.Seek(0, SeekOrigin.Begin);
-                                // find the last new line
-                                var tr = new StreamReader(mainView, Encoding.ASCII, true, -1, true);
-                                
-                                var lnlpcheck = 0;
-                                var lnlpcheckf =0;
-                                var slashcnt = 0;
-                                while (lnlpcheck <= lastCopyPostition )
-                                {
-                                    lnlpcheck++;
-                                    var c = (char) tr.Read();
-
-                                    if (c == '\n' )//&& slashcnt % 1 == 0) 
-                                    {
-                                        lnlpcheckf = lnlpcheck;
-                                       // lastNewLinePosition = Convert.ToInt32(mainView.Position);    
-                                    }
-                                }
-
-                                lastNewLinePosition = lnlpcheckf;
-
-                                // create a vew up to that position;
-                                var pageView = new MemoryStream(memory, 0, lastNewLinePosition);
-
-                                // run the parser on that pageView.
-                                await ParseNTStream(pageView);
-                                // move the end of the stream that we didn't read back to the beginning
-                                unreadCount = lastCopyPostition - lastNewLinePosition;
-                                Buffer.BlockCopy(memory, lastNewLinePosition, memory, 0,
-                                    Convert.ToInt32(unreadCount));
-                                
-                            } while (lastCopyPostition > 0);
-                        }
+                        // TODO; download it.
+                        var client = new HttpClient();
+                        // var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, request.Path));
+                        // if (head.IsSuccessStatusCode)
+                        // {
+                        //     head.Headers.
+                        // }
+                        data = await client.GetStreamAsync(request.Path);
+                        //TotalLength = data.Length;
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Console.WriteLine(e);
-                        throw;
+                        data = File.OpenRead(request.Path);
+                        TotalLength = data.Length;
+                        totalLengthDetermined = true;
                     }
-                } else if (request.Type == "graphml")
-                {
-                    Console.WriteLine($"Loading file: {request.Path}");
-                    try
+
+                    var timer = Stopwatch.StartNew();
+                    await using var cleanup = data;
+                    await using var bs = new BufferedStream(data, 4096);
                     {
-                        var sw = Stopwatch.StartNew();
-                        var nodes = TinkerPop.buildNodesFromFile(request.Path);
-                        await _db.Add(nodes).ContinueWith(adding =>
+                        var lastNewLinePosition = 0;
+                        var memoryWritePos = 0L;
+                        var unReadBytes = 0L;
+                        var memory = new byte[81920];
+                        await using var mainView = new MemoryStream(memory);
+                        do
                         {
-                            if (adding.IsCompletedSuccessfully)
+                            var newBytesAdded = await bs.ReadAsync(memory, (int)memoryWritePos, (int)(memory.Length - memoryWritePos));
+                            if (!totalLengthDetermined)
                             {
-                                sw.Stop();
-                                Console.WriteLine(
-                                    $"\nstatus> put done in {sw.ElapsedMilliseconds}ms");
+                                TotalLength += newBytesAdded;
+                            }
+                            var newBytesEndPos = memoryWritePos + newBytesAdded;
+                            if (newBytesAdded == 0)
+                                break;
+                            // move back to beginning
+                            mainView.Seek(0, SeekOrigin.Begin);
+                            
+                            // find good place to stop
+                            //var endOfLastTriple = await ParseNTStreamNoTree(new MemoryStream(memory, 0,(int)newBytesEndPos));
+                            var endOfLastTriple = ParseForNewLine(new Span<byte>(memory, 0, (int) newBytesEndPos));
+                            // just incase we have have reached the end, we want to make sure we try to read the last bit...
+                            if (endOfLastTriple == 0 && newBytesEndPos > 0)
+                            {
+                                unReadBytes = newBytesEndPos;
                             }
                             else
                             {
-                                Console.WriteLine(
-                                    $"\nstatus> put err({adding?.Exception?.InnerException?.Message})");
+                                unReadBytes = newBytesEndPos - endOfLastTriple;
                             }
-                        });
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        throw;
+                            
+                            // create a vew up to that position;
+                            var pageView = new MemoryStream(memory, 0, endOfLastTriple);
+
+                            // run the parser on that pageView.
+                            await ParseNTStream(pageView);
+                            // move the end of the stream that we didn't read back to the beginning
+                            //Console.WriteLine($"BBC: endoflastTriple:{endOfLastTriple}, unReadBytes:{unReadBytes}, urb32:{Convert.ToInt32(unReadBytes)}");
+                            Buffer.BlockCopy(memory, endOfLastTriple, memory, 0, Convert.ToInt32(unReadBytes));
+                            memoryWritePos = unReadBytes;
+                            TotalProgress += endOfLastTriple;
+                            if (timer.Elapsed > TimeSpan.FromSeconds(1))
+                            {
+                                
+                                await responseStream.WriteAsync(new LoadFileResponse
+                                {
+                                    Progress = TotalProgress,
+                                    Length = TotalLength
+                                });    
+                            
+                            }
+
+                            if (context.CancellationToken.IsCancellationRequested)
+                            {
+                                Console.WriteLine($"Cancel requested for file load. {request.Path }");
+                                break;
+                            }
+                        } while (unReadBytes > 0);
                     }
                 }
-
-                return new LoadFileResponse();
-            }
-            catch (Exception ex)
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            } else if (request.Type == "graphml")
             {
-                return new LoadFileResponse();
+                Console.WriteLine($"Loading file: {request.Path}");
+                try
+                {
+                    var sw = Stopwatch.StartNew();
+                    var nodes = TinkerPop.buildNodesFromFile(request.Path);
+                    await _db.Add(nodes).ContinueWith(adding =>
+                    {
+                        if (adding.IsCompletedSuccessfully)
+                        {
+                            sw.Stop();
+                            Console.WriteLine(
+                                $"\nstatus> put done in {sw.ElapsedMilliseconds}ms");
+                        }
+                        else
+                        {
+                            Console.WriteLine(
+                                $"\nstatus> put err({adding?.Exception?.InnerException?.Message})");
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
         }
 
