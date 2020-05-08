@@ -23,10 +23,24 @@
 
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="lodash.js"></script>
+
+    <!--    <script src="d3/d3.min.js"></script>-->
     <script src="d3/d3.js"></script>
+
+    <script src="d3-charts.js"></script>
     <script src="d3-interop.js"></script>
-<!--    <script src="d3/d3.min.js"></script>-->
-    <script src="_content/BlazorFabric.BaseComponent/blazorFabric.min.js"></script>
+    <!-- Reference the included moment.js javascript file. -->
+    <script src="_content/ChartJs.Blazor/moment-with-locales.min.js" type="text/javascript" language="javascript"></script>
+
+    <!-- Reference the included ChartJs javascript file. -->
+    <script src="_content/ChartJs.Blazor/Chart.min.js" type="text/javascript" language="javascript"></script>
+
+    <!-- This is the glue between the C# code and the ChartJs charts -->
+    <script src="_content/ChartJs.Blazor/ChartJsBlazorInterop.js" type="text/javascript" language="javascript"></script>
+
+    <!-- Some styling -->
+    <link rel="stylesheet" href="_content/ChartJs.Blazor/ChartJSBlazor.css" />
+
     <script>var require = { paths: { 'vs': 'monaco-editor/min/vs' } };</script>
     <script src="monaco-editor/min/vs/loader.js"></script>
     <script src="monaco-editor/min/vs/editor/editor.main.nls.js"></script>
