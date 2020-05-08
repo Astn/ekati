@@ -116,7 +116,7 @@ zoom in
 ## Test langauge
 
 Some examples and 
-[See Grammar](/docs/ekati.lang.rrd.html)
+[See Grammar](https://astn.github.io/ekati/ekati.lang.rrd.html)
 
 ### Put Command
 

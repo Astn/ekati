@@ -1,0 +1,5 @@
+docs/* -linguist-documentation
+src/UI/wwwroot/d3/* -linguist-vendored
+src/UI/wwwroot/css/* -linguist-vendored
+src/UI/wwwroot/lodash.js -linguist-vendored
+src/UI/wwwroot/monaco-editor/* -linguist-vendored
