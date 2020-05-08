@@ -183,10 +183,11 @@ message LoadFile{
     string path = 2;
 }
 message LoadFileResponse{
-    
+    int64 progress = 1;
+    int64 length = 2;
 }
 service WatDbService {
-    rpc Load (LoadFile) returns (LoadFileResponse) {}
+    rpc Load (LoadFile) returns (stream LoadFileResponse) {}
     rpc Put (Node) returns (PutResponse) {}
     rpc Get (Query) returns (stream Node) {}
     rpc GetMetrics (GetMetricsRequest) returns (GetMetricsResponse){}

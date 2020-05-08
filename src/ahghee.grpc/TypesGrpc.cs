@@ -26,7 +26,7 @@ namespace Ahghee.Grpc {
     static readonly grpc::Marshaller<global::Ahghee.Grpc.ListPoliciesRequest> __Marshaller_ahghee_grpc_ListPoliciesRequest = grpc::Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Ahghee.Grpc.ListPoliciesRequest.Parser.ParseFrom);
 
     static readonly grpc::Method<global::Ahghee.Grpc.LoadFile, global::Ahghee.Grpc.LoadFileResponse> __Method_Load = new grpc::Method<global::Ahghee.Grpc.LoadFile, global::Ahghee.Grpc.LoadFileResponse>(
-        grpc::MethodType.Unary,
+        grpc::MethodType.ServerStreaming,
         __ServiceName,
         "Load",
         __Marshaller_ahghee_grpc_LoadFile,
@@ -84,7 +84,7 @@ namespace Ahghee.Grpc {
     [grpc::BindServiceMethod(typeof(WatDbService), "BindService")]
     public abstract partial class WatDbServiceBase
     {
-      public virtual global::System.Threading.Tasks.Task<global::Ahghee.Grpc.LoadFileResponse> Load(global::Ahghee.Grpc.LoadFile request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task Load(global::Ahghee.Grpc.LoadFile request, grpc::IServerStreamWriter<global::Ahghee.Grpc.LoadFileResponse> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -144,21 +144,13 @@ namespace Ahghee.Grpc {
       {
       }
 
-      public virtual global::Ahghee.Grpc.LoadFileResponse Load(global::Ahghee.Grpc.LoadFile request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.LoadFileResponse> Load(global::Ahghee.Grpc.LoadFile request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return Load(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
-      public virtual global::Ahghee.Grpc.LoadFileResponse Load(global::Ahghee.Grpc.LoadFile request, grpc::CallOptions options)
+      public virtual grpc::AsyncServerStreamingCall<global::Ahghee.Grpc.LoadFileResponse> Load(global::Ahghee.Grpc.LoadFile request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_Load, null, options, request);
-      }
-      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.LoadFileResponse> LoadAsync(global::Ahghee.Grpc.LoadFile request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return LoadAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      public virtual grpc::AsyncUnaryCall<global::Ahghee.Grpc.LoadFileResponse> LoadAsync(global::Ahghee.Grpc.LoadFile request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_Load, null, options, request);
+        return CallInvoker.AsyncServerStreamingCall(__Method_Load, null, options, request);
       }
       public virtual global::Ahghee.Grpc.PutResponse Put(global::Ahghee.Grpc.Node request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
@@ -267,7 +259,7 @@ namespace Ahghee.Grpc {
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     public static void BindService(grpc::ServiceBinderBase serviceBinder, WatDbServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_Load, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ahghee.Grpc.LoadFile, global::Ahghee.Grpc.LoadFileResponse>(serviceImpl.Load));
+      serviceBinder.AddMethod(__Method_Load, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ahghee.Grpc.LoadFile, global::Ahghee.Grpc.LoadFileResponse>(serviceImpl.Load));
       serviceBinder.AddMethod(__Method_Put, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ahghee.Grpc.Node, global::Ahghee.Grpc.PutResponse>(serviceImpl.Put));
       serviceBinder.AddMethod(__Method_Get, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::Ahghee.Grpc.Query, global::Ahghee.Grpc.Node>(serviceImpl.Get));
       serviceBinder.AddMethod(__Method_GetMetrics, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Ahghee.Grpc.GetMetricsRequest, global::Ahghee.Grpc.GetMetricsResponse>(serviceImpl.GetMetrics));

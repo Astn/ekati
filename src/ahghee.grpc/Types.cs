@@ -92,19 +92,20 @@ namespace Ahghee.Grpc {
             "KAkiIgoRTGlzdFN0YXRzUmVzcG9uc2USDQoFbmFtZXMYASADKAkiIwoTTGlz",
             "dFBvbGljaWVzUmVxdWVzdBIMCgRpcmlzGAEgAygJIjgKFExpc3RQb2xpY2ll",
             "c1Jlc3BvbnNlEiAKBW5vZGVzGAEgAygLMhEuYWhnaGVlLmdycGMuTm9kZSIm",
-            "CghMb2FkRmlsZRIMCgR0eXBlGAEgASgJEgwKBHBhdGgYAiABKAkiEgoQTG9h",
-            "ZEZpbGVSZXNwb25zZTLpAwoMV2F0RGJTZXJ2aWNlEj4KBExvYWQSFS5haGdo",
-            "ZWUuZ3JwYy5Mb2FkRmlsZRodLmFoZ2hlZS5ncnBjLkxvYWRGaWxlUmVzcG9u",
-            "c2UiABI0CgNQdXQSES5haGdoZWUuZ3JwYy5Ob2RlGhguYWhnaGVlLmdycGMu",
-            "UHV0UmVzcG9uc2UiABIwCgNHZXQSEi5haGdoZWUuZ3JwYy5RdWVyeRoRLmFo",
-            "Z2hlZS5ncnBjLk5vZGUiADABEk8KCkdldE1ldHJpY3MSHi5haGdoZWUuZ3Jw",
-            "Yy5HZXRNZXRyaWNzUmVxdWVzdBofLmFoZ2hlZS5ncnBjLkdldE1ldHJpY3NS",
-            "ZXNwb25zZSIAEkkKCEdldFN0YXRzEhwuYWhnaGVlLmdycGMuR2V0U3RhdHNS",
-            "ZXF1ZXN0Gh0uYWhnaGVlLmdycGMuR2V0U3RhdHNSZXNwb25zZSIAEkwKCUxp",
-            "c3RTdGF0cxIdLmFoZ2hlZS5ncnBjLkxpc3RTdGF0c1JlcXVlc3QaHi5haGdo",
-            "ZWUuZ3JwYy5MaXN0U3RhdHNSZXNwb25zZSIAEkcKDExpc3RQb2xpY2llcxIg",
-            "LmFoZ2hlZS5ncnBjLkxpc3RQb2xpY2llc1JlcXVlc3QaES5haGdoZWUuZ3Jw",
-            "Yy5Ob2RlIgAwAWIGcHJvdG8z"));
+            "CghMb2FkRmlsZRIMCgR0eXBlGAEgASgJEgwKBHBhdGgYAiABKAkiNAoQTG9h",
+            "ZEZpbGVSZXNwb25zZRIQCghwcm9ncmVzcxgBIAEoAxIOCgZsZW5ndGgYAiAB",
+            "KAMy6wMKDFdhdERiU2VydmljZRJACgRMb2FkEhUuYWhnaGVlLmdycGMuTG9h",
+            "ZEZpbGUaHS5haGdoZWUuZ3JwYy5Mb2FkRmlsZVJlc3BvbnNlIgAwARI0CgNQ",
+            "dXQSES5haGdoZWUuZ3JwYy5Ob2RlGhguYWhnaGVlLmdycGMuUHV0UmVzcG9u",
+            "c2UiABIwCgNHZXQSEi5haGdoZWUuZ3JwYy5RdWVyeRoRLmFoZ2hlZS5ncnBj",
+            "Lk5vZGUiADABEk8KCkdldE1ldHJpY3MSHi5haGdoZWUuZ3JwYy5HZXRNZXRy",
+            "aWNzUmVxdWVzdBofLmFoZ2hlZS5ncnBjLkdldE1ldHJpY3NSZXNwb25zZSIA",
+            "EkkKCEdldFN0YXRzEhwuYWhnaGVlLmdycGMuR2V0U3RhdHNSZXF1ZXN0Gh0u",
+            "YWhnaGVlLmdycGMuR2V0U3RhdHNSZXNwb25zZSIAEkwKCUxpc3RTdGF0cxId",
+            "LmFoZ2hlZS5ncnBjLkxpc3RTdGF0c1JlcXVlc3QaHi5haGdoZWUuZ3JwYy5M",
+            "aXN0U3RhdHNSZXNwb25zZSIAEkcKDExpc3RQb2xpY2llcxIgLmFoZ2hlZS5n",
+            "cnBjLkxpc3RQb2xpY2llc1JlcXVlc3QaES5haGdoZWUuZ3JwYy5Ob2RlIgAw",
+            "AWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -140,7 +141,7 @@ namespace Ahghee.Grpc {
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.ListPoliciesRequest), global::Ahghee.Grpc.ListPoliciesRequest.Parser, new[]{ "Iris" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.ListPoliciesResponse), global::Ahghee.Grpc.ListPoliciesResponse.Parser, new[]{ "Nodes" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.LoadFile), global::Ahghee.Grpc.LoadFile.Parser, new[]{ "Type", "Path" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.LoadFileResponse), global::Ahghee.Grpc.LoadFileResponse.Parser, null, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Ahghee.Grpc.LoadFileResponse), global::Ahghee.Grpc.LoadFileResponse.Parser, new[]{ "Progress", "Length" }, null, null, null, null)
           }));
     }
     #endregion
@@ -6330,12 +6331,36 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public LoadFileResponse(LoadFileResponse other) : this() {
+      progress_ = other.progress_;
+      length_ = other.length_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public LoadFileResponse Clone() {
       return new LoadFileResponse(this);
+    }
+
+    /// <summary>Field number for the "progress" field.</summary>
+    public const int ProgressFieldNumber = 1;
+    private long progress_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public long Progress {
+      get { return progress_; }
+      set {
+        progress_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "length" field.</summary>
+    public const int LengthFieldNumber = 2;
+    private long length_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public long Length {
+      get { return length_; }
+      set {
+        length_ = value;
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6351,12 +6376,16 @@ namespace Ahghee.Grpc {
       if (ReferenceEquals(other, this)) {
         return true;
       }
+      if (Progress != other.Progress) return false;
+      if (Length != other.Length) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override int GetHashCode() {
       int hash = 1;
+      if (Progress != 0L) hash ^= Progress.GetHashCode();
+      if (Length != 0L) hash ^= Length.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -6370,6 +6399,14 @@ namespace Ahghee.Grpc {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public void WriteTo(pb::CodedOutputStream output) {
+      if (Progress != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Progress);
+      }
+      if (Length != 0L) {
+        output.WriteRawTag(16);
+        output.WriteInt64(Length);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -6378,6 +6415,12 @@ namespace Ahghee.Grpc {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public int CalculateSize() {
       int size = 0;
+      if (Progress != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Progress);
+      }
+      if (Length != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Length);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -6388,6 +6431,12 @@ namespace Ahghee.Grpc {
     public void MergeFrom(LoadFileResponse other) {
       if (other == null) {
         return;
+      }
+      if (other.Progress != 0L) {
+        Progress = other.Progress;
+      }
+      if (other.Length != 0L) {
+        Length = other.Length;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -6400,6 +6449,14 @@ namespace Ahghee.Grpc {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
+          case 8: {
+            Progress = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            Length = input.ReadInt64();
+            break;
+          }
         }
       }
     }

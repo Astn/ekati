@@ -29,13 +29,13 @@
         <Graph Nodes="@Nodes"></Graph>
     </div>
     <div style="clear: left; width: 40%;">
-       <ul style="max-height: 30%; overflow: scroll;">
+       <ul style="max-height: 30%; overflow-y: scroll; overflow-x: hidden;">
            @foreach (var pi in ProgressItems)
            {
                var myPI = pi;
                <li >
                    <button @onclick="@(() => { ProgressItems.Remove(myPI);})">X</button>
-                   @myPI.Count - @myPI.Message
+                   (@myPI.Count / @myPI.OfTotal) - @myPI.Message
                </li>
            }
        </ul>
@@ -125,7 +125,8 @@
     internal class ProgressItem
     {
         public string Message { get; set; }
-        public int Count { get; set; }
+        public long Count { get; set; }
+        public long OfTotal { get; set; }
         public bool InProgress { get; set; }
     }
 
@@ -357,12 +358,17 @@ get ""*""
                 };
                 ProgressItems.Add(pi);
                 this.StateHasChanged();
-                await wat.LoadAsync(new LoadFile
+                var loadProgress = wat.Load(new LoadFile
                 {
                     Type = loadType,
                     Path = path.Trim('\"')
                 });
-                pi.Count--;
+                await loadProgress.ResponseStream.ForEachAsync(async progress =>
+                {
+                    pi.Count = progress.Progress;
+                    pi.OfTotal = progress.Length;
+                    this.StateHasChanged();
+                });
                 this.StateHasChanged();
             }));
         parser.AddErrorListener(new ErrorListener());
