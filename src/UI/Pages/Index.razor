@@ -24,28 +24,44 @@ Welcome to your new database.
 @foreach (var __chart in Charts)
 {
     var chart = __chart;
-    var innerChart = chart.Value.LineChart;
-    var innerConfig = chart.Value.LineConfig;
-    <ChartJs.Blazor.Charts.ChartJsLineChart @ref="innerChart" Config="@innerConfig" Width="600" Height="300"/>
+    <div style="margin: 2px;">
+        <h4>@chart.Value.Id</h4>
+        <svg id="@chart.Value.Id" viewBox="0 0 600 300" width="600" height="300"></svg>    
+    </div>
 }
 </div>
 
 @code{
     const string DeCh = "en-us";
-    private bool _localeChangeWasAttempted = false;
-
-    public Dictionary<string,ChartStuff> Charts { get; set; } = new Dictionary<string,ChartStuff>();
+    private bool _renderedOnce = false;
     
+    public Dictionary<string,ChartStuff> Charts { get; set; } = new Dictionary<string,ChartStuff>();
+
+    public class Measure
+    {
+        public string Time { get; set; }
+        public float Value { get; set; }
+
+        public void SetTime(DateTime dt)
+        {
+            Time = dt.ToString("o");
+        }
+
+        public Measure(DateTime time, float value)
+        {
+            SetTime(time);
+            Value = value;
+        }
+    }
     public class ChartStuff
     {
-        public LineConfig LineConfig { get; set; }
-        public ChartJsLineChart LineChart { get; set; } = new ChartJsLineChart();
-        public LineDataset<TimeTuple<float>> Dataset { get; set; }
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public List<Measure> Dataset { get; set; } = new List<Measure>();
         public ChartStuff(string title, string yaxis, string xaxis)
         {
-            LineConfig = MakeConfig(title, yaxis);
-            Dataset = MakeDataSet(xaxis);
-            LineConfig.Data.Datasets.Add(Dataset);
+            Title = title;
+            Id = title.Split('|').First();
         }
     }
     
@@ -70,7 +86,7 @@ Welcome to your new database.
     }
     async Task loadData()
     {
-        var refreshDelay = 5000;
+        var refreshDelay = 1000;
         var start = Stopwatch.StartNew();
         var iteration = 0;
         while(true)
@@ -82,32 +98,28 @@ Welcome to your new database.
             {
                 if (Charts.ContainsKey(metric.Name) == false)
                 {
-                    Charts.Add(metric.Name, new ChartStuff(metric.Name.Split("|").First(), "", ""));
+                    Charts.Add(metric.Name, new ChartStuff(metric.Name, "", ""));
                     // dont await this.
-                    if (anyAdded = false)
+                    if (anyAdded == false)
                     {
-                        // resharper cant see we in a loop.. LOLz
-    // ReSharper disable once HeuristicUnreachableCode
+                        _renderedOnce = false;
                         anyAdded = true;
-    #pragma warning disable 4014
-                        Task.Delay(5).ContinueWith(t =>
-    #pragma warning restore 4014
-                        {
-                            StateHasChanged();
-                        });
                     }
                 }
                 var c = Charts[metric.Name];
-                var tt = new TimeTuple<float>(new Moment(metric.Time.ToDateTime())  , metric.Value / 1024 / 1024);
+                var tt = new Measure(metric.Time.ToDateTime(), metric.Value / 1024 / 1024);
                 c.Dataset.Add(tt);
-                if (iteration > 1)
-                {
-                    StateHasChanged();
-                }
-                if (iteration > 2)
-                {
-                    await c.LineChart.Update();
-                }
+                
+            }
+            if (anyAdded)
+            {
+                StateHasChanged();
+            }
+            // gotta make sure we got some svg goodness.
+            if (_renderedOnce)
+            {
+                var multiChartsData = Charts.Values.ToList();
+                await JsRuntime.InvokeVoidAsync("d3Charts.updateCharts", multiChartsData);
             }
             await Task.Delay(Math.Abs(refreshDelay - (int)start.ElapsedMilliseconds));
             iteration++;
@@ -119,90 +131,6 @@ Welcome to your new database.
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await TryChangeLocale();
-    }
-
-    private async Task TryChangeLocale()
-    {
-        if (_localeChangeWasAttempted) return;
-        _localeChangeWasAttempted = true;
-
-        var locales = await JsRuntime.GetAvailableLocales();
-        bool localeChanged = false;
-        if (locales != null && locales.Contains(DeCh))
-        {
-            localeChanged = await JsRuntime.ChangeLocale(DeCh);
-        }
-
-        if (!localeChanged) Console.WriteLine($"Locale was not changed to {DeCh}. Either it already is {DeCh} or this locale doesn't exist.");
-    }
-    
-    private static LineConfig MakeConfig(string text, string units)
-    {
-        var lc = new LineConfig
-        {
-            Options = new LineOptions
-            {
-                Responsive = true,
-                Title = new OptionsTitle
-                {
-                    Display = true,
-                    Text = text
-                },
-                Legend = new Legend
-                {
-                    Display = false
-                },
-                Tooltips = new Tooltips
-                {
-                    Mode = InteractionMode.Nearest,
-                    Intersect = false
-                },
-                Scales = new Scales
-                {
-                    yAxes = new List<CartesianAxis>
-                    {
-                        new LinearCartesianAxis
-                        {
-                            ScaleLabel = new ScaleLabel
-                            {
-                                LabelString = units
-                            }
-                        }
-                    },
-                    xAxes = new List<CartesianAxis>
-                    {
-                        new TimeAxis
-                        {
-                            Distribution = TimeDistribution.Series,
-                            Ticks = new TimeTicks
-                            {
-                                Source = TickSource.Data
-                            },
-                            Time = new TimeOptions
-                            {
-                                
-                                Unit = TimeMeasurement.Second,
-                                Round = TimeMeasurement.Second,
-                                TooltipFormat = "YYYY.MM.DD:HH:mm:ss",
-                                DisplayFormats = TimeDisplayFormats.DE_CH,
-                                MinUnit = TimeMeasurement.Millisecond
-                            },
-                            ScaleLabel = new ScaleLabel
-                            {
-                                LabelString = ""
-                            }
-                        }
-                    }
-                },
-                Hover = new LineOptionsHover
-                {
-                    Intersect = true,
-                    Mode = InteractionMode.Y
-                }
-            }
-        };
-        lc.Data.Labels = new List<string>();
-        return lc;
+        _renderedOnce = true;
     }
 }
