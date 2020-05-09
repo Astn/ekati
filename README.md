@@ -87,16 +87,16 @@ get "2", "4"
 put "your/wonderful/id" 
     "key":"value",
     "key2":"value2",
-    "linkname":@"someid",
-    "anotherlink":@"anotherid";
+    "linkname":^"someid",
+    "anotherlink":^"anotherid";
 
     "someid"
-        "likes":@"your/wonderful/id",
-        "doesnt/like":@"anotherid";
+        "likes":^"your/wonderful/id",
+        "doesnt/like":^"anotherid";
 
     "anotherid"
         "name":"whatever you like",
-        "follows":@"1";    
+        "follows":^"1";    
 ```
 
 #### get it back out, and then follow any(*) link out 1 jump
@@ -126,21 +126,21 @@ put "me"
         "name": "Austin",
         "fingers": 10,
         "height": 6.42,
-        "likes": @"dogs";
+        "likes": ^"dogs";
     "dogs"
         "type": "group",
-        "member": @"newfie",
-        "member": @"lab",
-        "member": @"bulldog";
+        "member": ^"newfie",
+        "member": ^"lab",
+        "member": ^"bulldog";
     "newfie"
         "type": "dog",
-        "loves": @"me";
+        "loves": ^"me";
     "lab"
         "type": "dog",
-        "likes": @"me";
+        "likes": ^"me";
     "bulldog"
         "type": "dog",
-        "sits on": @"me";       
+        "sits on": ^"me";       
 ```
 
 ### Get command

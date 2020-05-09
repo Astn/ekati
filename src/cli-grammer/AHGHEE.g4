@@ -62,15 +62,15 @@ kvp
     ;
 
 edge
-    : STRING ':' '@' STRING
+    : STRING ':' '^' STRING
     ;
 
 fedge
-    :  '@' STRING':' value
+    :  '^' STRING':' value
     ;
 
 dedge
-    : '@' STRING ':' '@' STRING
+    : '^' STRING ':' '^' STRING
     ;
 
 
