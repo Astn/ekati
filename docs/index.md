@@ -1,34 +1,69 @@
-# Ekáti (εκάτη / Hecate)
-## Ekati - database 
+# Ekati - A Database 
+## Ekáti (εκάτη / Hecate)
 
 ![Basic UI](https://github.com/astn/ekati/workflows/Build/badge.svg)
 
 
 ## TLDR
 
-Under development, lot's to do. If your looking for something production ready, this is NOT it. If you want to get in on an early open source project and have a big impact, this could be your thing.
-
-## Do you like this?
-
-[![https://www.buymeacoffee.com/Ekati](https://cdn.buymeacoffee.com/buttons/default-blue.png)](https://www.buymeacoffee.com/Ekati)
+Under development, lot's to do. If your looking for something production ready, this is NOT it. If you want to get your hands into an early open source data project, this could be your thing.
 
 # Interested? 
 
-Do you like graphs or databases, and solving hard problems? I'm hoping you will help me. 
+Do you like graphs or databases, and solving hard problems? Help!
 
-## But wat is it really?
+## But what is it really?
 
-It's wanting to be a real graph database, not a virtural graph database. You know the ones that are build on top of document databases, or key value stores, or column stores. Not that those are bad, but I'm hoping we can do better. 
+It's wanting to be a real graph database, not a virtural graph database. You know the ones that are build on top of document databases, or key value stores, or column stores. Not that those are bad, but I'm hoping there is something better. 
 
 The native data representation is flexable in order to support Neo4j / Gremlin style graphs, as well as semantic graphs, or RDF.
 
-There is no smarts built into it as of yet. It dumbly stores and loads data. To solve this I'm working on adding support for webassembly plugins.
+### Some Goals
+
+- Follow edges without using index lookups
+- Clustering / Support really really ridiculously large data sets (big-data?)
+- Support data-local compute similar to hadoop and friends
+- Constant large quantity writes/updates 
+    - Max out the network would be ideal. Not even close right now, way too many allocations parsing / loading
+- Flexible Indexing
+- Property level metadata eg: policy / permission / origin
+- Forward references
+- Key and Value references
+    - `^"friend" : ^"person123"` where ^"friend" referes to the node named "friend", and ^"person123" refers to the node named "person123".
+    - `"friend" : ^"person123"` would simply be a property named "friend" that points to the node named "person123"
+- Extensible via sandboxed plugins
+    - Can we use web assembly for this? What could we use?
+    - Value transformation plugins such as
+        - encryption / decryption
+        - compression
+        - text numbers to native
+    - Indexing plugins such as
+        - full-text 
+        - spacial
+    - Query operator plugins such as
+        - JQ
+        - Regex
+        - xpath
+    - Import / Export plugins
+        - CSV
+        - Postgres
+        - etc
+    - API / Protocol plugins
+        - JDBC
+        - ODBC
+        - Python
+    - Jobs or stored procedures
+        - Run map / reduce 
+        - Page rank
 
 ## What can it do now?
 
-Right now you can import a few file formats (ttl, graphml) supporting other file types is fairly easy, maybe you want to help add support for one? You would find or create an ANTLR4 grammer, and then add an adapter for that parser to import data.
+Right now you can import a few file formats (ttl, graphml) supporting other file types is currently done creating an ANTLR4 grammer, and then add an adapter for that parser to import data.
 
-There is the beginnings of a UI, that runs in your browser.
+There is the beginnings of a UI, that runs in your browser. (It's super basic)
+    - Note that there is something preventing the connection from working on mac/linux. Plz help. Seems Grpc/HTTP2 related.
+
+There is a very basic query language for testing / development. Higher level language bindings will be possible after more of the low level operators are developed.
 
 ![Basic UI](UI-load-graphml.png)
 
@@ -41,18 +76,36 @@ There is the beginnings of a UI, that runs in your browser.
 
 ## Database Tech
 
- - Mostly written in F# and C#. The code is a fair bit ugly, and needs some refactoring.
- - It's targeting Linux, OSX, and Windows, using the dotnet core JIT.
- - Some indexing is done using RockDB, looking into using  FASTER.
- - The main storage layer from scratch and needs a ton of work. Just starting down the hybrid log structured merge tree approach.
- - There is some sharding support built in, though at this time all the shards have to run on a single machine. Clustering is on the list.
- - Query support is ultra basic, and need to do some work in the query language department.
+ - Mostly written in F# and C#. The code is a fair bit ugly, and needs a lot love.
+ - It's targeting Linux, OSX, and Windows, using the dotnet core JIT. Currently seeing issues with connecting the UI to the Database on Linux and Mac. Might be HTTP/2 related.
+ - Basic nodeId indexing is done using FASTER.
+ - The main storage layer has the goal of being a hybrid log structured merge tree. Got a fair bit of work to do there. Maybe we can get FASTER Log to do it for us.
+ - There is some thought to sharding support built in, though at this time all the shards run on a single machine, and there has been very little effort done in that area. Clustering is a goal.
+ - Query support is ultra basic, and need to do some work in the query language department. Any Ideas?
 
 ## Still here?
 
  - Click *Watch* button
  - Click fork button
  - Jump on Discord https://discord.gg/NfcBmjA
+
+## Can you help?
+
+ Yes!
+
+We need help in all areas.
+
+- Planning
+- Architecture
+- Documentation
+- UI
+- Design
+- Language
+- Low-Level
+- Storage
+- Testing
+- Coding
+
 
 ## Run it
 
@@ -177,6 +230,9 @@ load nt "C:\\Users\\austi\\Downloads\\latest-lexemes.nt"
 load graphml "https://raw.githubusercontent.com/Astn/ekati/master/src/core/tinkerpop-modern.xml"
 ```
 
+## Do you like this?
+
+[![https://www.buymeacoffee.com/Ekati](https://cdn.buymeacoffee.com/buttons/default-blue.png)](https://www.buymeacoffee.com/Ekati)
 
 ## Good reading
 - [FASTER](https://www.microsoft.com/en-us/research/uploads/prod/2018/03/faster-sigmod18.pdf)
