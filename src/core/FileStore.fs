@@ -1,5 +1,6 @@
 namespace Ahghee
 
+open Ahghee.Grpc.DataBlock
 open Google.Protobuf
 open Google.Protobuf.Collections
 open System
@@ -112,6 +113,43 @@ type GrpcFileStore(config:Config) =
             | "<=" -> left <= right
             | ">=" -> left >= right
             | _ -> raise <| Exception (sprintf "Operation not supported op %s" op)
+    
+    let RemoveFieldsNode (fieldsOp:FieldsOperator, node:Node) : Node =
+        let isMatch(part, data):bool =
+            match part.PartCase with
+            | FieldsOperator.Types.CludeOp.Types.CludePart.IsCaretFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Nodeid
+            | FieldsOperator.Types.CludeOp.Types.CludePart.IsStarFieldNumber -> true
+            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeFloatFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.F
+            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeIntFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.I32
+            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeStringFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Str
+            | FieldsOperator.Types.CludeOp.Types.CludePart.StringMatchFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Str && data.Data.Str = part.StringMatch
+            | FieldsOperator.Types.CludeOp.Types.CludePart.CarrotStringMatchFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Nodeid && data.Data.Nodeid.Iri = part.CarrotStringMatch
+        let rec trimIt(clude:FieldsOperator.Types.Clude, worknWith: List<KeyValue>) : List<KeyValue> =
+            match clude.OperatorCase with
+            | FieldsOperator.Types.Clude.OperatorOneofCase.None -> List.empty<KeyValue>()
+            | FieldsOperator.Types.Clude.OperatorOneofCase.List ->
+                clude.List.Cludes
+                |> Seq.collect (fun c -> trimIt(c, worknWith))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Include -> worknWith.Union(trimIt(clude.Include, node.Attributes))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Exclude -> worknWith.Except(trimIt(clude.Exclude, worknWith))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Twoclude ->
+                match clude.Twoclude.RightCase with
+                | FieldsOperator.Types.TwoClude.RightOneofCase.None -> trimIt(clude.Twoclude.Left, worknWith)
+                | FieldsOperator.Types.TwoClude.RightOneofCase.Include -> trimIt(clude.Twoclude.Left, worknWith).Union(trimIt(clude.Twoclude.Include, worknWith))
+                | FieldsOperator.Types.TwoClude.RightOneofCase.Exclude -> trimIt(clude.Twoclude.Left, worknWith).Except(trimIt(clude.Twoclude.Exclude, worknWith))
+                
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Op ->
+                worknWith
+                    |> Seq.filter (fun a ->
+                                        let op = fieldsOp.Clude.Op
+                                        let leftMatch = isMatch(op.Left, a.Key.Data)
+                                        let rightMatch = isMatch(op.Right, a.Value.Data)
+                                        leftMatch && rightMatch
+                        )
+        let newAttrs = trimIt (fieldsOp, List.empty<KeyValue>())
+        node.Attributes.Clear()
+        node.Attributes.AddRange(newAttrs)
+        node
     
     let rec FilterNode (node:Node, step: Step) =
         let rec _filterNode (node:Node, cmp: FilterOperator.Types.Compare) =
@@ -368,6 +406,9 @@ type GrpcFileStore(config:Config) =
                                                          (false, afterPaging))
                     
                     if keeper then
+                        // deal with pruning off fields they don't want returned.
+                        // todo: find the fieldsOperator in afterFilter, use it for this node, but leave it around..
+                        let nodeWithOnlyTheFieldsTheyWant = node |> Option.map RemoveFieldsNode
                         yield (ab,eith)
                         
                     // if we passed filters check for follows
