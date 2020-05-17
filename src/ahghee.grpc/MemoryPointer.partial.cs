@@ -17,6 +17,31 @@ using scg = global::System.Collections.Generic;
 
 namespace Ahghee.Grpc
 {
+    public partial class KeyValue :IComparable<KeyValue>, scg.IEqualityComparer<KeyValue>
+    {
+        public bool Equals(KeyValue x, KeyValue y)
+        {
+            return x.CompareTo(y) == 0;
+        }
+
+        public int GetHashCode(KeyValue obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        public int CompareTo(KeyValue other)
+        {
+            if (other == null) return 1;
+
+            var cmp = this.key_.Timestamp.CompareTo(other.key_.Timestamp);
+            if (cmp != 0) return cmp;
+            
+            cmp = this.key_.Data.CompareTo(other.key_.Data);
+            if (cmp != 0) return cmp;
+            
+            return this.value_.Data.CompareTo(other.value_.Data);
+        }
+    }
     public sealed partial class MemoryPointer : IComparable<MemoryPointer>
     {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
