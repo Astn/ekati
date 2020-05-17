@@ -11,6 +11,7 @@ using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using cli_grammer;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Array = Ahghee.Grpc.Array;
 using Range = Ahghee.Grpc.Range;
 using Utils = Ahghee.Grpc.Utils;
@@ -386,6 +387,88 @@ namespace cli
             filter.Value = Int32.Parse(ctx.NUMBER().GetText());
             return filter;
         }
+
+        public static FieldsOperator.Types.Clude ToClude(this AHGHEEParser.CludeContext ctx)
+        {
+            FieldsOperator.Types.CludeOp.Types.CludePart ToCludePart(AHGHEEParser.CludepartContext cludeOpChild)
+            {
+                var cp = new FieldsOperator.Types.CludeOp.Types.CludePart();
+                if (cludeOpChild.CARET() != null && cludeOpChild.STRING() != null)
+                {
+                    cp.CarrotStringMatch = cludeOpChild.STRING().GetText().Trim('"');
+                }else if (cludeOpChild.STRING() != null)
+                {
+                    cp.StringMatch = cludeOpChild.STRING().GetText().Trim('"');
+                }else if (cludeOpChild.CARET() != null)
+                {
+                    cp.IsCaret = true;
+                }else if (cludeOpChild.STAR() != null)
+                {
+                    cp.IsStar = true;
+                }else if (cludeOpChild.TYPEINT() != null)
+                {
+                    cp.IsTypeInt = true;
+                }else if (cludeOpChild.TYPEFLOAT() != null)
+                {
+                    cp.IsTypeFloat = true;
+                }else if (cludeOpChild.TYPESTRING() != null)
+                {
+                    cp.IsTypeString = true;
+                }
+                
+                return cp;
+            }
+            
+            var clude = new FieldsOperator.Types.Clude();
+            if (ctx.cludeop() != null)
+            {
+                var cludeop = ctx.cludeop();
+                clude.Op = new FieldsOperator.Types.CludeOp();
+                if (cludeop.ChildCount > 1)
+                {
+                    clude.Op.Left = ToCludePart(cludeop.cludepart(0));
+                    clude.Op.Right = ToCludePart(cludeop.cludepart(1));
+                }
+            } else if (ctx.include() != null)
+            {
+                if (ctx.clude() != null && ctx.clude().Length == 1)
+                {
+                    clude.Twoclude = new FieldsOperator.Types.TwoClude();
+                    clude.Twoclude.Include = ToClude(ctx.include().clude());
+                    clude.Twoclude.Left = ToClude(ctx.clude(0));
+                }
+                else
+                {
+                    clude.Include = ToClude(ctx.include().clude());
+                }
+            } else if (ctx.exclude() != null)
+            {
+                if (ctx.clude() != null && ctx.clude().Length == 1)
+                {
+                    clude.Twoclude = new FieldsOperator.Types.TwoClude();
+                    clude.Twoclude.Exclude = ToClude(ctx.exclude().clude());
+                    clude.Twoclude.Left = ToClude(ctx.clude(0));
+                }
+                else
+                {
+                    clude.Include = ToClude(ctx.include().clude());
+                }
+            } else if (ctx.clude() != null && ctx.clude().Length > 0)
+            {
+                clude.List = new FieldsOperator.Types.CludeList();
+                foreach (var c in ctx.clude())
+                {
+                   clude.List.Cludes.Add(ToClude(c)); 
+                }
+            }
+            return clude;
+        }
+        public static FieldsOperator ToFieldsOperator(this AHGHEEParser.FieldsContext ctx)
+        {
+            var fields = new FieldsOperator();
+            fields.Clude = ctx.clude().ToClude();
+            return fields;
+        }
         
         public static Step ToPipeFlow(this AHGHEEParser.PipeContext ctx)
         {
@@ -426,6 +509,16 @@ namespace cli
                 return new Step()
                 {
                     Limit = limit,
+                    Next = ctx.pipe()?.ToPipeFlow()
+                };
+            }
+
+            if (cmd.fields() != null)
+            {
+                var fields = cmd.fields().ToFieldsOperator();
+                return new Step()
+                {
+                    Fields = fields,
                     Next = ctx.pipe()?.ToPipeFlow()
                 };
             }

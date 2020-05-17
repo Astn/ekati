@@ -119,7 +119,7 @@ clude
     | clude include
     | exclude
     | include
-    | CLUDEOP
+    | cludeop
     ;
 
 skipfilter
@@ -161,15 +161,25 @@ anynum
     : '*' range?
     ;    
     
-CLUDEOP
-     : CLUDEPART ':' CLUDEPART
+cludeop
+     : cludepart ':' cludepart
      ;  
-fragment CLUDEPART: ( CARROT STRING | CARROT | STRING | STAR | TYPEINT | TYPESTRING | TYPEFLOAT)  ;     
-fragment STAR : '*';
-fragment CARROT : '^';      
-fragment TYPEINT : 'int';
-fragment TYPESTRING: 'string';  
-fragment TYPEFLOAT : 'float'; 
+cludepart
+    : CARET STRING 
+    | CARET 
+    | STRING 
+    | STAR 
+    | TYPEINT 
+    | TYPESTRING 
+    | TYPEFLOAT
+    ;
+         
+STAR : '*';
+CARET : '^';      
+TYPEINT : 'int';
+TYPESTRING: 'string';  
+TYPEFLOAT : 'float'; 
+
 MATHOP
     : '=='|'<'|'<='|'>='|'>'|'!=' ;    
 BOOLOP
@@ -225,4 +235,3 @@ WS
 
 //mode ARROW;
 
-   
