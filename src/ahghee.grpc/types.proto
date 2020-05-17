@@ -125,12 +125,50 @@ message LimitFilter {
 message SkipFilter {
     int32 value =1;
 }
+message FieldsOperator{
+    message TwoClude {
+        Clude left = 1;
+        oneof right {
+            Clude include = 2;
+            Clude exclude = 3;
+        }
+    }
+    message CludeList {
+        repeated Clude cludes = 1;
+    }
+    message CludeOp {
+        message CludePart {
+            oneof part {
+                string carrotStringMatch = 1;
+                string stringMatch =3;
+                bool isCaret =2;
+                bool isStar = 4;
+                bool isTypeString = 5;
+                bool isTypeInt = 6;
+                bool isTypeFloat = 7;
+            }
+        }
+        CludePart left = 1;
+        CludePart right = 2;
+    }
+    message Clude{
+        oneof Operator {
+            CludeList list = 1;
+            Clude include = 2;
+            Clude exclude = 3;
+            TwoClude twoclude = 4;
+            CludeOp op = 5;
+        }
+    }
+    Clude clude = 1;
+}
 message Step {
     oneof operator {
         FollowOperator follow = 1;
         FilterOperator filter = 2;
         LimitFilter limit = 4;
         SkipFilter skip = 5;
+        FieldsOperator fields = 6;
     }
     Step next = 3;
 }

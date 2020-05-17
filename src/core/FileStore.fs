@@ -1,5 +1,7 @@
 namespace Ahghee
 
+open Ahghee.Grpc
+open Ahghee.Grpc
 open Google.Protobuf
 open Google.Protobuf.Collections
 open System
@@ -15,6 +17,7 @@ open System.Threading
 open System.Threading.Tasks
 open Ahghee.Grpc
 open Google.Protobuf.WellKnownTypes
+open Mono.Unix.Native
 
 type ClusterServices(log: string -> unit) = 
     let remotePartitions = new ConcurrentDictionary<int,FileStorePartition>()
@@ -113,6 +116,43 @@ type GrpcFileStore(config:Config) =
             | ">=" -> left >= right
             | _ -> raise <| Exception (sprintf "Operation not supported op %s" op)
     
+    let RemoveFieldsNode (fieldsOp:FieldsOperator, node:Node) : Node =
+        let isMatch(part: FieldsOperator.Types.CludeOp.Types.CludePart, data: DataBlock):bool =
+            match part.PartCase with
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsCaret -> data.DataCase = DataBlock.DataOneofCase.Nodeid
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsStar -> true
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeFloat -> data.DataCase = DataBlock.DataOneofCase.F
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeInt -> data.DataCase = DataBlock.DataOneofCase.I32
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeString -> data.DataCase = DataBlock.DataOneofCase.Str
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.StringMatch -> data.DataCase = DataBlock.DataOneofCase.Str && data.Str = part.StringMatch
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.CarrotStringMatch -> data.DataCase = DataBlock.DataOneofCase.Nodeid && data.Nodeid.Iri = part.CarrotStringMatch
+        let rec trimIt(clude:FieldsOperator.Types.Clude, worknWith: IEnumerable<KeyValue>) : IEnumerable<KeyValue> =
+            match clude.OperatorCase with
+            | FieldsOperator.Types.Clude.OperatorOneofCase.None -> Enumerable.Empty()
+            | FieldsOperator.Types.Clude.OperatorOneofCase.List ->
+                clude.List.Cludes
+                |> Seq.collect (fun c -> trimIt(c, worknWith))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Include -> worknWith.Union(trimIt(clude.Include, node.Attributes))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Exclude -> worknWith.Except(trimIt(clude.Exclude, worknWith))
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Twoclude ->
+                match clude.Twoclude.RightCase with
+                | FieldsOperator.Types.TwoClude.RightOneofCase.None -> trimIt(clude.Twoclude.Left, worknWith)
+                | FieldsOperator.Types.TwoClude.RightOneofCase.Include -> trimIt(clude.Twoclude.Left, worknWith).Union(trimIt(clude.Twoclude.Include, worknWith))
+                | FieldsOperator.Types.TwoClude.RightOneofCase.Exclude -> trimIt(clude.Twoclude.Left, worknWith).Except(trimIt(clude.Twoclude.Exclude, worknWith))
+                
+            | FieldsOperator.Types.Clude.OperatorOneofCase.Op ->
+                worknWith
+                    |> Seq.filter (fun a ->
+                                        let op = clude.Op
+                                        let leftMatch = isMatch(op.Left, a.Key.Data)
+                                        let rightMatch = isMatch(op.Right, a.Value.Data)
+                                        leftMatch && rightMatch
+                        )
+        let newAttrs = trimIt (fieldsOp.Clude, node.Attributes) |> List.ofSeq
+        node.Attributes.Clear()
+        node.Attributes.AddRange(newAttrs)
+        node
+    
     let rec FilterNode (node:Node, step: Step) =
         let rec _filterNode (node:Node, cmp: FilterOperator.Types.Compare) =
             match cmp.CmpTypeCase with
@@ -131,15 +171,15 @@ type GrpcFileStore(config:Config) =
                 | _ -> true // shouldn't happen
                 
         match step with
-            | null -> true, null
+            | null -> true
             | s when s.OperatorCase = Step.OperatorOneofCase.Filter ->
                 let cmp = s.Filter.Compare
                 match _filterNode(node, cmp) with
                     | true -> FilterNode(node, step.Next)
-                    | false ->  false, step.Next 
-            | s -> true, s
+                    | false ->  false
+            | s -> true
     
-    let rec EdgeCmpForFollow (dataBlock:DataBlock, step: Step) =
+    let rec EdgeCmpForFollow (dataBlock:DataBlock, follow: FollowOperator) =
         let rec _EdgeCmp (dataBlock:DataBlock, cmp: FollowOperator.Types.EdgeNum) =
             match cmp.OpCase with
                 | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange -> 
@@ -150,21 +190,16 @@ type GrpcFileStore(config:Config) =
                         | "||" -> _EdgeCmp(dataBlock, cmp.EdgeCmp.Left) || _EdgeCmp(dataBlock, cmp.EdgeCmp.Right)
                         | _ -> raise <| Exception (sprintf "Operation not supported op %s" cmp.EdgeCmp.BOOLOP)
                 | _ -> false
-                
-        match step with
-            | null -> false
-            | s when s.OperatorCase = Step.OperatorOneofCase.Follow ->
-                let cmp = s.Follow
-                match cmp.FollowCase with
-                    | FollowOperator.FollowOneofCase.None -> false
-                    | FollowOperator.FollowOneofCase.FollowAny ->
-                        // the range value is shifted as we process through the operations
-                        // for us to be included, we must be in the current range from (from <= x <= 1)
-                        cmp.FollowAny.Range.From <= 0 && cmp.FollowAny.Range.To > 0  
-                    | FollowOperator.FollowOneofCase.FollowEdge ->
-                        cmp.FollowAny.Range.From <= 0 && cmp.FollowAny.Range.To > 0 && _EdgeCmp(dataBlock, cmp.FollowEdge)
-                    | _ -> false
-            | s -> false   
+        
+        match follow.FollowCase with
+            | FollowOperator.FollowOneofCase.None -> false
+            | FollowOperator.FollowOneofCase.FollowAny ->
+                // the range value is shifted as we process through the operations
+                // for us to be included, we must be in the current range from (from <= x <= 1)
+                follow.FollowAny.Range.From <= 0 && follow.FollowAny.Range.To >= 0  
+            | FollowOperator.FollowOneofCase.FollowEdge ->
+                follow.FollowAny.Range.From <= 0 && follow.FollowAny.Range.To >= 0 && _EdgeCmp(dataBlock, follow.FollowEdge)
+            | _ -> false
     
     let rec FollowStepDecrement(follow : FollowOperator) =
         let _decrRange (r:Range) =
@@ -189,7 +224,7 @@ type GrpcFileStore(config:Config) =
         let rec _edgeCmpValid(edgeNum: FollowOperator.Types.EdgeNum) =
             match edgeNum.OpCase with
                 | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange -> 
-                    edgeNum.EdgeRange.Range.To >= 0
+                    edgeNum.EdgeRange.Range.To > 0
                 | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeCmp ->
                     _edgeCmpValid (edgeNum.EdgeCmp.Left) &&
                         _edgeCmpValid (edgeNum.EdgeCmp.Right)
@@ -251,12 +286,12 @@ type GrpcFileStore(config:Config) =
                 
     let rec ApplyPaging(operation:Step, s  ) =
         match operation with
-            | null -> (operation, s)
+            | null -> s
             | op when op.OperatorCase = Step.OperatorOneofCase.Skip ->
                     ApplyPaging (operation.Next, s |> Seq.skip op.Skip.Value)
             | op when op.OperatorCase = Step.OperatorOneofCase.Limit ->
                     ApplyPaging (operation.Next, s |> Seq.truncate op.Limit.Value)
-            | _ -> (operation, s)
+            | _ -> s
             
             
     let StartQueryNodeId (nid:NodeID) =
@@ -314,21 +349,7 @@ type GrpcFileStore(config:Config) =
                     yield finishup                
             }
         
-
-    
-    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step, filter:BloomFilter.Filter<int>) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
-        // a where(filter) and then a follow can be handled in the same iteration, though
-        // not true for the inverse
-        // additionally multiple where filters in a sequence all need to be merged as ANDed
-        // merge with next step, if next step is same as this step using AND logic
-        
-        // TODO: during recursion, no need to call MergeSameSteps, as its already happened on a previous call stack 
-        let mutable pageOp =
-            if step <> null then
-                MergeSameSteps step
-            else
-                Step()
-        
+    let LoadNode(addressBlock:seq<NodeID>, filter:BloomFilter.Filter<int>) : seq<struct(NodeID * Either<Node, Exception>)> =
         let requestsMade =
             addressBlock
             |> Seq.distinct
@@ -348,67 +369,77 @@ type GrpcFileStore(config:Config) =
                     [ StartQueryNodeId nid ] |> Seq.ofList 
                 )
             
-        Task.FromResult 
-            (seq {
-                use itemTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.ItemTimer)
-                let (afterPaging, paging) = ApplyPaging(pageOp, requestsMade)    
-                let outEdges: List<NodeID> = List<NodeID>()
-                                
-                for ts in paging |> Seq.map ( fun future -> future |> Async.RunSynchronously)    do
-                    let (ab,eith) = ts
-                    
-                    let node = if eith.IsLeft then Some ( eith.Left ) else None
-                    // process filters
-                    let (keeper, afterFilter) =  node
-                                                 |> Option.map (fun n -> FilterNode(n, afterPaging))
-                                                 |> (fun x ->
-                                                     if x.IsSome then
-                                                         x.Value
-                                                     else
-                                                         (false, afterPaging))
-                    
-                    if keeper then
-                        yield (ab,eith)
-                        
-                    // if we passed filters check for follows
-                        eith.Left.Attributes
-                                |> Seq.iter (fun a ->
-                                    if a.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid then
-                                        if EdgeCmpForFollow( a.Key.Data, afterFilter) then
-                                            outEdges.Add(a.Value.Data.Nodeid)
-                                    )
-                
-                        
-                        // fork out another query for any outEdges we found.
-                        // make sure we copy our Query step incase there are ranges that will be
-                        // mutated.
-                        if outEdges.Any() then
-                            let nextStepForkingCopy =
-                                match afterPaging with
-                                    | null -> null
-                                    | _ -> afterPaging.Clone()
-                            
-                            // Should be impossible for this to be anything but a Follow operator here.
-                            // But if that's true, when do we pop the follow step?
-                            // mutate follow step range
-                            if nextStepForkingCopy.OperatorCase = Step.OperatorOneofCase.Follow then
-                                // decrement the follow ranges and go deeper, 
-                                FollowStepDecrement(nextStepForkingCopy.Follow)
-                            
-                            // pop the follow step if we have consumed it
-                            let continueFollowOrNextStep = 
-                                match ContinueThisFollowStep(nextStepForkingCopy.Follow) with
-                                    | true -> nextStepForkingCopy
-                                    | false -> nextStepForkingCopy.Next
-                                
-                            for recData in QueryNodes(outEdges, continueFollowOrNextStep, filter).Result do
-                                yield recData
-            })
+        seq {                            
+            for ts in requestsMade |> Seq.map ( fun future -> future |> Async.RunSynchronously) do
+                let (ab,eith) = ts
+                yield (ab,eith)
+            }
     
+    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step, filter:BloomFilter.Filter<int>) : seq<struct(NodeID * Either<Node, Exception>)> =        
+        LoadNode(addressBlock, filter)
+        |> (fun f ->
+                    let mutable flow = f
+                    let mutable stepper = step
+                    while stepper <> null do
+                        let pflow = flow
+                        match stepper.OperatorCase with
+                            | Step.OperatorOneofCase.Filter ->
+                                let myStepper = stepper
+                                flow <- pflow
+                                        |> Seq.filter (fun struct(nid, item) ->
+                                                                    if item.IsLeft = true then
+                                                                        FilterNode(item.Left, myStepper)
+                                                                    else
+                                                                        true
+                                                                        )
+                            | Step.OperatorOneofCase.Skip           
+                            | Step.OperatorOneofCase.Limit ->
+                                flow <- ApplyPaging( stepper, pflow)
+                            | Step.OperatorOneofCase.Fields ->
+                                let myStepper = stepper
+                                flow <- pflow                                                                                        
+                                          |> Seq.map (fun struct(nid,item) ->
+                                                                if item.IsLeft = true then
+                                                                    let newNode =  RemoveFieldsNode(myStepper.Fields, item.Left)
+                                                                    struct(nid, Either<Node,Exception>(newNode))
+                                                                else
+                                                                    struct(nid,item)
+                                                                    )
+                            | Step.OperatorOneofCase.Follow ->
+                                let myStepper = stepper.Clone()
+                                FollowStepDecrement(myStepper.Follow)
+                                let continueFollowOrNextStep = 
+                                                        match ContinueThisFollowStep(myStepper.Follow) with
+                                                            | true -> myStepper
+                                                            | false -> myStepper.Next
+                                flow <-
+                                        pflow
+                                        |> Seq.collect (fun struct(nid,item) ->
+                                            if item.IsLeft then
+                                                 Seq.append ([struct(nid,item)]) (item.Left.Attributes
+                                                                                  |> Seq.filter (fun attr ->
+                                                                                        attr.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid
+                                                                                        && EdgeCmpForFollow(attr.Key.Data, myStepper.Follow))
+                                                                                  |> Seq.map (fun kv -> kv.Value.Data.Nodeid)
+                                                                                  |> (fun nodeIds -> QueryNodes(nodeIds, continueFollowOrNextStep, filter)) )
+                                            else
+                                                [struct(nid,item)] |> Seq.ofList
+                                            )
+                            | _ -> flow <- pflow
+                        stepper <- stepper.Next
+                    flow
+                    )
                     
     let QueryNoDuplicates(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
-        let fliter = BloomFilter.FilterBuilder.Build<int>(10000)
-        QueryNodes(addressBlock, step, fliter)
+        let filter = BloomFilter.FilterBuilder.Build<int>(10000)
+        let mutable mergedSteps =
+            if step <> null then
+                MergeSameSteps step
+            else
+                Step()
+        let nodeStream = QueryNodes(addressBlock, mergedSteps, filter)
+        nodeStream
+            |> Task.FromResult
     
     let Stop() =
         Flush()

@@ -98,7 +98,29 @@ pipecmd
     | wherefilter
     | limitfilter
     | skipfilter
+    | fields
+    | exclude
     ;   
+
+fields
+    : 'fields' clude 
+    ;
+    
+exclude
+    : '-' clude
+    ; 
+include
+    : '+' clude
+    ;       
+
+clude
+    : '(' clude (',' clude)* ')'  
+    | clude exclude
+    | clude include
+    | exclude
+    | include
+    | cludeop
+    ;
 
 skipfilter
     : 'skip' NUMBER
@@ -138,7 +160,26 @@ to: NUMBER;
 anynum
     : '*' range?
     ;    
-        
+    
+cludeop
+     : cludepart ':' cludepart
+     ;  
+cludepart
+    : CARET STRING 
+    | CARET 
+    | STRING 
+    | STAR 
+    | TYPEINT 
+    | TYPESTRING 
+    | TYPEFLOAT
+    ;
+         
+STAR : '*';
+CARET : '^';      
+TYPEINT : 'int';
+TYPESTRING: 'string';  
+TYPEFLOAT : 'float'; 
+
 MATHOP
     : '=='|'<'|'<='|'>='|'>'|'!=' ;    
 BOOLOP
@@ -149,7 +190,7 @@ PIPESTART : '|>' ;
 STRING
    : '"' (ESC | SAFECODEPOINT | WORD)* '"'
    ;
-   
+
 WORD
     : [A-Za-z]+[A-Za-z/0-9#?&:.=]*;
 
@@ -191,6 +232,6 @@ LINE_COMMENT
 WS
    : [ \t\n\r] + -> skip
    ;
+
 //mode ARROW;
 
-   

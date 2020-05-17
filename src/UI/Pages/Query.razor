@@ -184,9 +184,10 @@
 get ""*"" 
 	|> limit 500
     |> follow * 1
-	|> limit 500
-	|> follow * 1
-	|> limit 500
+       |> limit 500
+       |> fields (( ^:^ , *:^ ) - ( ""age"":* , ""bio"":*)) + ^""asdfasfda"":string
+       |> follow * 1
+       |> limit 500
 */
 
 // put some data in
