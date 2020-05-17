@@ -1,6 +1,6 @@
 namespace Ahghee
 
-open Ahghee.Grpc.DataBlock
+open Ahghee.Grpc
 open Google.Protobuf
 open Google.Protobuf.Collections
 open System
@@ -115,18 +115,18 @@ type GrpcFileStore(config:Config) =
             | _ -> raise <| Exception (sprintf "Operation not supported op %s" op)
     
     let RemoveFieldsNode (fieldsOp:FieldsOperator, node:Node) : Node =
-        let isMatch(part, data):bool =
+        let isMatch(part: FieldsOperator.Types.CludeOp.Types.CludePart, data: DataBlock):bool =
             match part.PartCase with
-            | FieldsOperator.Types.CludeOp.Types.CludePart.IsCaretFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Nodeid
-            | FieldsOperator.Types.CludeOp.Types.CludePart.IsStarFieldNumber -> true
-            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeFloatFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.F
-            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeIntFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.I32
-            | FieldsOperator.Types.CludeOp.Types.CludePart.IsTypeStringFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Str
-            | FieldsOperator.Types.CludeOp.Types.CludePart.StringMatchFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Str && data.Data.Str = part.StringMatch
-            | FieldsOperator.Types.CludeOp.Types.CludePart.CarrotStringMatchFieldNumber -> data.Data.DataCase = DataBlock.DataOneofCase.Nodeid && data.Data.Nodeid.Iri = part.CarrotStringMatch
-        let rec trimIt(clude:FieldsOperator.Types.Clude, worknWith: List<KeyValue>) : List<KeyValue> =
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsCaret -> data.DataCase = DataBlock.DataOneofCase.Nodeid
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsStar -> true
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeFloat -> data.DataCase = DataBlock.DataOneofCase.F
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeInt -> data.DataCase = DataBlock.DataOneofCase.I32
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeString -> data.DataCase = DataBlock.DataOneofCase.Str
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.StringMatch -> data.DataCase = DataBlock.DataOneofCase.Str && data.Str = part.StringMatch
+            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.CarrotStringMatch -> data.DataCase = DataBlock.DataOneofCase.Nodeid && data.Nodeid.Iri = part.CarrotStringMatch
+        let rec trimIt(clude:FieldsOperator.Types.Clude, worknWith: IEnumerable<KeyValue>) : IEnumerable<KeyValue> =
             match clude.OperatorCase with
-            | FieldsOperator.Types.Clude.OperatorOneofCase.None -> List.empty<KeyValue>()
+            | FieldsOperator.Types.Clude.OperatorOneofCase.None -> Enumerable.Empty()
             | FieldsOperator.Types.Clude.OperatorOneofCase.List ->
                 clude.List.Cludes
                 |> Seq.collect (fun c -> trimIt(c, worknWith))
@@ -146,7 +146,7 @@ type GrpcFileStore(config:Config) =
                                         let rightMatch = isMatch(op.Right, a.Value.Data)
                                         leftMatch && rightMatch
                         )
-        let newAttrs = trimIt (fieldsOp, List.empty<KeyValue>())
+        let newAttrs = trimIt (fieldsOp.Clude, Enumerable.Empty())
         node.Attributes.Clear()
         node.Attributes.AddRange(newAttrs)
         node
@@ -408,7 +408,7 @@ type GrpcFileStore(config:Config) =
                     if keeper then
                         // deal with pruning off fields they don't want returned.
                         // todo: find the fieldsOperator in afterFilter, use it for this node, but leave it around..
-                        let nodeWithOnlyTheFieldsTheyWant = node |> Option.map RemoveFieldsNode
+                        // let nodeWithOnlyTheFieldsTheyWant = node |> Option.map RemoveFieldsNode
                         yield (ab,eith)
                         
                     // if we passed filters check for follows
