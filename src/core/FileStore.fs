@@ -86,26 +86,7 @@ type GrpcFileStore(config:Config) =
                 kv.Value.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()    
     
     let Flush () =
-        PartitionWriters
-        |> Seq.collect(fun (bc,t,_) ->
-                let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let tasks = [| fwtcs.Task ; tcs.Task ; ffltcs.Task  |]
-                let ops = [| FlushAdds(fwtcs);  FlushFixPointers(tcs); FlushFragmentLinks(ffltcs) |]
-                async {
-                    for op in ops do
-                        if bc.Writer.TryWrite ( op ) = false then
-                            let t = bc.Writer.WaitToWriteAsync().AsTask()
-                            let awt = Async.AwaitTask(t) |> Async.Ignore
-                            do! awt
-                } |> Async.RunSynchronously
-                tasks
-            )
-            |> Task.WhenAll
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
-            |> ignore
+        ()
     
     let DataBlockCMP (left:DataBlock, op:String, right:DataBlock) =
         match op with

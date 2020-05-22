@@ -129,6 +129,24 @@ namespace Ahghee.Grpc
                 yield return value;
             }
         }
+
+        public IEnumerable<Pointers> Iter(long fromPointer, long toPointer)
+        {
+            var scanner = _kv.Log.Scan(fromPointer, toPointer);
+            while (scanner.GetNext(out var info))
+            {
+                var value = scanner.GetValue();
+                yield return value;
+            }
+        }
+        public long CurrentHeadAddr()
+        {
+            return _kv.Log.HeadAddress;
+        }
+        public long CurrentTailAddr()
+        {
+            return _kv.Log.TailAddress;
+        }
         public void RMW(ref NodeID key, ref MemoryPointer value)
         {
             _session.RMW(ref key, ref value, Empty.Default, 0);
