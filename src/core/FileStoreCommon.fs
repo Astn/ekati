@@ -37,4 +37,4 @@ type WriteGroupsOperation = LinkFragments = 1 | FixPointers = 2
 type NodeIOGroup = { start:uint64; length:uint64; items:List<MemoryPointer> }
 
 type IClusterServices =
-    abstract RemoteLookup : int -> NodeID -> bool * MemoryPointer
+    abstract RemoteLookup : int -> NodeID -> bool * Node

@@ -26,17 +26,20 @@ type ClusterServices(log: string -> unit) =
         bytes |> Array.fold (fun state x-> state + sprintf "%02X" x) ""
     member this.RemotePartitions() = remotePartitions
     interface IClusterServices with 
-        member this.RemoteLookup (partition:int) (nid:NodeID) : bool * MemoryPointer = 
+        member this.RemoteLookup (partition:int) (nid:NodeID) : bool * Node = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
-                let mutable refPointers :Pointers = null
-                let rind = remote.Index()
+                let mutable refPointers :Attributes = null
+                let rind = remote.AttrIndex()
                 if rind.TryGetValue(nid, & refPointers) then
-                    true, refPointers.Pointers_ |> Seq.head
+                    let n = new Node()
+                    n.Id <- nid
+                    n.Attributes.AddRange refPointers.Attributes_
+                    true, n
                 else
-                    false, Utils.NullMemoryPointer()
+                    false, null
                 
-            else false, Utils.NullMemoryPointer()    
+            else false, null
             
 
 

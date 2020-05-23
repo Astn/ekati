@@ -71,10 +71,8 @@ namespace Ahghee.Grpc
                 {
                     while(_runCheckpointThread) 
                     {
-                        Thread.Sleep(60000);
+                        Thread.Sleep(60000 * 5);
                         Commit();
-                       
-                        
                     }
                 }
                 catch (Exception e)

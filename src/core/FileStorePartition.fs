@@ -27,10 +27,10 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
         
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
-    let ``Index of NodeID -> MemoryPointer`` = new NodeIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
+    //let ``Index of NodeID -> MemoryPointer`` = new NodeIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
     let ``Index of NodeID -> Attributes`` = new NodeAttrIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeattrs"+i.ToString()))
-    let IndexNodeIds (nids:seq<NodeID>) =
-        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
+//    let IndexNodeIds (nids:seq<NodeID>) =
+//        ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
     let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
     let ReadNodes (ptrs: MemoryPointer[], stream : Stream) : Node[] =
         // TODO: multiple files. Be smarter.
@@ -103,16 +103,16 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     writeLastPos(lastPosition)
                     lastFlushPos <- lastPosition
             
-            let mutable mainTenanceOffset = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr()
+            //let mutable mainTenanceOffset = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr()
             let DoMaintenance() =
-                let currentTail = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr() 
-                if mainTenanceOffset < currentTail then
-                    let pointersScanner = ``Index of NodeID -> MemoryPointer``.Iter(mainTenanceOffset, currentTail)
-                    mainTenanceOffset <- currentTail
-                    let tcs = TaskCompletionSource<unit>()
-                    NodeIO.FlushFixPointers(tcs, pointersScanner)
-                else    
-                    NoOP()
+//                let currentTail = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr() 
+//                if mainTenanceOffset < currentTail then
+//                    let pointersScanner = ``Index of NodeID -> MemoryPointer``.Iter(mainTenanceOffset, currentTail)
+//                    mainTenanceOffset <- currentTail
+//                    let tcs = TaskCompletionSource<unit>()
+//                    NodeIO.FlushFixPointers(tcs, pointersScanner)
+//                else    
+                NoOP()
             
             try
                 let reader = bc.Reader
@@ -257,7 +257,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                 config.log <| sprintf "Flushing partition writer[%A]" i
                 FLUSHWRITES()
                 stream.Dispose()
-                (``Index of NodeID -> MemoryPointer`` :> IDisposable).Dispose()
+                (``Index of NodeID -> Attributes`` :> IDisposable).Dispose()
                 config.log <| sprintf "Shutting down partition writer[%A] :: Success" i                     
             ()))
         
@@ -270,5 +270,4 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // TODO: don't directly expose the blocking collection. Replace with functions they can use, that way we can replace the implementation without affecting the caller
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
-    member __.Index() = ``Index of NodeID -> MemoryPointer``
     member __.AttrIndex() = ``Index of NodeID -> Attributes``
