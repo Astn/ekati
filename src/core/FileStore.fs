@@ -26,17 +26,20 @@ type ClusterServices(log: string -> unit) =
         bytes |> Array.fold (fun state x-> state + sprintf "%02X" x) ""
     member this.RemotePartitions() = remotePartitions
     interface IClusterServices with 
-        member this.RemoteLookup (partition:int) (nid:NodeID) : bool * MemoryPointer = 
+        member this.RemoteLookup (partition:int) (nid:NodeID) : bool * Node = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
-                let mutable refPointers :Pointers = null
-                let rind = remote.Index()
+                let mutable refPointers :Attributes = null
+                let rind = remote.AttrIndex()
                 if rind.TryGetValue(nid, & refPointers) then
-                    true, refPointers.Pointers_ |> Seq.head
+                    let n = new Node()
+                    n.Id <- nid
+                    n.Attributes.AddRange refPointers.Attributes_
+                    true, n
                 else
-                    false, Utils.NullMemoryPointer()
+                    false, null
                 
-            else false, Utils.NullMemoryPointer()    
+            else false, null
             
 
 
@@ -86,26 +89,7 @@ type GrpcFileStore(config:Config) =
                 kv.Value.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()    
     
     let Flush () =
-        PartitionWriters
-        |> Seq.collect(fun (bc,t,_) ->
-                let fwtcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let ffltcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)
-                let tasks = [| fwtcs.Task ; tcs.Task ; ffltcs.Task  |]
-                let ops = [| FlushAdds(fwtcs);  FlushFixPointers(tcs); FlushFragmentLinks(ffltcs) |]
-                async {
-                    for op in ops do
-                        if bc.Writer.TryWrite ( op ) = false then
-                            let t = bc.Writer.WaitToWriteAsync().AsTask()
-                            let awt = Async.AwaitTask(t) |> Async.Ignore
-                            do! awt
-                } |> Async.RunSynchronously
-                tasks
-            )
-            |> Task.WhenAll
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
-            |> ignore
+        ()
     
     let DataBlockCMP (left:DataBlock, op:String, right:DataBlock) =
         match op with
@@ -294,57 +278,38 @@ type GrpcFileStore(config:Config) =
             | _ -> s
             
             
-    let StartQueryNodeId (nid:NodeID) =
-        let tcs = TaskCompletionSource<Node[]>()
+    let StartQueryNodeId (nid:NodeID) : Async<NodeID * Either<Node, Exception>> =
         let partition = Utils.GetPartitionFromHash config.ParitionCount nid
-        // this line is just plain wrong, we don't have a pointer with any of this data here.
-        // if we did, then this would be ok to go I think.
-        // Console.WriteLine("About to query shard "+ partition.ToString())
         let (bc,t,part) = PartitionWriters.[int <| partition]
-        
-        // TODO: Read all the fragments, not just the first one.
-        let t = 
-            if (nid.Pointer = Utils.NullMemoryPointer()) then
-                //Console.WriteLine ("Read using Index")
-                let mutable mp:Pointers = null
-                if(part.Index().TryGetValue(nid, &mp)) then 
-                    while bc.Writer.TryWrite (Read(tcs, mp.Pointers_ |> Array.ofSeq)) = false do ()
-                    tcs.Task
-                else 
-                    tcs.SetException(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID " + nid.Iri)) 
-                    tcs.Task   
-            else 
-                Console.WriteLine ("Read using Pointer")
-                while bc.Writer.TryWrite (Read(tcs, [|nid.Pointer|])) = false do ()
-                tcs.Task
-                
-        let res = t.ContinueWith(fun (isdone:Task<Node[]>) ->
-                    if (isdone.IsCompletedSuccessfully) then
-                        config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
-                        nid, Either<Node,Exception>(isdone.Result |> mergeNodesById)
-                    else 
-                        nid, Either<Node,Exception>(isdone.Exception :> Exception)
-                    )
-        res |> Async.AwaitTask
+        async {
+            let! stuff = part.AttrIndex().TryGetValueAsync(nid).AsTask() |> Async.AwaitTask
+            let struct (status,attrs) = stuff.CompleteRead()
+            config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
+            return
+                match status with
+                | FASTER.core.Status.OK ->
+                    let node = new Node()
+                    node.Id <- nid
+                    node.Attributes.AddRange(attrs.Attributes_)
+                    nid , Either<Node,Exception>(node)
+                | FASTER.core.Status.ERROR -> nid , Either<Node,Exception>(new Exception("ERROR"))
+                | FASTER.core.Status.PENDING -> nid , Either<Node,Exception>(new Exception("PENDING"))
+                | FASTER.core.Status.NOTFOUND -> nid , Either<Node,Exception>(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID " + nid.Iri))
+        }
     
     let StartScan (nid:NodeID): seq<Async<NodeID * Either<Node,Exception>>> =
         seq {
                 let req =
                     seq {
                             for bc,t,part in PartitionWriters do
-                                yield part.Index().Iter()
-                                    |> Seq.map(fun ptrs ->
-                                            let tcs = new TaskCompletionSource<Node[]>()
-                                            let written = bc.Writer.WriteAsync(Read(tcs, ptrs.Pointers_.ToArray()))
-                                            written, tcs.Task)
-                        } |> Array.ofSeq
-                            
+                                yield part.AttrIndex().Iter()
+                        } 
+                    |> Seq.collect(fun x -> x)        
 
-                for (written, result) in req |> Seq.collect(fun x -> x) do
+                for node in req do
                     let finishup = async {
-                        let! w = written.AsTask() |> Async.AwaitTask
-                        let! loaded = result |> Async.AwaitTask
-                        return (nid, Either<Node,Exception>( loaded |> mergeNodesById))
+                        let loaded = node
+                        return (nid, Either<Node,Exception>( loaded ))
                     }
                     yield finishup                
             }
@@ -358,9 +323,9 @@ type GrpcFileStore(config:Config) =
                     true
                 else
                     let hash = ab.GetHashCode()
-                    let f = filter.Contains(hash) |> not
+                    let loadIt = filter.Contains(hash) |> not
                     filter.Add(hash) |> ignore
-                    f
+                    loadIt
                 )
             |> Seq.collect (fun nid ->
                 if nid.Iri = "*" then
@@ -509,7 +474,14 @@ type GrpcFileStore(config:Config) =
                 met.Name <- hist.Name
                 met.Time <- Timestamp.FromDateTime ts
                 met.Value <- float32 hist.Value.Count
-                gmr.Metrics.Add (met)      
+                gmr.Metrics.Add (met)
+            for t in context.Timers do
+                let met = GetMetricsResponse.Types.Metric()
+                met.Name <- t.Name
+                met.Time <- Timestamp.FromDateTime ts
+                met.Value <- float32 t.Value.Rate.OneMinuteRate
+                gmr.Metrics.Add (met)
+                () 
         Task.FromResult(gmr)
     
     interface IDisposable with
@@ -527,28 +499,12 @@ type GrpcFileStore(config:Config) =
             // return local nodes before remote nodes
             // let just start by pulling nodes from the index.
             seq {
-                let req =
-                    seq {
-                            for bc,t,part in PartitionWriters do
-                                yield part.Index().Iter()
-                                    |> Seq.map(fun ptrs ->
-                                            let tcs = new TaskCompletionSource<Node[]>()
-                                            let written = bc.Writer.WriteAsync(Read(tcs, ptrs.Pointers_.ToArray()))
-                                            written, tcs.Task)
-                        } |> Array.ofSeq
-                            
-
-                for (written, result) in req |> Seq.collect(fun x -> x) do
-                    if written.IsCompletedSuccessfully then
-                        result.Wait()
-                        yield result.Result |> mergeNodesById
-                                  
-                                  
-                    else 
-                        written.AsTask().Wait()
-                        result.Wait()
-                        yield result.Result |> mergeNodesById
-                
+                let nid = new NodeID()
+                nid.Iri <- "*"
+                for stuff in StartScan(nid) do
+                    let (_, eith) = stuff |> Async.RunSynchronously
+                    if eith.IsLeft then
+                        yield eith.Left
             }
             
             // todo return remote nodes

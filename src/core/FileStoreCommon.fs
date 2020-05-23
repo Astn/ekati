@@ -24,9 +24,7 @@ type IOStat = { readbytes: uint64; writebytes: uint64 }
 type NodeIO =
     | Add of TaskCompletionSource<unit> * seq<Node>
     | Read  of TaskCompletionSource<array<Node>> * array<MemoryPointer>
-    | FlushFixPointers of TaskCompletionSource<unit>
-    | FlushAdds of TaskCompletionSource<unit>
-    | FlushFragmentLinks of TaskCompletionSource<unit>
+    | FlushFixPointers of TaskCompletionSource<unit> * seq<Pointers>
     | NoOP of unit
 
 type IndexMessage =
@@ -39,4 +37,4 @@ type WriteGroupsOperation = LinkFragments = 1 | FixPointers = 2
 type NodeIOGroup = { start:uint64; length:uint64; items:List<MemoryPointer> }
 
 type IClusterServices =
-    abstract RemoteLookup : int -> NodeID -> bool * MemoryPointer
+    abstract RemoteLookup : int -> NodeID -> bool * Node

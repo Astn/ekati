@@ -69,6 +69,10 @@ message Node {
     repeated KeyValue attributes = 4;
 }
 
+message Attributes {
+    repeated KeyValue attributes = 1;
+}
+
 message Pointers {
     repeated MemoryPointer pointers = 1; 
 }

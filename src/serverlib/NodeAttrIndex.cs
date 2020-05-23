@@ -9,17 +9,17 @@ using Google.Protobuf.Collections;
 
 namespace Ahghee.Grpc
 {
-    public class NodeIndex : IDisposable
+    public class NodeAttrIndex : IDisposable
     {
         private IDevice _logfile;
-        private FasterKV<NodeID, Pointers, MemoryPointer, Pointers, Empty, NodeIndexFuncs> _kv;
-        private ClientSession<NodeID, Pointers, MemoryPointer, Pointers, Empty, NodeIndexFuncs> _session;
+        private FasterKV<NodeID, Attributes, Attributes, Attributes, Empty, NodeAttrIndexFuncs> _kv;
+        private ClientSession<NodeID, Attributes, Attributes, Attributes, Empty, NodeAttrIndexFuncs> _session;
         private IDevice _objfile;
-        private MemoryPointer __default = new MemoryPointer();
+        private Attributes __default = new Attributes();
         private bool _runCheckpointThread = true;
         private readonly string _checkpointDir;
 
-        public NodeIndex(string file)
+        public NodeAttrIndex(string file)
         {
             var continueSession = (File.Exists(file + ".log")
                                    || File.Exists(file + ".obj.log"));
@@ -32,8 +32,8 @@ namespace Ahghee.Grpc
             _logfile = Devices.CreateLogDevice(file + ".log");
             _objfile = Devices.CreateLogDevice(file + ".obj.log");
             _checkpointDir = Path.Combine(Directory.GetParent(file).FullName, "checkpoints");
-            _kv = new FasterKV<NodeID, Pointers, MemoryPointer, Pointers, Empty, NodeIndexFuncs>
-                (1L << 20, new NodeIndexFuncs(), new LogSettings
+            _kv = new FasterKV<NodeID, Attributes, Attributes, Attributes, Empty, NodeAttrIndexFuncs>
+                (1L << 20, new NodeAttrIndexFuncs(), new LogSettings
             {
                 LogDevice = _logfile,
                 ObjectLogDevice = _objfile 
@@ -43,10 +43,10 @@ namespace Ahghee.Grpc
                     CheckpointDir = _checkpointDir,
                     CheckPointType = CheckpointType.Snapshot
                 },
-                new SerializerSettings<NodeID, Pointers>
+                new SerializerSettings<NodeID, Attributes>
                 {
                     keySerializer = () => new NodeIDSerializer(),
-                    valueSerializer = () => new PointersSerializer()
+                    valueSerializer = () => new AttributesSerializer()
                 });
 
 
@@ -71,10 +71,8 @@ namespace Ahghee.Grpc
                 {
                     while(_runCheckpointThread) 
                     {
-                        Thread.Sleep(60000);
+                        Thread.Sleep(60000 * 5);
                         Commit();
-                       
-                        
                     }
                 }
                 catch (Exception e)
@@ -85,21 +83,23 @@ namespace Ahghee.Grpc
             });
             t.Start();
         }
-        public void AddOrUpdateBatch(IEnumerable<NodeID> ids)
+        public void AddOrUpdateBatch(IEnumerable<Node> nodes)
         {
-            foreach (var icd in ids)
+            foreach (var node in nodes)
             {
-                var id = icd;
-                var ptr = id.Pointer;
+                var id = node.Id;
+                var ptr = new Attributes();
+                ptr.Attributes_.AddRange(node.Attributes);
                 _session.RMW(ref id, ref ptr, Empty.Default, 0);
             }
         }
-        public bool TryGetValue(NodeID id, ref Pointers ptrs)
+        public bool TryGetValue(NodeID id, ref Attributes ptrs)
         {
             var status = _session.Read(ref id, ref __default, ref ptrs, Empty.Default, 0);
             return status == Status.OK;
         }
-        public ValueTask<FasterKV<NodeID, Pointers, MemoryPointer, Pointers, Empty, NodeIndexFuncs>.ReadAsyncResult> TryGetValueAsync(NodeID id)
+        
+        public ValueTask<FasterKV<NodeID, Attributes, Attributes, Attributes, Empty, NodeAttrIndexFuncs>.ReadAsyncResult> TryGetValueAsync(NodeID id)
         {
             return _session.ReadAsync(ref id, ref __default, Empty.Default);
         }
@@ -125,23 +125,31 @@ namespace Ahghee.Grpc
                 oldCheckpoint.Delete(true);
             }
         }
-        public IEnumerable<Pointers> Iter()
+        public IEnumerable<Node> Iter()
         {
             var scanner = _kv.Log.Scan(_kv.Log.BeginAddress, _kv.Log.TailAddress);
             while (scanner.GetNext(out var info))
             {
-                var value = scanner.GetValue();
-                yield return value;
+                var node = new Node();
+                node.Id = scanner.GetKey();
+                var attrs = scanner.GetValue();
+                node.Attributes.AddRange(attrs.Attributes_);
+                
+                yield return node;
             }
         }
 
-        public IEnumerable<Pointers> Iter(long fromPointer, long toPointer)
+        public IEnumerable<Node> Iter(long fromPointer, long toPointer)
         {
             var scanner = _kv.Log.Scan(fromPointer, toPointer);
             while (scanner.GetNext(out var info))
             {
-                var value = scanner.GetValue();
-                yield return value;
+                var node = new Node();
+                node.Id = scanner.GetKey();
+                var attrs = scanner.GetValue();
+                node.Attributes.AddRange(attrs.Attributes_);
+                
+                yield return node;
             }
         }
         public long CurrentHeadAddr()
@@ -152,12 +160,12 @@ namespace Ahghee.Grpc
         {
             return _kv.Log.TailAddress;
         }
-        public void RMW(ref NodeID key, ref MemoryPointer value)
+        public void RMW(ref NodeID key, ref Attributes value)
         {
             _session.RMW(ref key, ref value, Empty.Default, 0);
         }
 
-        public void Read(ref NodeID key, ref MemoryPointer input, ref Pointers output)
+        public void Read(ref NodeID key, ref Attributes input, ref Attributes output)
         {
             _session.Read(ref key, ref input, ref output, Empty.Default, 0);
         }
@@ -172,67 +180,66 @@ namespace Ahghee.Grpc
         }
     }
     
-    public class NodeIndexFuncs : IFunctions<NodeID, Pointers, MemoryPointer, Pointers, Empty>
+    public class NodeAttrIndexFuncs : IFunctions<NodeID, Attributes, Attributes, Attributes, Empty>
     {
 
 
-        public void InitialUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers value)
+        public void InitialUpdater(ref NodeID key, ref Attributes input, ref Attributes value)
         {
             if (value == null)
-                value = new Pointers();
-            if(input.Length > 0 )
-                value.Pointers_.Add(input);
+                value = new Attributes();
+            value.Attributes_.AddRange(input.Attributes_);
         }
 
-        public void CopyUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers oldValue, ref Pointers newValue)
+        public void CopyUpdater(ref NodeID key, ref Attributes input, ref Attributes oldValue, ref Attributes newValue)
         {
             if (newValue == null)
             {
-                newValue = new Pointers();
+                newValue = new Attributes();
             }
-            newValue.Pointers_.AddRange(oldValue.Pointers_);
+            newValue.Attributes_.AddRange(oldValue.Attributes_);
         }
 
-        public bool InPlaceUpdater(ref NodeID key, ref MemoryPointer input, ref Pointers value) { value.Pointers_.Add(input); return true; }
+        public bool InPlaceUpdater(ref NodeID key, ref Attributes input, ref Attributes value) { value.Attributes_.AddRange(input.Attributes_); return true; }
 
         
-        public void SingleReader(ref NodeID key, ref MemoryPointer input, ref Pointers value, ref Pointers dst) { dst = value; }
-        public void SingleWriter(ref NodeID key, ref Pointers src, ref Pointers dst) { dst = src; }
+        public void SingleReader(ref NodeID key, ref Attributes input, ref Attributes value, ref Attributes dst) { dst = value; }
+        public void SingleWriter(ref NodeID key, ref Attributes src, ref Attributes dst) { dst = src; }
         
-        public void ConcurrentReader(ref NodeID key, ref MemoryPointer input, ref Pointers value, ref Pointers dst)
+        public void ConcurrentReader(ref NodeID key, ref Attributes input, ref Attributes value, ref Attributes dst)
         {
-            var copied = new RepeatedField<MemoryPointer>();
+            var copied = new RepeatedField<KeyValue>();
             if(dst!=null)
-                copied.AddRange(dst.Pointers_);
+                copied.AddRange(dst.Attributes_);
             else
-                dst = new Pointers();
+                dst = new Attributes();
             if(value!=null)
-                copied.AddRange(value.Pointers_);
+                copied.AddRange(value.Attributes_);
             //if(input!=null) copied.Add(input);
             
-            dst.Pointers_.Clear();
-            dst.Pointers_.AddRange(copied.Distinct());
+            dst.Attributes_.Clear();
+            dst.Attributes_.AddRange(copied.Distinct());
         }
 
-        public bool ConcurrentWriter(ref NodeID key, ref Pointers src, ref Pointers dst)
+        public bool ConcurrentWriter(ref NodeID key, ref Attributes src, ref Attributes dst)
         {
-            var copied = new RepeatedField<MemoryPointer>();
-            copied.AddRange(dst.Pointers_);
-            copied.AddRange(src.Pointers_);
-            dst.Pointers_.Clear();
-            dst.Pointers_.AddRange(copied.Distinct());
+            var copied = new RepeatedField<KeyValue>();
+            copied.AddRange(dst.Attributes_);
+            copied.AddRange(src.Attributes_);
+            dst.Attributes_.Clear();
+            dst.Attributes_.AddRange(copied.Distinct());
             return true;
         }
         
-        public void ReadCompletionCallback(ref NodeID key, ref MemoryPointer input, ref Pointers output, Empty ctx, Status status)
+        public void ReadCompletionCallback(ref NodeID key, ref Attributes input, ref Attributes output, Empty ctx, Status status)
         {
         }
 
-        public void UpsertCompletionCallback(ref NodeID key, ref Pointers value, Empty ctx)
+        public void UpsertCompletionCallback(ref NodeID key, ref Attributes value, Empty ctx)
         {
         }
 
-        public void RMWCompletionCallback(ref NodeID key, ref MemoryPointer input, Empty ctx, Status status)
+        public void RMWCompletionCallback(ref NodeID key, ref Attributes input, Empty ctx, Status status)
         {
         }
 
