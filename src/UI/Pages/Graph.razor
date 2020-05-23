@@ -1,40 +1,40 @@
 @using Ahghee.Grpc
 @using FASTER.core
+@using Range = System.Range
+@using System.Text
 @inject IJSRuntime JSRuntime;
 
 
 <div style="float:left; padding-left: 10px;">
-    <input type="checkbox" name="node names" @onchange="@(async (t) =>
-                                                        {
-                                                            showNodeLabels = !showNodeLabels;
-                                                            await JSRuntime.InvokeVoidAsync("d3Interop.showNodeLabels", showNodeLabels);
-                                                        })"/> Node Names
-    <input type="checkbox" name="edge names" @onchange="@(async (t) =>
-                                                       {
-                                                           showEdgeLabels = !showEdgeLabels;
-                                                           await JSRuntime.InvokeVoidAsync("d3Interop.showEdgeLabels", showEdgeLabels);
-                                                       })"/> Edge Names
-    <input type="checkbox" checked="true" name="nodes" @onchange="@(async (t) =>
-                                                        {
-                                                            showNodes = !showNodes;
-                                                           await JSRuntime.InvokeVoidAsync("d3Interop.showNodes", showNodes);
-                                                        })"/> Nodes
-    <input type="checkbox" checked="true" name="edges" @onchange="@(async (t) =>
-                                                        {
-                                                            showNodes = !showNodes;
-                                                           await  JSRuntime.InvokeVoidAsync("d3Interop.showEdges", showNodes);
-                                                        })"/> Edges
-    
-    <input type="checkbox" name="pause" @onchange="@(async (t) =>
-                                                            {
-                                                                pauseLayout = !pauseLayout;
-                                                               await  JSRuntime.InvokeVoidAsync("d3Interop.pauseLayout", pauseLayout);
-                                                            })"/> Pause Layout
+@*     <input type="checkbox" name="node names" @onchange="@(async (t) => *@
+@*                                                         { *@
+@*                                                             showNodeLabels = !showNodeLabels; *@
+@*                                                             await JSRuntime.InvokeVoidAsync("d3Interop.showNodeLabels", showNodeLabels); *@
+@*                                                         })"/> Node Names *@
+@*     <input type="checkbox" name="edge names" @onchange="@(async (t) => *@
+@*                                                         { *@
+@*                                                             showEdgeLabels = !showEdgeLabels; *@
+@*                                                             await JSRuntime.InvokeVoidAsync("d3Interop.showEdgeLabels", showEdgeLabels); *@
+@*                                                         })"/> Edge Names *@
+@*     <input type="checkbox" checked="true" name="nodes" @onchange="@(async (t) => *@
+@*                                                                   { *@
+@*                                                                       showNodes = !showNodes; *@
+@*                                                                       await JSRuntime.InvokeVoidAsync("d3Interop.showNodes", showNodes); *@
+@*                                                                   })"/> Nodes *@
+@*     <input type="checkbox" checked="true" name="edges" @onchange="@(async (t) => *@
+@*                                                                   { *@
+@*                                                                       showNodes = !showNodes; *@
+@*                                                                       await  JSRuntime.InvokeVoidAsync("d3Interop.showEdges", showNodes); *@
+@*                                                                   })"/> Edges *@
+@*      *@
+@*     <input type="checkbox" name="pause" @onchange="@(async (t) => *@
+@*                                                    { *@
+@*                                                        pauseLayout = !pauseLayout; *@
+@*                                                        await  JSRuntime.InvokeVoidAsync("d3Interop.pauseLayout", pauseLayout); *@
+@*                                                    })"/> Pause Layout *@
     
 </div>
-<svg id="@uniqueId" @ref="d3Container" style="overflow: hidden;" xmlns="http://www.w3.org/2000/svg"></svg>
-
-
+<div id="@uniqueIdCanvas" style="width: 1200px; height:800px;" ></div>
 
 @code {
     [Parameter]
@@ -45,10 +45,10 @@
     bool showNodes = true;
     bool showLabels = true;
     bool pauseLayout = false;
-    private Dictionary<string,string> prefix = new Dictionary<string, string>();
     private int lasthash = 0;
     private ElementReference d3Container;
     private string uniqueId = Guid.NewGuid().ToString().Replace("-", "");
+    private string uniqueIdCanvas = Guid.NewGuid().ToString().Replace("-", "");
     protected override void OnAfterRender(bool firstRender)
     {
         base.OnAfterRender(firstRender);
@@ -71,38 +71,6 @@
         return base.OnInitializedAsync();
     }
 
-    string prefixBuilder = "a";
-    public string nextPrefix(string longform)
-    {
-        var next = prefixBuilder + ":";
-        
-        if (prefixBuilder[^1] != 'z')
-        {
-            prefixBuilder = prefixBuilder.Substring(0,prefixBuilder.Length-1) + (char)((int)prefixBuilder[^1] + 1);    
-        }
-        else
-        {
-            prefixBuilder = prefixBuilder.Substring(0,prefixBuilder.Length-1) + "aa";
-        }
-        return next;
-    }
-    public string getPrefix(string iri)
-    {
-        var lastSlash = iri.LastIndexOf('/');
-        var longForm = "*";
-        if (lastSlash >= 0)
-        {
-           longForm = iri.Substring(0, lastSlash + 1);
-        }
-
-        if (!prefix.ContainsKey(longForm))
-        {
-            prefix[longForm] = nextPrefix(longForm);
-        }
-        
-        return iri.Replace(longForm, prefix[longForm]);
-    }
-    
     public async Task DoIt()
     {
         // we dont' want to send extra junk down.
@@ -116,13 +84,13 @@
                     
                     .Where(a => a.Value.Data.Nodeid != null)
                     .GroupBy(kv => 
-                        kv.Key.Data?.Nodeid?.Iri != null ? getPrefix(kv.Key.Data?.Nodeid?.Iri) : kv.Key.Data?.Str,
+                        kv.Key.Data?.Nodeid?.Iri != null ? kv.Key.Data?.Nodeid?.Iri : kv.Key.Data?.Str,
                     kv => 
-                        getPrefix(kv.Value.Data.Nodeid.Iri));
+                        kv.Value.Data.Nodeid.Iri);
         // all we need is iri, label, iri
-                return (getPrefix(n.Id.Iri),edges);
+                return (n.Id.Iri,edges);
             })
-                .GroupBy(x=> getPrefix(x.Item1),x => x.edges)
+                .GroupBy(x=> x.Item1,x => x.edges)
                 .Select(x =>
                 {
                     return new node
@@ -142,7 +110,8 @@
 
             Console.WriteLine("cleaning it - finished, rendering");
             Console.WriteLine(lessData);
-            await JSRuntime.InvokeVoidAsync( "d3Interop.renderGraph", uniqueId, lessData);
+            await JSRuntime.InvokeVoidAsync( "threeInterop.example", uniqueIdCanvas, lessData);
+            //await JSRuntime.InvokeVoidAsync( "d3Interop.renderGraph", uniqueId, lessData);
             Console.WriteLine("RenderGraph - finished");
         }
         catch (Exception e)
