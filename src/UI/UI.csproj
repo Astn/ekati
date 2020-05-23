@@ -827,6 +827,12 @@
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\contextmenu.js" />
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\canIUse.js" />
     <Content Remove="wwwroot\monaco-editor\esm\vs\base\browser\browser.js" />
+    <Content Update="wwwroot\three-interop.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Remove="wwwroot\three.js" />
+    <Content Remove="wwwroot\ammo.js" />
   </ItemGroup>
 
   <ItemGroup>
