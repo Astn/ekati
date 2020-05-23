@@ -146,6 +146,18 @@ namespace Ahghee.Grpc
     //         throw new NotImplementedException();
     //     }
     // }
+    public class AttributesSerializer : BinaryObjectSerializer<Attributes>
+    {
+        public override void Deserialize(ref Attributes obj)
+        {
+            obj.MergeDelimitedFrom(reader.BaseStream);
+        }
+
+        public override void Serialize(ref Attributes obj)
+        {
+            obj.WriteDelimitedTo(writer.BaseStream);
+        }
+    }
     public class PointersSerializer : BinaryObjectSerializer<Pointers>
     {
         public override void Deserialize(ref Pointers obj)

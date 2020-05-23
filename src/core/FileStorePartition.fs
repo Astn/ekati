@@ -28,7 +28,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     // TODO: Switch to PebblesDB when index gets to big
     // TODO: Are these per file, with bloom filters, or aross files in the same shard?
     let ``Index of NodeID -> MemoryPointer`` = new NodeIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeindex"+i.ToString()))
-    
+    let ``Index of NodeID -> Attributes`` = new NodeAttrIndex(Path.Combine(dir.FullName, if config.CreateTestingDataDirectory then Path.GetRandomFileName() else "nodeattrs"+i.ToString()))
     let IndexNodeIds (nids:seq<NodeID>) =
         ``Index of NodeID -> MemoryPointer``.AddOrUpdateBatch nids 
     let arraybuffer = System.Buffers.ArrayPool<byte>.Shared 
@@ -103,7 +103,7 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                     writeLastPos(lastPosition)
                     lastFlushPos <- lastPosition
             
-            let mutable mainTenanceOffset = ``Index of NodeID -> MemoryPointer``.CurrentHeadAddr()
+            let mutable mainTenanceOffset = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr()
             let DoMaintenance() =
                 let currentTail = ``Index of NodeID -> MemoryPointer``.CurrentTailAddr() 
                 if mainTenanceOffset < currentTail then
@@ -149,41 +149,44 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             if (lastOpIsWrite = false) then
                                 stream.Position <- lastPosition
                                 lastOpIsWrite <- true
-                            let startPos = lastPosition
+//                            let startPos = lastPosition
                             let mutable count = 0L
-                            let mutable batchLen = 0L
-                            let mutable ownOffset = uint64 startPos
+//                            let mutable batchLen = 0L
+//                            let mutable ownOffset = uint64 startPos
                             
                             for item in items do
-                                if  item.Id.Pointer = null then
-                                    item.Id.Pointer <- Utils.NullMemoryPointer()
-                                let mp = item.Id.Pointer
-                                mp.Partitionkey <- uint32 i
-                                mp.Filename <- uint32 fileNameid
-                                mp.Offset <- ownOffset
-                                mp.Length <- (item.CalculateSize() |> uint64)
-                                batchLen <- batchLen + int64 mp.Length
-                                ownOffset <- ownOffset + mp.Length
-                                count <- count + 1L
+//                                if  item.Id.Pointer = null then
+//                                    item.Id.Pointer <- Utils.NullMemoryPointer()
+//                                let mp = item.Id.Pointer
+//                                mp.Partitionkey <- uint32 i
+//                                mp.Filename <- uint32 fileNameid
+//                                mp.Offset <- ownOffset
+//                                mp.Length <- (item.CalculateSize() |> uint64)
+//                                batchLen <- batchLen + int64 mp.Length
+//                                ownOffset <- ownOffset + mp.Length
+                                  count <- count + 1L
                                
                                 
-                            let rentedBuffer = arraybuffer.Rent(int batchLen) 
-                            let out = new CodedOutputStream(rentedBuffer)
-                            for item in items do        
-                                item.WriteTo out
+//                            let rentedBuffer = arraybuffer.Rent(int batchLen) 
+//                            let out = new CodedOutputStream(rentedBuffer)
                             
-                            let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
-                                                            
-                            items 
-                                |> Seq.map (fun x -> x.Id) 
-                                |> IndexNodeIds
+                            ``Index of NodeID -> Attributes``.AddOrUpdateBatch(items)
+                            
+//                            for item in items do
+//                                item.WriteTo out
+//                            
+//                            let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
+//                                                            
+//                            items 
+//                                |> Seq.map (fun x -> x.Id) 
+//                                |> IndexNodeIds
 
-                            lastPosition <- int64 ownOffset
+//                            lastPosition <- int64 ownOffset
                             config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddFragmentMeter, tags, count)
-                            config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
-                            config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddSizeBytes, tags, lastPosition - startPos)
-                            copyTask |> Async.AwaitTask |> Async.RunSynchronously
-                            arraybuffer.Return rentedBuffer
+                            //config.Metrics.Measure.Histogram.Update(Metrics.PartitionMetrics.AddSize, tags, lastPosition - startPos)
+                            // config.Metrics.Measure.Meter.Mark(Metrics.PartitionMetrics.AddSizeBytes, tags, lastPosition - startPos)
+                            //copyTask |> Async.AwaitTask |> Async.RunSynchronously
+                            //arraybuffer.Return rentedBuffer
                             tcs.SetResult()
                             
                         with 
@@ -210,35 +213,41 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
                             config.log <| sprintf "ERROR[%A]: %A" i ex
                             tcs.SetException(ex)
                     | FlushFixPointers (tcs, ptrs) ->
-                            FLUSHWRITES()
-                            for ps in ptrs do
-                                let orderedPtrs = ps.Pointers_.OrderBy(fun f -> f.Offset).ToArray()
-                                let nodes = ReadNodes(orderedPtrs, stream)
-                                for n in nodes do
-                                    let mutable changed = false
-                                    // update pointers in attributes
-                                    let attrsToChange =
-                                        n.Attributes
-                                        |> Seq.filter (fun kv ->
-                                                        kv.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid
-                                                        && kv.Value.Data.Nodeid.Pointer.Length = uint64 0)
-                                    
-                                    for a in attrsToChange do 
-                                        let mutable ptr : Pointers = null
-                                        if ``Index of NodeID -> MemoryPointer``.TryGetValue(a.Value.Data.Nodeid, ref ptr) then
-                                            a.Value.Data.Nodeid.Pointer <- ptr.Pointers_.Item(0)
-                                            changed <- true
-                                    if changed then
-                                        let len  = (n.CalculateSize() |> uint64)
-                                        let rentedBuffer = arraybuffer.Rent(int len) 
-                                        let out = new CodedOutputStream(rentedBuffer)
-                                        n.WriteTo out
-                                        
-                                        let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
-                                        copyTask |> Async.AwaitTask |> Async.RunSynchronously
-                                        arraybuffer.Return rentedBuffer
-
-                                ()
+//                            FLUSHWRITES()
+//                            for ps in ptrs do
+//                                let orderedPtrs = ps.Pointers_.OrderBy(fun f -> f.Offset).ToArray()
+//                                let nodes = ReadNodes(orderedPtrs, stream)
+//                                for n in nodes do
+//                                    let mutable changed = false
+//                                    // update pointers in attributes
+//                                    n.Attributes
+//                                        |> Seq.filter (fun kv ->
+//                                                        kv.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid
+//                                                        && kv.Value.Data.Nodeid.Pointer.Length = uint64 0)
+//                                        |> Seq.map(fun a ->
+//                                            async {
+//                                                    let! gotIt = ``Index of NodeID -> MemoryPointer``.TryGetValueAsync(a.Value.Data.Nodeid).AsTask() |> Async.AwaitTask
+//                                                    let struct (status, ptr) = gotIt.CompleteRead()
+//                                                    if  status = FASTER.core.Status.OK && ptr <> null then
+//                                                        a.Value.Data.Nodeid.Pointer <- ptr.Pointers_.Item(0)
+//                                                        changed <- true
+//                                                }
+//                                            )
+//                                         |> Async.Parallel
+//                                         |> Async.RunSynchronously
+//                                         |> ignore
+//                                         
+//                                    if changed then
+//                                        let len  = (n.CalculateSize() |> uint64)
+//                                        let rentedBuffer = arraybuffer.Rent(int len) 
+//                                        let out = new CodedOutputStream(rentedBuffer)
+//                                        n.WriteTo out
+//                                        
+//                                        let copyTask = stream.WriteAsync(rentedBuffer,0,int out.Position)
+//                                        copyTask |> Async.AwaitTask |> Async.RunSynchronously
+//                                        arraybuffer.Return rentedBuffer
+//
+//                                ()
                                 
                             tcs.SetResult()  
                     | NoOP(u) -> u
@@ -262,3 +271,4 @@ type FileStorePartition(config:Config, i:int, cluster:IClusterServices) =
     member __.IORequests() = bc  
     // NOTE: This is allowing access to our index by other threads
     member __.Index() = ``Index of NodeID -> MemoryPointer``
+    member __.AttrIndex() = ``Index of NodeID -> Attributes``
