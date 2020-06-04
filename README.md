@@ -76,7 +76,7 @@ There is a very basic query language for testing / development. Higher level lan
 
 ## Database Tech
 
- - Mostly written in F# and C#. The code is a fair bit ugly, and needs a lot love.
+ - Mostly written in F# and C#, with a partial implementation in Rust (stale). The code is a fair bit ugly, and needs a lot love.
  - It's targeting Linux, OSX, and Windows, using the dotnet core JIT. Currently seeing issues with connecting the UI to the Database on Linux and Mac. Might be HTTP/2 related.
  - Basic nodeId indexing is done using [FASTER](https://github.com/microsoft/FASTER).
  - The main storage layer has the goal of being a hybrid log structured merge tree. Got a fair bit of work to do there. Maybe we can get [FASTER Log](https://github.com/microsoft/FASTER/blob/master/docs/cs/FasterLog.md) to do it for us.
