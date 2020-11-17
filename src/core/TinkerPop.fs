@@ -1,34 +1,26 @@
 
-namespace Ahghee
+namespace Ekati
 
+open Ekati.Core
+open FlatBuffers
+open Ekati.Ext
     
 module public TinkerPop =
-    open Utils
     open FSharp.Data
     open System.Text
     open System
-    open Ahghee.Grpc
     
     type public GraphML = XmlProvider<"""https://raw.githubusercontent.com/apache/tinkerpop/master/data/tinkerpop-modern.xml""">
     let TheCrew = lazy ( GraphML.Load("tinkerpop-modern.xml") )
   
-    let ABtoyId id : NodeID =
-            let ab graph i= 
-                let Nodeid = NodeID()
-                Nodeid.Pointer <- NullMemoryPointer()
-                Nodeid.Remote <- graph
-                Nodeid.Iri <- i
-                Nodeid
-            ab "" id
-    
-    let DABtoyId id : DataBlock =
-        DBA (ABtoyId id)
+    let ABtoyId buf (id:string) : Offset<NodeID> =
+        NodeID.CreateNodeID(buf, "".CopyTo(buf), id.CopyTo(buf))
             
     let xsType graphMlType : string =
         match graphMlType with
-        | "string" -> metaPlainTextUtf8
-        | "int" -> metaXmlInt
-        | "double" -> metaXmlDouble
+        | "string" -> Utils.metaPlainTextUtf8
+        | "int" -> Utils.metaXmlInt
+        | "double" -> Utils.metaXmlDouble
         | _ -> ""
     
     
@@ -45,115 +37,119 @@ module public TinkerPop =
         let EdgeAttrs = attrs "edge" 
        
         let buildNodesFromGraphMlNodes (nodes:seq<GraphML.Node>) (edges:seq<GraphML.Edge>) = 
+            let now = DateTime.UtcNow.Ticks
             nodes
             |> Seq.map (fun n -> 
-                     
-                        let z = new Grpc.Node()
-                        z.Id <- ABtoyId (n.Id.ToString());  
-                        n.Datas
-                            |> Seq.ofArray
-                            |> Seq.map (fun d ->
-                                let (keyString, valueMeta) = 
-                                    let (name, typ) = NodeAttrs.Item d.Key
-                                    name, xsType typ
-                                
-                                let valueBytes =
-                                    match valueMeta with
-                                    | m when m = metaPlainTextUtf8 -> match d.String with  
-                                                                       | Some(s) -> DBBString s
-                                                                       | _ -> DBBEmpty()
-                                    | m when m = metaXmlDouble -> match d.String with  
-                                                                   | Some(s) -> DBBDouble (double s)
-                                                                   | _ -> DBBEmpty()
-                                    | m when m = metaXmlInt -> match d.String with  
-                                                                | Some(s) -> DBBInt (int32 s)
-                                                                | _ -> DBBEmpty()
-                                    | _ -> DBBEmpty()                                                                                   
-                                
-                                let kv1 = new KeyValue()
-                                kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- valueBytes |> TMDAuto
-                                kv1
-                            )
-                            |> Seq.append (edges
-                                             |> Seq.filter (fun e -> e.Source = n.Id)
-                                             |> Seq.map (fun e ->
-                                                            Prop (DBBString (e.Datas 
-                                                                                         |> Seq.find (fun d -> d.Key = "labelE")
-                                                                                         |> (fun d -> "out." + d.String.Value)
-                                                                                         ))
-                                                                 (DABtoyId (e.Id.ToString()))                     
-                                                         )
-                                             ) 
-                            |> Seq.append (edges
-                                             |> Seq.filter (fun e -> e.Target = n.Id)
-                                             |> Seq.map (fun e -> 
-                                                            Prop (DBBString (e.Datas 
-                                                                                         |> Seq.find (fun d -> d.Key = "labelE")
-                                                                                         |> (fun d -> "in." + d.String.Value)
-                                                                                         ))
-                                                                 (DABtoyId (e.Id.ToString()))                     
-                                                         )
-                                             )                  
-                        |> z.Attributes.AddRange
-                        z)
+                        let buf = FlatBufferBuilder(128)
+                        
+                        let nid = ABtoyId buf (n.Id.ToString())  
+                        let attrs = n.Datas
+                                    |> Seq.ofArray
+                                    |> Seq.map (fun d ->
+                                        let (keyString, valueMeta) = 
+                                            let (name, typ) = NodeAttrs.Item d.Key
+                                            name, xsType typ
+                                        
+                                        let valueBytes =
+                                            match valueMeta with
+                                            | m when m = Utils.metaPlainTextUtf8 -> match d.String with  
+                                                                               | Some(s) -> Utils.PropString(buf ,keyString ,s, now)
+                                                                               | _ -> Utils.PropString (buf  ,keyString , "", now)
+                                            | m when m = Utils.metaXmlDouble -> match d.String with  
+                                                                           | Some(s) -> Utils.PropDouble(buf, keyString, (double s), now)
+                                                                           | _ -> Utils.PropDouble(buf ,keyString ,(double 0.0),now)
+                                            | m when m = Utils.metaXmlInt -> match d.String with  
+                                                                        | Some(s) -> Utils.PropInt(buf ,keyString ,(int32 s),now)
+                                                                        | _ -> Utils.PropInt (buf ,keyString ,(int32 0),now)
+                                            | _ ->  Utils.PropInt(buf, keyString, (int32 0)                                                                               , now)
+                                        
+                                        valueBytes 
+                                    )
+                                    |> Seq.append (edges
+                                                     |> Seq.filter (fun e -> e.Source = n.Id)
+                                                     |> Seq.map (fun e ->
+                                                                    Utils.PropData( buf, (e.Datas 
+                                                                                                 |> Seq.find (fun d -> d.Key = "labelE")
+                                                                                                 |> (fun d -> "out." + d.String.Value)
+                                                                                                 ),
+                                                                         (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (e.Id.ToString())).Value)), now                 )
+                                                                 )
+                                                     ) 
+                                    |> Seq.append (edges
+                                                     |> Seq.filter (fun e -> e.Target = n.Id)
+                                                     |> Seq.map (fun e -> 
+                                                                    Utils.PropData(buf ,(e.Datas 
+                                                                                                 |> Seq.find (fun d -> d.Key = "labelE")
+                                                                                                 |> (fun d -> "in." + d.String.Value)
+                                                                                                 ),
+                                                                         (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (e.Id.ToString())).Value)), now                  )
+                                                                 )
+                                                     )
+                                    |> Seq.toArray
+                        let node = Ekati.Core.Node.CreateNode(buf, nid, Map.CreateMap(buf, Map.CreateItemsVector(buf, attrs)))
+                        buf.Finish(node.Value)
+                        Ekati.Core.Node.GetRootAsNode(buf.DataBuffer)
+                        )
                 
         let buildEdgeNodesFromGraphMlEdges (edges:seq<GraphML.Edge>) = 
+            let now = DateTime.UtcNow.Ticks
             edges
-            |> Seq.map (fun n -> 
-                        let z = new Grpc.Node()
-                        z.Id <-  ABtoyId (n.Id.ToString()) ;  
-                        n.Datas
-                            |> Seq.ofArray
-                            |> Seq.map (fun d ->
-                                let (keyString, valueMeta) = 
-                                    let (name, typ) = EdgeAttrs.Item d.Key
-                                    name, xsType typ
-                                
-                                let valueBytes =
-                                    match valueMeta with
-                                    | m when m = metaPlainTextUtf8 -> match d.String with  
-                                                                       | Some(s) -> DBBString s
-                                                                       | _ -> DBBEmpty()
-                                    | m when m = metaXmlDouble -> match d.String with  
-                                                                   | Some(s) -> DBBDouble (double s)
-                                                                   | _ -> DBBEmpty()
-                                    | m when m = metaXmlInt -> match d.String with  
-                                                                | Some(s) -> DBBInt (int32 s)
-                                                                | _ -> DBBEmpty()
-                                    | _ -> DBBEmpty()                                                                                   
-                                
-                                let kv1 = new KeyValue()
-                                kv1.Key <- TMDAuto (DBBString keyString)
-                                kv1.Value <- valueBytes |> TMDAuto
-                                kv1
-                            )
-                            |> Seq.append (edges
-                                             |> Seq.filter (fun e -> e.Source = n.Id)
-                                             |> Seq.map (fun e -> 
-                                                            Prop (DBBString (e.Datas 
-                                                                                         |> Seq.find (fun d -> d.Key = "labelE")
-                                                                                         |> (fun d -> "out." + d.String.Value)
-                                                                                         ))
-                                                                (DABtoyId (e.Id.ToString()))                  
-                                                         )
-                                             ) 
-                            |> Seq.append (edges
-                                             |> Seq.filter (fun e -> e.Target = n.Id)
-                                             |> Seq.map (fun e -> 
-                                                            Prop (DBBString (e.Datas 
-                                                                                         |> Seq.find (fun d -> d.Key = "labelE")
-                                                                                         |> (fun d -> "in." + d.String.Value)
-                                                                                         ))
-                                                                (DABtoyId (e.Id.ToString()))
-                                                         )
-                                             )
-                            |> Seq.append ( [ 
-                                                Prop (DBBString "source") (DABtoyId (n.Source.ToString()))
-                                                Prop (DBBString "target") (DABtoyId (n.Target.ToString()))
-                                            ] ) 
-                        |> z.Attributes.AddRange
-                        z)
+            |> Seq.map (fun n ->
+                        let buf = FlatBufferBuilder(128)
+                        
+                        let nid = ABtoyId buf (n.Id.ToString())  
+                        
+                        let attrs = n.Datas
+                                    |> Seq.ofArray
+                                    |> Seq.map (fun d ->
+                                        let (keyString, valueMeta) = 
+                                            let (name, typ) = EdgeAttrs.Item d.Key
+                                            name, xsType typ
+                                        
+                                        let valueBytes =
+                                            match valueMeta with
+                                            | m when m = Utils.metaPlainTextUtf8 -> match d.String with  
+                                                                               | Some(s) -> Utils.PropString( buf ,keyString, s,now)
+                                                                               | _ -> Utils.PropString (buf  ,keyString  ,"", now)
+                                            | m when m = Utils.metaXmlDouble -> match d.String with  
+                                                                           | Some(s) -> Utils.PropDouble(buf ,keyString ,(double s), now)
+                                                                           | _ -> Utils.PropString (buf  ,keyString  ,"", now)
+                                            | m when m = Utils.metaXmlInt -> match d.String with  
+                                                                        | Some(s) -> Utils.PropInt (buf ,keyString ,(int32 s), now)
+                                                                        | _ -> Utils.PropString (buf  ,keyString  ,"", now)
+                                            | _ -> Utils.PropInt (buf ,keyString ,(int32 0)                                                                                , now)
+                                        
+                                        valueBytes
+                                    )
+                                    |> Seq.append (edges
+                                                     |> Seq.filter (fun e -> e.Source = n.Id)
+                                                     |> Seq.map (fun e -> 
+                                                                    Utils.PropData (buf, (e.Datas 
+                                                                                                 |> Seq.find (fun d -> d.Key = "labelE")
+                                                                                                 |> (fun d -> "out." + d.String.Value)
+                                                                                                 ),
+                                                                        (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (e.Id.ToString())).Value)), now                  )
+                                                                 )
+                                                     ) 
+                                    |> Seq.append (edges
+                                                     |> Seq.filter (fun e -> e.Target = n.Id)
+                                                     |> Seq.map (fun e -> 
+                                                                    Utils.PropData (buf ,(e.Datas 
+                                                                                                 |> Seq.find (fun d -> d.Key = "labelE")
+                                                                                                 |> (fun d -> "in." + d.String.Value)
+                                                                                                 ),
+                                                                        (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (e.Id.ToString())).Value)), now)
+                                                                 )
+                                                     )
+                                    |> Seq.append ( [ 
+                                                        Utils.PropData( buf, "source", (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (n.Source.ToString())).Value)), now)
+                                                        Utils.PropData( buf, "target", (Data.CreateData(buf, DataBlock.NodeID, (ABtoyId buf (n.Target.ToString())).Value)), now)
+                                                    ] )
+                                    |> Seq.toArray
+                        let node = Ekati.Core.Node.CreateNode(buf, nid, Map.CreateMap(buf, Map.CreateItemsVector(buf, attrs)))
+                        buf.Finish(node.Value)
+                        Ekati.Core.Node.GetRootAsNode(buf.DataBuffer)
+                        )
         
         buildNodesFromGraphMlNodes gmlGraph.Nodes gmlGraph.Edges
         |> Seq.append (buildEdgeNodesFromGraphMlEdges gmlGraph.Edges)

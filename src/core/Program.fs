@@ -1,4 +1,4 @@
-namespace Ahghee
+namespace Ekati
 
 open System
 open System.Collections.Generic
@@ -10,13 +10,11 @@ open System
 open System
 open System.Buffers
 open App.Metrics
-open Ahghee.Grpc
-open Ahghee.TinkerPop
-open Ahghee.Utils
+open Ekati.TinkerPop
+open Ekati.Core
+open FlatBuffers
 
 module Program =
-    open Google.Protobuf
-    open Grpc.Core
     open System.Threading
     open System.Collections.Concurrent
     open System.Runtime.InteropServices
@@ -29,7 +27,7 @@ module Program =
 
     let testConfig () = 
         {
-            Config.ParitionCount=Environment.ProcessorCount; 
+            Config.ParitionCount=1; 
             log = (fun msg -> printf "%s\n" msg)
             CreateTestingDataDirectory=true
             Metrics = AppMetrics
@@ -39,34 +37,33 @@ module Program =
 
     let buildLotsNodes perNodeFollowsCount =
         // static seed, keeps runs comparable
+        let now = DateTime.Now.Ticks
         let seededRandom = new Random(1337)
-        let fn = PropString "firstName" "Austin"
-        let ln = PropString "lastName"  "Harris"
-        let follo i = PropData "follows" ( DABtoyId (seededRandom.Next(i).ToString()) )
+        let fn buf = Utils.PropString( buf, "firstName", "Austin", now)
+        let ln buf = Utils.PropString( buf, "lastName",  "Harris", now)
+        let follo i buf= Utils.PropData( buf, "follows", (Ekati.Core.Data.CreateData(buf, DataBlock.NodeID, ( ABtoyId buf (seededRandom.Next(i).ToString()) ).Value)), now)
         
-        let pregenStuff =
-            seq { for i in 1 .. 2000 do 
-                    yield [|
-                              fn
-                              ln
-                              follo i
-                              follo i
-                              follo i
-                           |]
-                }
-            |> Array.ofSeq    
+        let pregenStuff i buf =
+            [|
+                              fn buf
+                              ln buf
+                              follo i buf
+                              follo i buf
+                              follo i buf
+            |] 
              
         let mkNode i =
-                Node (ABtoyId (i.ToString()) )
-                      pregenStuff.[seededRandom.Next(2000)]          
+                let buf = FlatBufferBuilder(128)
+                let nid = ABtoyId buf (i.ToString())
+                let attrs = pregenStuff (seededRandom.Next(200000)) buf 
+                let node = Ekati.Core.Node.CreateNode(buf, nid, Map.CreateMap(buf, Map.CreateItemsVector(buf, attrs)))
+                buf.Finish(node.Value)
+                Ekati.Core.Node.GetRootAsNode(buf.DataBuffer)
+                               
              
         seq {
-            for ii in 0 .. 2000 .. Int32.MaxValue do 
-                let output = Array.zeroCreate 2000
-                Parallel.For(ii,ii+2000,(fun i -> 
-                        output.[i % 2000] <- mkNode i
-                    )) |> ignore
-                yield output
+            for ii in 0 .. 200000 do 
+                yield  mkNode ii
             } 
     
     let proc = Process.GetCurrentProcess()    
@@ -129,7 +126,9 @@ module Program =
             (buildLotsNodes followsCount)
         
         let enu =
-            streamingNodes.GetEnumerator()
+            streamingNodes
+                |> Seq.windowed(1000)
+                |> (fun x -> x.GetEnumerator())
         
         // print out env info.
         let envFile = sprintf "./env.info"
@@ -182,8 +181,6 @@ module Program =
             enu.MoveNext() |> ignore
             if t1.IsCompleted = false then
                 t1.Wait()
-            if ct % 12 = 0 then
-                g.Flush()
             t1 <- t2
             t2 <- g.Add enu.Current
             
@@ -216,6 +213,8 @@ module Program =
 
     [<EntryPoint>]
     let main args =
+       
+        Console.WriteLine ( benchmark 1000 10 ) 
 //        let config =
 //            {
 //                Config.ParitionCount = Convert.ToInt32( 0.75m * Convert.ToDecimal( Environment.ProcessorCount) ); 

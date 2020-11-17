@@ -7,7 +7,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
-      <ProjectReference Include="..\cli-grammer\cli-grammer.csproj" />
+      <ProjectReference Include="..\parser_grammer\parser_grammer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

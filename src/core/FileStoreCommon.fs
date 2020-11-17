@@ -1,7 +1,5 @@
-namespace Ahghee
+namespace Ekati
 
-open Google.Protobuf
-open Google.Protobuf.Collections
 open System
 open System.Collections.Generic
 open System.Diagnostics
@@ -9,7 +7,7 @@ open System.Drawing
 open System.IO
 open System.Threading
 open System.Threading.Tasks
-open Ahghee.Grpc
+open Ekati.Core
 open App.Metrics
 
 type Config = {
@@ -22,13 +20,14 @@ type Config = {
 type IOStat = { readbytes: uint64; writebytes: uint64 }
 
 type NodeIO =
-    | Add of TaskCompletionSource<unit> * seq<Node>
-    | Read  of TaskCompletionSource<array<Node>> * array<MemoryPointer>
+    | Add of TaskCompletionSource<unit> * Node
+    | Adds of TaskCompletionSource<unit> * seq<Node>
+    | Read  of TaskCompletionSource<array<Node>> * array<NodeID>
     | FlushFixPointers of TaskCompletionSource<unit> * seq<Pointers>
     | NoOP of unit
 
 type IndexMessage =
-    | Index of seq<Grpc.NodeID>
+    | Index of seq<NodeID>
     | Flush of AsyncReplyChannel<bool>
 
 [<System.FlagsAttribute>]

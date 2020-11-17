@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using FASTER.core;
-using Google.Protobuf.Collections;
+using Ekati.Core;
+using Ekati.Ext;
+using FlatBuffers;
 
-namespace Ahghee.Grpc
+namespace Ekati
 {
     public class NodeStore : IDisposable
     {
@@ -17,7 +20,7 @@ namespace Ahghee.Grpc
         private Node __default = new Node();
         private bool _runCheckpointThread = true;
         private readonly string _checkpointDir;
-
+        private volatile int serial = 0;
         public NodeStore(string file)
         {
             var continueSession = (File.Exists(file + ".ns.log")
@@ -35,7 +38,7 @@ namespace Ahghee.Grpc
                 (1L << 20, new NodeStoreFuncs(), new LogSettings
             {
                 LogDevice = _logfile,
-                ObjectLogDevice = _objfile 
+                ObjectLogDevice = _objfile ,
             },
                 new CheckpointSettings
                 {
@@ -46,7 +49,8 @@ namespace Ahghee.Grpc
                 {
                     keySerializer = () => new NodeIDSerializer(),
                     valueSerializer = () => new NodeSerializer()
-                });
+                },
+                new NodeIdComparer());
 
 
             if (continueSession)
@@ -70,7 +74,7 @@ namespace Ahghee.Grpc
                 {
                     while(_runCheckpointThread) 
                     {
-                        Thread.Sleep(60000);
+                        Thread.Sleep(5 * 60000);
                         Commit();
                        
                         
@@ -84,25 +88,28 @@ namespace Ahghee.Grpc
             });
             t.Start();
         }
-        public void AddOrUpdateBatch(IEnumerable<Node> nodes)
+        public long AddOrUpdateBatch(Node node)
         {
-            foreach (var icd in nodes)
-            {
-                var id = icd.Id;
-                var n = icd;
-                _session.RMW(ref id, ref n, Empty.Default, 0);
-            }
+            var id = node.Id.Value;
+            var n = node;
+            _session.RMW(ref id, ref n, Empty.Default, serial++);
+            return 1;
         }
         public bool TryPutValue(NodeID id, ref Node ptrs)
         {
        
-            var status = _session.Upsert(ref id, ref ptrs, Empty.Default, 0);
+            var status = _session.Upsert(ref id, ref ptrs, Empty.Default, serial++);
             return status == Status.OK;
         }
         public bool TryGetValue(NodeID id, ref Node ptrs)
         {
-            var status = _session.Read(ref id, ref __default, ref ptrs, Empty.Default, 0);
+            var status = _session.Read(ref id, ref __default, ref ptrs, Empty.Default, serial++);
             return status == Status.OK;
+        }
+
+        public ValueTask<FasterKV<NodeID, Node, Node, Node, Empty, NodeStoreFuncs>.ReadAsyncResult> TryGetValueAsync(NodeID id)
+        {
+            return _session.ReadAsync(ref id, ref __default);
         }
 
         private void Commit()
@@ -137,12 +144,12 @@ namespace Ahghee.Grpc
         }
         public void RMW(ref NodeID key, ref Node value)
         {
-            _session.RMW(ref key, ref value, Empty.Default, 0);
+            _session.RMW(ref key, ref value, Empty.Default, serial++);
         }
 
         public void Read(ref NodeID key, ref Node input, ref Node output)
         {
-            _session.Read(ref key, ref input, ref output, Empty.Default, 0);
+            _session.Read(ref key, ref input, ref output, Empty.Default, serial++);
         }
 
         public void Dispose()
@@ -154,11 +161,26 @@ namespace Ahghee.Grpc
             _objfile.Close();
         }
     }
-    
+
+    public class NodeIdComparer : IFasterEqualityComparer<NodeID>
+    {
+        public long GetHashCode64(ref NodeID k)
+        {
+            if (k.Remote == null)
+            {
+                return  ((long)k.Iri.GetHashCode() << 32);
+            }
+            return ((long)k.Iri.GetHashCode() << 32) | k.Remote.GetHashCode();
+        }
+
+        public bool Equals(ref NodeID k1, ref NodeID k2)
+        {
+            return k1.Iri.Equals(k2.Iri) && (k1.Remote == null || k2.Remote == null || k1.Remote.Equals(k2.Remote));
+        }
+    }
+
     public class NodeStoreFuncs : IFunctions<NodeID, Node, Node, Node, Empty>
     {
-
-
         public void InitialUpdater(ref NodeID key, ref Node input, ref Node value)
         {
             value = input;
@@ -166,22 +188,13 @@ namespace Ahghee.Grpc
 
         public void CopyUpdater(ref NodeID key, ref Node input, ref Node oldValue, ref Node newValue)
         {
-            if (newValue == null)
-            {
-                newValue = new Node();
-            }
-
-            newValue.Id = oldValue.Id;
-            newValue.Attributes.AddRange(oldValue.Attributes);
+            newValue = oldValue.MergeNodeAttributesNew(input);
         }
 
         public bool InPlaceUpdater(ref NodeID key, ref Node input, ref Node value)
         {
-            value.Id = input.Id;
-            value.Attributes.AddRange(input.Attributes);
-            var distinct = value.Attributes.Distinct().ToList();
-            value.Attributes.Clear();
-            value.Attributes.AddRange(distinct);
+            value = value.MergeNodeAttributesNew(input); //.MergeNodeAttributesNew(output);
+           
             return true;
         }
 
@@ -191,26 +204,12 @@ namespace Ahghee.Grpc
         
         public void ConcurrentReader(ref NodeID key, ref Node input, ref Node value, ref Node dst)
         {
-            var copied = new RepeatedField<KeyValue>();
-            if(dst!=null)
-                copied.AddRange(dst.Attributes);
-            else
-                dst = new Node();
-            if(value!=null)
-                copied.AddRange(value.Attributes);
-            dst.Id = value.Id;
-            dst.Attributes.Clear();
-            dst.Attributes.AddRange(copied.Distinct());
+            dst = value;//.MergeNodeAttributesNew(dst);
         }
 
         public bool ConcurrentWriter(ref NodeID key, ref Node src, ref Node dst)
         {
-            var copied = new RepeatedField<KeyValue>();
-            copied.AddRange(dst.Attributes);
-            copied.AddRange(src.Attributes);
-            dst.Id = src.Id;
-            dst.Attributes.Clear();
-            dst.Attributes.AddRange(copied.Distinct());
+            dst = src; //.MergeNodeAttributesNew(dst); 
             return true;
         }
         

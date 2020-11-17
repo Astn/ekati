@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+// TODO: support protobuff any
+// import google/protobuf/any.proto
+import "google/protobuf/timestamp.proto";
+package server.protocol.grpc;
+
+
+message FlatNode {
+    bytes flatBuffer = 1;
+}
+
+message Query {
+    string queryText = 2;
+}
+
+message PutResponse{
+    bool success = 1;
+}
+
+message GetMetricsResponse{
+    message Metric {
+        float value =1;
+        string name = 2;
+        google.protobuf.Timestamp time = 3;
+    }
+    repeated Metric metrics = 1;
+}
+message GetMetricsRequest{
+    repeated string names = 1;
+}
+message GetStatsRequest{
+    message Stat{
+        float value = 1;
+        string topic = 2;
+        string stat = 3;
+    }
+    repeated Stat stats = 1;
+}
+message GetStatsResponse{
+    repeated string names = 1;
+}
+message ListStatsRequest{
+    repeated string match = 1;
+}
+message ListStatsResponse{
+    repeated string names = 1;
+}
+message LoadFile{
+    string type = 1;
+    string path = 2;
+}
+message LoadFileResponse{
+    int64 progress = 1;
+    int64 length = 2;
+}
+message Followers {
+    repeated string follower =1;
+}
+message ShardAssignment{
+    repeated string leaders = 1;
+    repeated Followers followers = 2;
+}
+
+
+service WatDbService {
+    rpc Load (LoadFile) returns (stream LoadFileResponse) {}
+    rpc Put (FlatNode) returns (PutResponse) {}
+    rpc Get (Query) returns (stream FlatNode) {}
+    rpc GetMetrics (GetMetricsRequest) returns (GetMetricsResponse){}
+    rpc GetStats (GetStatsRequest) returns (GetStatsResponse){}
+    rpc ListStats (ListStatsRequest) returns (ListStatsResponse){}
+    rpc GetShardAssignment (ShardAssignment) returns (ShardAssignment){}
+}

@@ -1,7 +1,7 @@
 ﻿@page "/query"
 
 @using System.IO
-@using Ahghee.Grpc
+@using Ekati.Grpc
 @using Microsoft.Extensions.Logging
 @using Antlr4
 @using Antlr4.Runtime
@@ -9,7 +9,7 @@
 @using cli_grammer
 @using Grpc.Core.Utils
 @using Microsoft.AspNetCore.Components.Rendering
-@inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
+@inject Ekati.Grpc.WatDbService.WatDbServiceClient wat
 @inject IJSRuntime JsRuntime;
 @inject HttpClient Http
 @inject ILogger<Query> Logger
@@ -253,9 +253,9 @@ get ""*""
         }
     }
 
-    private void AttachLimitStep(Ahghee.Grpc.Query query)
+    private void AttachLimitStep(Ekati.Grpc.Query query)
     {
-        var limitStep = new Ahghee.Grpc.Step
+        var limitStep = new Ekati.Grpc.Step
         {
             Limit = new LimitFilter
             {
@@ -320,7 +320,7 @@ get ""*""
             }
         }, async (nids, step) =>
         {
-            var q = new Ahghee.Grpc.Query();
+            var q = new Ekati.Grpc.Query();
             q.Iris.AddRange(nids.Select(x => x.Iri));
             q.Step = step;
             AttachLimitStep(q);

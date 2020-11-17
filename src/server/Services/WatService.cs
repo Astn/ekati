@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,40 +7,62 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Ahghee;
-using Ahghee.Grpc;
+using Ekati;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
-using cli;
 using cli.antlr;
-using cli_grammer;
+using DotNext.IO;
+using DotNext.Net.Cluster;
+using DotNext.Net.Cluster.Consensus.Raft;
+using DotNext.Net.Cluster.Messaging;
+using parser_grammer;
+using Ekati.Core;
+using Ekati.Ext;
+using FlatBuffers;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Utils = Ahghee.Utils;
+using Server.Protocol.Grpc;
+using IMessage = DotNext.Net.Cluster.Messaging.IMessage;
+using Utils = Ekati.Utils;
 
 namespace server
 {
-    
-    public class WatService : Ahghee.Grpc.WatDbService.WatDbServiceBase
+    public class WatService : WatDbService.WatDbServiceBase, IInputChannel
     {
         private readonly ILogger<WatService> _logger;
         private readonly IStorage _db;
         private TimeSpan _procTotalProcessorTime;
         private DateTime _dateTime;
         private Process _proc;
-
-        public WatService(ILogger<WatService> logger, IStorage db)
+        private IExpandableCluster _cluster;
+        private readonly IMessageBus _clusterBus;
+        private IInputChannel _inputChannelImplementation;
+        private ShardAssignment _currentShardAssignment;
+            
+        public WatService(ILogger<WatService> logger, IStorage db, IExpandableCluster cluster, IMessageBus clusterBus)
         {
             _logger = logger;
             _db = db;
-
+            _cluster = cluster;
+            _clusterBus = clusterBus;
+            _clusterBus.AddListener(this);
             // these are used to keep track of cpu.
             _proc = Process.GetCurrentProcess();
             _procTotalProcessorTime = _proc.TotalProcessorTime;
             _dateTime = DateTime.UtcNow;
+            Startup();
+        }
+
+        public async void Startup()
+        {
+            var shardAssignment = await _clusterBus.LeaderRouter.SendMessageAsync(new ShardAssignment(_cluster.Members.Count*4, _cluster.Members).ToBinaryMessage(),
+                (resp, token) => new ValueTask<ShardAssignment>(new ShardAssignment(resp)), CancellationToken.None);
+            this._currentShardAssignment = shardAssignment;
         }
 
         static UnbufferedTokenStream makeAHGHEEStream(string text)
@@ -63,8 +86,9 @@ namespace server
         }
         public override async Task<GetMetricsResponse> GetMetrics(GetMetricsRequest request, ServerCallContext context)
         {
-            return await _db.GetMetrics(request,context.CancellationToken);
-            var cpuPercent = UpdateCpuPercent();
+            throw new NotImplementedException();
+            //return await _db.GetMetrics(request,context.CancellationToken);
+            // var cpuPercent = UpdateCpuPercent();
         }
 
         private float UpdateCpuPercent()
@@ -143,11 +167,13 @@ namespace server
             {
                 var nodes = list.GroupBy(n => n.Id, (key, ns) =>
                 {
-                    return new Node
-                    {
-                        Id = key,
-                        Attributes = {ns.SelectMany(_n => _n.Attributes)}
-                    };
+                    var buf = new FlatBufferBuilder(128);
+                    var nid = key.Value.CopyTo(buf);
+                    var node = Node.CreateNode(buf, nid,
+                        Map.CreateMap(buf, Map.CreateItemsVector(buf, ns.SelectMany(_n => _n.Attributes.Value.AsEnumerable())
+                            .Select(kv => kv.CopyTo(buf)).ToArray())));
+                    Node.FinishNodeBuffer(buf, node);
+                    return Node.GetRootAsNode(buf.DataBuffer);
                 });
                 await _db.Add(nodes.ToList());
             }
@@ -335,30 +361,24 @@ namespace server
             }
         }
 
-        public override async Task Get(Query request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
+        public override async Task Get(Query request, IServerStreamWriter<FlatNode> responseStream, ServerCallContext context)
         {
             try
             {
-                // todo: pass this into the Items call. context.CancellationToken;
-                var resutl = await _db.Items(request.Iris.Select(iri => new NodeID
-                {
-                    Iri = iri,
-                    Remote = "",
-                    Pointer = Utils.NullMemoryPointer()
-                }), request.Step);
+                // todo: parse request.querytext
+                var buf = new FlatBufferBuilder(16);
+                var anyNid = NodeID.CreateNodeID(buf, "".CopyTo(buf), "*".CopyTo(buf));
+                buf.Finish(anyNid.Value);
+                var nid = NodeID.GetRootAsNodeID(buf.DataBuffer);
+                var resutl = await _db.Items(new [] {nid});
                 var sendCount = 0;
                 foreach (var chunk in resutl)
                 {
-                    var (z, b) = chunk;
-                    if (b.IsLeft)
-                    {
-                        sendCount++;
-                        await responseStream.WriteAsync(b.Left);
-                    }
-                    else
-                    {
-                        _logger.LogError(b.Right, "Failure processing query");
-                    }
+                    sendCount++;
+                    var fn = new FlatNode();
+                    // todo: remove the double copy here
+                    fn.FlatBuffer = ByteString.CopyFrom(chunk.ByteBuffer.ToFullArray());
+                    await responseStream.WriteAsync(fn);
                 }
                 _logger.LogInformation($"Sent back {sendCount} items.");
             }
@@ -368,11 +388,13 @@ namespace server
             }
         }
 
-        public override async Task<PutResponse> Put(Node request, ServerCallContext context)
+        public override async Task<PutResponse> Put(FlatNode request, ServerCallContext context)
         {
             try
             {
-                await _db.Add(new[] {request});
+                // todo: remove the copy here
+                var node = Node.GetRootAsNode(new ByteBuffer(request.FlatBuffer.ToByteArray()));
+                await _db.Add(new[] {node});
                 return new PutResponse{Success = true};
             }
             catch (Exception e)
@@ -384,19 +406,58 @@ namespace server
 
         public override async Task<GetStatsResponse> GetStats(GetStatsRequest request, ServerCallContext context)
         {
-
-            return await _db.GetStats(request, context.CancellationToken);
+            throw new NotImplementedException();
+            // return await _db.GetStats(request, context.CancellationToken);
             
-        }
-
-        public override Task ListPolicies(ListPoliciesRequest request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
-        {
-            return base.ListPolicies(request, responseStream, context);
         }
 
         public override Task<ListStatsResponse> ListStats(ListStatsRequest request, ServerCallContext context)
         {
             return base.ListStats(request, context);
+        }
+
+        // these are messages from some other node in the cluster
+        public Task<IMessage> ReceiveMessage(ISubscriber sender, IMessage message, object? context, CancellationToken token)
+        {
+            if (message.Name == server.ShardAssignment.Name)
+            {
+                if (_cluster.Leader.IsRemote)
+                {
+                    // shard assignment requests should always be sent to the leader, so we if get one as
+                    // a follower then something went wrong
+                    _logger.LogWarning("Got shard assignment message as a follower");
+                }
+
+                // if we have a current shardAssignment, and one that was sent in that are different
+                // we should check membership for new servers, or missing servers.
+                
+                
+                
+                // if we have new servers, ....
+                
+                
+                // if we have missing servers ...
+                
+                 
+                // if we have same servers, but different assignments, then we will want to either keep it the same
+                // or determine if we should balance some things around.
+                
+                var sa = new ShardAssignment(_cluster.Members.Count * 4, _cluster.Members);
+                this._currentShardAssignment = sa;
+                return Task.FromResult(sa.ToBinaryMessage() as IMessage);
+            }
+            throw new NotImplementedException();
+        }
+
+        // these are signals from some other node in the cluster
+        public Task ReceiveSignal(ISubscriber sender, IMessage signal, object? context, CancellationToken token)
+        {
+            switch (signal.Name)
+            {
+                case "" : break;
+                default: break;
+            }
+            throw new NotImplementedException();
         }
     }
 }

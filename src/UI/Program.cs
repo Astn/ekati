@@ -34,7 +34,7 @@ namespace UI
                 var channel = GrpcChannel.ForAddress(baseUri, new GrpcChannelOptions { HttpClient = httpClient });
 
                 // Now we can instantiate gRPC clients for this channel
-                return new Ahghee.Grpc.WatDbService.WatDbServiceClient(channel);
+                return new Ekati.Grpc.WatDbService.WatDbServiceClient(channel);
             });
 
             

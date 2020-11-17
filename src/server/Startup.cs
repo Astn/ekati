@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Ahghee;
-using Ahghee.Grpc;
+using Ekati;
 using App.Metrics;
+using DotNext.Net.Cluster.Consensus.Raft.Http.Embedding;
+using Ekati.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -26,7 +27,7 @@ namespace server
             services.AddSingleton(sp =>
             {
                 var lifetimeEvents = sp.GetService<IHostApplicationLifetime>();
-                var ekati = new Ahghee.GrpcFileStore(new Config(
+                var ekati = new Ekati.GrpcFileStore(new Config(
                     Convert.ToInt32(1), //Environment.ProcessorCount * .75),
                     FSharpFunc<string, Unit>.FromConverter(
                         input => { return null; }),
@@ -74,6 +75,7 @@ namespace server
                 app.UseHsts();
             }
 
+            app.UseConsensusProtocolHandler();
             //app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();

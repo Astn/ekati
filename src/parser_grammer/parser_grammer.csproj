@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>parser_grammer</RootNamespace>
+        <TargetFrameworks>netstandard2.1</TargetFrameworks>
+        <Platforms>x64</Platforms>
+        <AssemblyName>parser_grammer</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Antlr4" Version="4.6.6" />
+    </ItemGroup>
+   
+<!--    <ItemGroup>-->
+<!--        -->
+<!--        <Antlr4 Include="AHGHEE.g4" >-->
+<!--            <Generator>MSBuild:Compile</Generator>-->
+<!--            <CustomToolNamespace>MyProject.Folder</CustomToolNamespace>-->
+<!--            <Listener>True</Listener>-->
+<!--            <Visitor>True</Visitor>-->
+<!--        </Antlr4>-->
+<!--        <Antlr4 Include="NTRIPLES.g4" >-->
+<!--            <Generator>MSBuild:Compile</Generator>-->
+<!--            <CustomToolNamespace>MyProject.Folder</CustomToolNamespace>-->
+<!--            <Listener>True</Listener>-->
+<!--            <Visitor>True</Visitor>-->
+<!--        </Antlr4>-->
+<!--    </ItemGroup>-->
+
+<!-- 
+// because jetbrains intellisence and code analysis doesnt check to obj outputs
+// we can include this while we are editing to trick jetbrains into working.
+// we have to uncomment for compile though.
+-->
+    <ItemGroup>
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESBaseListener.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESBaseVisitor.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESLexer.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESListener.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESParser.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\NTRIPLESVisitor.cs" />
+
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEBaseListener.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEBaseVisitor.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEELexer.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEListener.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEParser.cs" />
+      <Compile Include="obj\x64\Debug\netstandard2.1\AHGHEEVisitor.cs" />
+    </ItemGroup>
+
+
+
+
+
+
+
+</Project>

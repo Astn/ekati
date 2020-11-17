@@ -12,9 +12,9 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
-      <ProjectReference Include="..\cli-grammer\cli-grammer.csproj" />
       <ProjectReference Include="..\core\ahghee.fsproj" />
       <ProjectReference Include="..\parser\parser.csproj" />
+      <ProjectReference Include="..\parser_grammer\parser_grammer.csproj" />
       <ProjectReference Include="..\report\report.fsproj" />
     </ItemGroup>
 

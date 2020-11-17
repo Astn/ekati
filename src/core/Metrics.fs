@@ -1,4 +1,4 @@
-namespace Ahghee
+namespace Ekati
 open App.Metrics
 open App.Metrics.Gauge
 open App.Metrics.Meter
