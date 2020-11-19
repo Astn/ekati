@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Hosting;
-using DotNext.Net.Cluster.Consensus.Raft.Http.Embedding;
+using DotNext.Net.Cluster.Consensus.Raft.Http.Hosting;
 
 namespace server
 {
@@ -31,9 +31,9 @@ namespace server
                         // You'll see the following error message when you attempt to start the gRPC server:
                         
                         // Setup a HTTP/2 endpoint without TLS.
-                        options.ListenLocalhost(5000, o => o.Protocols = HttpProtocols.Http2);
+                        //options.ListenLocalhost(5000, o => o.Protocols = HttpProtocols.Http2);
                     });
                     webBuilder.UseStartup<Startup>();
-                }).JoinCluster();
+                }).JoinCluster("Raft");
     }
 }
