@@ -17,6 +17,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "serverlib", "serverlib\serv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "server", "server\server.csproj", "{AE126769-E107-4E24-8A1C-2157B4CCF828}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestClient", "TestClient\TestClient.csproj", "{E4EE8116-27C0-4EFC-8631-A15BFA406295}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI", "UI\UI.csproj", "{D9C984E9-6972-4FCD-8233-4017959DE7EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +55,14 @@ Global
 		{AE126769-E107-4E24-8A1C-2157B4CCF828}.Debug|x64.Build.0 = Debug|x64
 		{AE126769-E107-4E24-8A1C-2157B4CCF828}.Release|x64.ActiveCfg = Release|x64
 		{AE126769-E107-4E24-8A1C-2157B4CCF828}.Release|x64.Build.0 = Release|x64
+		{E4EE8116-27C0-4EFC-8631-A15BFA406295}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E4EE8116-27C0-4EFC-8631-A15BFA406295}.Debug|x64.Build.0 = Debug|Any CPU
+		{E4EE8116-27C0-4EFC-8631-A15BFA406295}.Release|x64.ActiveCfg = Release|Any CPU
+		{E4EE8116-27C0-4EFC-8631-A15BFA406295}.Release|x64.Build.0 = Release|Any CPU
+		{D9C984E9-6972-4FCD-8233-4017959DE7EE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D9C984E9-6972-4FCD-8233-4017959DE7EE}.Debug|x64.Build.0 = Debug|Any CPU
+		{D9C984E9-6972-4FCD-8233-4017959DE7EE}.Release|x64.ActiveCfg = Release|Any CPU
+		{D9C984E9-6972-4FCD-8233-4017959DE7EE}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

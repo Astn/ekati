@@ -3,19 +3,23 @@ syntax = "proto3";
 // TODO: support protobuff any
 // import google/protobuf/any.proto
 import "google/protobuf/timestamp.proto";
-package server.protocol.grpc;
+package Ekati.Protocol.Grpc;
 
 
 message FlatNode {
     bytes flatBuffer = 1;
 }
 
-message Query {
+message QueryRequest {
     string queryText = 2;
 }
 
 message PutResponse{
     bool success = 1;
+}
+
+message GetRequest{
+    repeated string iris = 1;
 }
 
 message GetMetricsResponse{
@@ -61,12 +65,20 @@ message ShardAssignment{
     repeated string leaders = 1;
     repeated Followers followers = 2;
 }
-
+message QueryResponse{
+    oneof message {
+        FlatNode node = 1 ;
+        LoadFileResponse loadFileResponse = 2;
+        PutResponse PutResponse = 3;
+    }
+}
 
 service WatDbService {
-    rpc Load (LoadFile) returns (stream LoadFileResponse) {}
-    rpc Put (FlatNode) returns (PutResponse) {}
-    rpc Get (Query) returns (stream FlatNode) {}
+    rpc Load (LoadFile) returns (stream QueryResponse) {}
+    rpc Put (FlatNode) returns (stream QueryResponse) {}
+    rpc Query ( QueryRequest) returns (stream QueryResponse){};
+    rpc Get (GetRequest) returns (stream QueryResponse) {}
+
     rpc GetMetrics (GetMetricsRequest) returns (GetMetricsResponse){}
     rpc GetStats (GetStatsRequest) returns (GetStatsResponse){}
     rpc ListStats (ListStatsRequest) returns (ListStatsResponse){}

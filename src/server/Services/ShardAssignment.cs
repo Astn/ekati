@@ -6,7 +6,7 @@ using DotNext.IO;
 using DotNext.Net.Cluster;
 using DotNext.Net.Cluster.Messaging;
 using Google.Protobuf;
-using Server.Protocol.Grpc;
+using Ekati.Protocol.Grpc;
 using IMessage = DotNext.Net.Cluster.Messaging.IMessage;
 
 namespace server
@@ -81,7 +81,7 @@ namespace server
             }
         }
 
-        public ShardAssignment(Server.Protocol.Grpc.ShardAssignment other)
+        public ShardAssignment(Ekati.Protocol.Grpc.ShardAssignment other)
         {
             InitFrom(other);
         }
@@ -91,17 +91,17 @@ namespace server
             if (clusterMessage.Name == "GetShardAssignment")
             {
                 var respBytes = clusterMessage.ToByteArrayAsync().Result;
-                var respSA = new Server.Protocol.Grpc.ShardAssignment();
+                var respSA = new Ekati.Protocol.Grpc.ShardAssignment();
                 respSA.MergeFrom(respBytes);
                 InitFrom(respSA);
             }
         }
 
-        public Server.Protocol.Grpc.ShardAssignment ToGrpcShardAssignment()
+        public Ekati.Protocol.Grpc.ShardAssignment ToGrpcShardAssignment()
         {
             return ToGrpcShardAssignment(this);
         }
-        public void InitFrom(Server.Protocol.Grpc.ShardAssignment other)
+        public void InitFrom(Ekati.Protocol.Grpc.ShardAssignment other)
         {
             Leaders = other.Leaders.ToArray();
             
@@ -111,9 +111,9 @@ namespace server
                 Followers[i] = other.Followers[i].Follower.ToArray();
             }
         }
-        public static Server.Protocol.Grpc.ShardAssignment ToGrpcShardAssignment(ShardAssignment sa)
+        public static Ekati.Protocol.Grpc.ShardAssignment ToGrpcShardAssignment(ShardAssignment sa)
         {
-            var respSA = new Server.Protocol.Grpc.ShardAssignment();
+            var respSA = new Ekati.Protocol.Grpc.ShardAssignment();
             respSA.Leaders.AddRange(sa.Leaders);
             for (int i = 0; i < sa.Followers.GetLength(0); i++)
             {

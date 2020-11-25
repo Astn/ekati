@@ -23,9 +23,9 @@ namespace Ekati
         private volatile int serial = 0;
         public NodeStore(string file)
         {
-            var continueSession = (File.Exists(file + ".ns.log")
+            var logFilesExist = (File.Exists(file + ".ns.log")
                                    || File.Exists(file + ".ns.obj.log"));
-            if (!continueSession)
+            if (!logFilesExist)
             {
                 File.Create(file + ".ns.log");
                 File.Create(file + ".ns.obj.log");
@@ -53,12 +53,14 @@ namespace Ekati
                 new NodeIdComparer());
 
 
-            if (continueSession)
+            try
             {
                 _kv.Recover();
                 _session = _kv.ResumeSession("s1", out CommitPoint cp);
             }
-            else
+            catch (Exception e) { Console.WriteLine(e); }
+
+            if(_session == null)
             {
                 _session = _kv.NewSession("s1");
             }

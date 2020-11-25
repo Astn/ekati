@@ -48,7 +48,7 @@ namespace server
                 return ekati;
             });
 
-            // services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
+            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             // services.AddCors(o =>
             // {
@@ -100,7 +100,6 @@ namespace server
                 //     await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
                 // });
             });
-            //app.UseConsensusProtocolHandler();
         }
     }
 }

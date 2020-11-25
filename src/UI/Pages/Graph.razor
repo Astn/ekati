@@ -1,7 +1,9 @@
-@using Ekati.Grpc
-@using FASTER.core
+
+
+@using Ekati.Core
 @using Range = System.Range
 @using System.Text
+@using Ekati.Ext
 @inject IJSRuntime JSRuntime;
 
 
@@ -53,10 +55,10 @@
     {
         base.OnAfterRender(firstRender);
         
-        // tod: like should we render?
+        // todo: like should we render?
         // be great to know if the nodes we have now are different from the nodes we had last time.
         var newHash = Nodes
-            .Select(n => n.Id.Iri.GetHashCode())
+            .Select(n => n.Id.Value.Iri.GetHashCode())
             .Aggregate(0, (acc, next) => acc ^ next);
         if (newHash != lasthash)
         {
@@ -80,15 +82,17 @@
             Console.WriteLine("cleaning it");
             var lessData = Nodes.Select(n =>
             {
-                var edges = n.Attributes
+                var edges = n.Attributes.Value.AsEnumerable()
                     
-                    .Where(a => a.Value.Data.Nodeid != null)
+                    .Where(a => a.Value.Value.Data.Value.ItemType == DataBlock.NodeID)
                     .GroupBy(kv => 
-                        kv.Key.Data?.Nodeid?.Iri != null ? kv.Key.Data?.Nodeid?.Iri : kv.Key.Data?.Str,
+                        kv.Key.Value.Data.Value.ItemType == DataBlock.NodeID 
+                            ? kv.Key.Value.Data.Value.Item<NodeID>().Value.Iri
+                            : kv.Key.Value.Data.Value.Item<Primitive>().Value.AsString(),
                     kv => 
-                        kv.Value.Data.Nodeid.Iri);
+                        kv.Value.Value.Data.Value.Item<NodeID>().Value.Iri);
         // all we need is iri, label, iri
-                return (n.Id.Iri,edges);
+                return (n.Id.Value.Iri,edges);
             })
                 .GroupBy(x=> x.Item1,x => x.edges)
                 .Select(x =>
