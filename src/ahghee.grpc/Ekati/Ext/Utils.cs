@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ekati.Core;
@@ -229,7 +230,9 @@ namespace Ekati.Ext
 
         public override void Serialize(ref Map obj)
         {
-            writer.Write(obj.ByteBuffer.ToSizedArray());
+            var arr = obj.ByteBuffer.ToSizedArray();
+            writer.Write(arr.Length);
+            writer.Write(arr);
         }
     }
 
@@ -282,7 +285,9 @@ namespace Ekati.Ext
 
         public override void Serialize(ref NodeID obj)
         {
-            writer.Write(obj.ByteBuffer.ToSizedArray());
+            var arr = obj.ByteBuffer.ToSizedArray();
+            writer.Write(arr.Length);
+            writer.Write(arr);
         }
     }
     
@@ -297,11 +302,36 @@ namespace Ekati.Ext
 
         public override void Serialize(ref Node obj)
         {
-            writer.Write(obj.ByteBuffer.ToSizedArray());
+            var arr = obj.ByteBuffer.ToSizedArray();
+            writer.Write(arr.Length);
+            writer.Write(arr);
         }
     }
     public static class DisplayHelpers
     {
+        public static string ToDisplayString(this Ekati.Core.Node node)
+        {
+            return $"nodeId: {node.Id.ToDisplayString()}, {node.Attributes.ToDisplayString()}";
+            
+        }
+
+        public static string ToDisplayString(this Ekati.Core.NodeID? nodeId)
+        {
+            return $"{{iri: {nodeId.Value.Iri}, remote: {nodeId.Value.Remote}}}";
+        }
+
+        public static string ToDisplayString(this Ekati.Core.Map? map)
+        {
+            var sb = new StringBuilder();
+            sb.Append("[");
+            for (int i = 0; i < map.Value.ItemsLength; i++)
+            {
+                sb.Append($"{{ key: {map.Value.Items(i).Value.Key.Value.Data.Value.ToDisplayString()} ,");
+                sb.Append($" value: {map.Value.Items(i).Value.Value.Value.Data.Value.ToDisplayString()} }},");
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
         public static string ToDisplayString(this Ekati.Core.Data db)
         {
             switch (db.ItemType)
@@ -309,17 +339,17 @@ namespace Ekati.Ext
                 case DataBlock.NONE: return "null";
                 case DataBlock.NodeID:
                     {
-                        var nid = NodeID.GetRootAsNodeID(db.ByteBuffer);
+                        var nid = db.Item<NodeID>().Value;
                         return "-> " + nid.Iri;
                     }
                 case DataBlock.TypeBytes:
                     {
-                        var tb = TypeBytes.GetRootAsTypeBytes(db.ByteBuffer);
+                        var tb = db.Item<TypeBytes>().Value;
                         return tb.Typeiri;
                     }
                 case DataBlock.Array:
                     {
-                        var ar = Array.GetRootAsArray(db.ByteBuffer);
+                        var ar = db.Item<Array>().Value;
                         var itr = Enumerable.
                             Range(0, ar.ItemsLength)
                             .Select(offset => ar.Items(offset))
@@ -329,7 +359,7 @@ namespace Ekati.Ext
                     }
                 case DataBlock.Map:
                     {
-                        var ar = Map.GetRootAsMap(db.ByteBuffer);
+                        var ar = db.Item<Map>().Value;
                         var itr = Enumerable.Range(0, ar.ItemsLength)
                             .Select(offset => ar.Items(offset))
                             .Where(x => x.HasValue)
@@ -340,9 +370,12 @@ namespace Ekati.Ext
                     }
                 case DataBlock.Primitive:
                     {
-                        var prim = Primitive.GetRootAsPrimitive(db.ByteBuffer);
+                        var prim = db.Item<Primitive>().Value;
                         switch (prim._type)
                         {
+                            case PrimitiveType.boolean:
+                                return prim.Boolean.ToString();
+                                break;
                             case PrimitiveType.str:
                                 return prim.Str;
                                 break;

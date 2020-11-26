@@ -294,10 +294,12 @@ get ""*""
         await responseNodes.ResponseStream.ForEachAsync(async n =>
         {
             scriptStatus.Count++;
-            if(n.MessageCase == QueryResponse.MessageOneofCase.Node)
+            this.StateHasChanged();
+            if (n.MessageCase == QueryResponse.MessageOneofCase.Node)
             {
-
-                var node = Node.GetRootAsNode(new FlatBuffers.ByteBuffer(n.Node.FlatBuffer.ToByteArray()));
+                Console.WriteLine("Got Node - {0}", n.Node.FlatBuffer.ToBase64());
+                var sizedArray = n.Node.FlatBuffer.ToByteArray();
+                var node = Node.GetRootAsNode(new FlatBuffers.ByteBuffer(sizedArray));
                 Nodes.Add(node);
                 getNodesStatus.Value.Count++;
             }else if (n.MessageCase == QueryResponse.MessageOneofCase.PutResponse)

@@ -422,7 +422,8 @@ namespace server
                     sendCount++;
                     var fn = new FlatNode();
                     // todo: remove the double copy here
-                    fn.FlatBuffer = ByteString.CopyFrom(chunk.ByteBuffer.ToFullArray());
+                    _logger.LogInformation($"Sending Node:\n {chunk.ToDisplayString()}");
+                    fn.FlatBuffer = ByteString.CopyFrom(chunk.ByteBuffer.ToSizedArray());
                     var qr = new QueryResponse();
                     qr.Node = fn;
                     await responseStream.WriteAsync(qr);

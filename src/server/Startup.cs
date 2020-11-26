@@ -47,8 +47,8 @@ namespace server
                 
                 return ekati;
             });
-
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
+            services.AddGrpc();
+            //services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             // services.AddCors(o =>
             // {
@@ -85,10 +85,11 @@ namespace server
             //
             // app.UseCors("MyPolicy");
 
-            app.UseGrpcWeb();
+           
             
             
             app.UseRouting();
+            app.UseGrpcWeb();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<WatService>().EnableGrpcWeb();

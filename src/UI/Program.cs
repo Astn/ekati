@@ -27,10 +27,7 @@ namespace UI
             {
                 // Create a gRPC-Web channel pointing to the backend server
                 var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWeb, new HttpClientHandler()));
-                
-                // for finding where we were served from.
-                //var baseUri = services.GetRequiredService<NavigationManager>().BaseUri;
-                var baseUri = "https://localhost:8001";
+                var baseUri = services.GetRequiredService<NavigationManager>().BaseUri;
                 var channel = GrpcChannel.ForAddress(baseUri, new GrpcChannelOptions { HttpClient = httpClient });
 
                 // Now we can instantiate gRPC clients for this channel

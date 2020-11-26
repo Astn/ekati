@@ -18,19 +18,18 @@ namespace cli
         public static Offset<NodeID> ToNodeID(this AHGHEEParser.NodeidContext id, FlatBufferBuilder builder)
         {
             var json = id.obj();
-                                
-            if (json != null)
+            var text = json!=null ? json.GetText() : id.GetText().Trim('"');                                
+            
+            
+            var split = text.Split('/');
+            var graph = String.Empty;
+            if (split.Length > 1)
             {
-                var text = json.GetText();
-                var split = text.Split('/');
-                var graph = String.Empty;
-                if (split.Length > 1)
-                {
-                    graph = split[0];
-                }
-                var ab = Ekati.Utils.Id(builder, graph, text);
-                return ab;
+                graph = split[0];
             }
+            var ab = Ekati.Utils.Id(builder, graph, text);
+            return ab;
+            
 
             return Ekati.Utils.Id(builder, "", "");
         }
