@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Ahghee.Grpc;
-using cli_grammer;
+using Ekati;
+using Ekati.Core;
+using FlatBuffers;
+using parser_grammer;
 
 namespace cli.antlr
 {
@@ -31,24 +33,22 @@ namespace cli.antlr
         {
             try
             {
-                var nodeId = context.subj().ToNodeId(BNToId);
+                var builder = new FlatBufferBuilder(32);
+                var nodeId = context.subj().ToNodeId(builder, BNToId);
 
-                var pred = context.pred().ToDataBlock();
+                var pred = context.pred().ToDataBlock(builder);
 
-                var obj = context.obj().ToDataBlock(BNToId);
-                var node = new Node();
-                node.Id = nodeId;
-                node.Attributes.Add(new KeyValue
-                {
-                    Key = new TMD
-                    {
-                        Data = pred,
-                    },
-                    Value = obj
-                });
-                _gotNode(node);
+                var obj = context.obj().ToDataBlock(builder, BNToId);
+
+                var kv = KeyValue.CreateKeyValue(builder, 0L, Utils.Tmd(builder, pred), obj);
+                var kvArr = Map.CreateItemsVector(builder, new[] {kv});
+
+                var node = Utils.Nodee(builder, nodeId, Map.CreateMap(builder, kvArr));
+                Node.FinishNodeBuffer(builder, node);
+                
+                _gotNode(Node.GetRootAsNode(builder.DataBuffer));
             }
-            catch (Exception ex)
+            catch (Exception )
             {
                 Console.WriteLine($"Uh.. got this -->\n{context.GetText()}\n<-- Ends here");
                 throw;

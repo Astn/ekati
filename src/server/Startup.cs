@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Ahghee;
-using Ahghee.Grpc;
+using Ekati;
 using App.Metrics;
+using DotNext.Net.Cluster.Consensus.Raft;
+using DotNext.Net.Cluster.Consensus.Raft.Http.Embedding;
+using Ekati.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.FSharp.Core;
@@ -26,7 +29,7 @@ namespace server
             services.AddSingleton(sp =>
             {
                 var lifetimeEvents = sp.GetService<IHostApplicationLifetime>();
-                var ekati = new Ahghee.GrpcFileStore(new Config(
+                var ekati = new Ekati.GrpcFileStore(new Config(
                     Convert.ToInt32(1), //Environment.ProcessorCount * .75),
                     FSharpFunc<string, Unit>.FromConverter(
                         input => { return null; }),
@@ -44,8 +47,8 @@ namespace server
                 
                 return ekati;
             });
-
-            // services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
+            services.AddGrpc();
+            //services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             // services.AddCors(o =>
             // {
@@ -74,21 +77,25 @@ namespace server
                 app.UseHsts();
             }
 
+
             //app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
-            app.UseRouting();
+            
             //
             // app.UseCors("MyPolicy");
 
+           
+            
+            
+            app.UseRouting();
             app.UseGrpcWeb();
-            
-            
-            
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<WatService>().EnableGrpcWeb();
                 endpoints.MapFallbackToFile("index.html");
+                //var cluster = endpoints.ServiceProvider.GetRequiredService<RaftCluster>();
+                //endpoints.Map("/cluster-consensus/raft",cluster.)
                 // endpoints.MapGet("/", async context =>
                 // {
                 //     await context.Response.WriteAsync("Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");

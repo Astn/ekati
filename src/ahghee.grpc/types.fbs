@@ -1,0 +1,92 @@
+namespace Ekati.Core;
+
+table MemoryPointer {
+    partitionkey : int32;
+    filename : int32;
+    offset : int32;
+    length : int32;
+}
+
+table TypeBytes {
+    typeiri: string;
+    byteArray: [ubyte];
+    pointer: MemoryPointer;
+}
+
+table NodeID {
+    remote: string;
+    iri: string;
+    pointer: MemoryPointer;
+}
+
+enum PrimitiveType : byte {
+    boolean,
+    str,
+    i8,
+    i16,
+    i32,
+    i64,
+    ui8,
+    ui16,
+    ui32,
+    ui64,
+    f,
+    f32,
+    f64,
+}
+
+table Primitive {
+    _type: PrimitiveType;
+    boolean: bool;
+    str: string;
+    i8: int8;
+    i16: int16;
+    i32: int32;
+    i64: int64;
+    ui8: uint8;
+    ui16: uint16;
+    ui32: uint32;
+    ui64: uint64;
+    f: float;
+    f32: float32;
+    f64: float64;
+}
+
+union DataBlock {
+    NodeID,
+    TypeBytes,
+    Map,
+    Array,
+    Primitive
+}
+table Data {
+    item: DataBlock;
+}
+table Array {
+    items: [Data];
+}
+table Map {
+    items: [KeyValue];
+}
+
+table TMD {
+    metaData: Data;
+    data: Data;
+}
+
+table KeyValue {
+    timestamp: int64;
+    key: TMD;
+    value: TMD;
+}
+
+table Node {
+    id: NodeID;
+    attributes: Map;
+}
+
+table Pointers{
+    items: [MemoryPointer];
+}
+
+root_type Node;

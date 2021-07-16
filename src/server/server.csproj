@@ -6,6 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNext" Version="2.11.0" />
+    <PackageReference Include="DotNext.AspNetCore.Cluster" Version="2.11.0" />
+    <PackageReference Include="DotNext.Net.Cluster" Version="2.11.0" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.28.0" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.28.0-pre2" />
   </ItemGroup>
@@ -15,7 +18,11 @@
   <ItemGroup>
     <ProjectReference Include="..\ahghee.grpc\ahghee.grpc.csproj" />
     <ProjectReference Include="..\core\ahghee.fsproj" />
+    <ProjectReference Include="..\parser\parser.csproj" />
+    <ProjectReference Include="..\parser_grammer\parser_grammer.csproj" />
     <ProjectReference Include="..\UI\UI.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Folder Include="data\" />
+  </ItemGroup>
 </Project>

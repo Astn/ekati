@@ -2,11 +2,11 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Platforms>x64</Platforms>
+    <AssemblyName>ekati</AssemblyName>
+    <RootNamespace>ekati</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Metrics.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="MemoryStore.fs" />
     <Compile Include="FileStoreCommon.fs" />
     <Compile Include="FileStorePartition.fs" />
     <Compile Include="FileStore.fs" />

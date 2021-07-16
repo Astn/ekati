@@ -1,9 +1,6 @@
-namespace Ahghee
+namespace Ekati
 
-open Ahghee.Grpc
-open Ahghee.Grpc
-open Google.Protobuf
-open Google.Protobuf.Collections
+
 open System
 open System.Collections.Concurrent
 open System.Collections.Generic
@@ -15,10 +12,10 @@ open System.Net.NetworkInformation
 open System.Threading
 open System.Threading
 open System.Threading.Tasks
-open Ahghee.Grpc
-open Google.Protobuf.WellKnownTypes
+open FlatBuffers
 open Mono.Unix.Native
-
+open Ekati.Core
+open Ekati.Ext
 type ClusterServices(log: string -> unit) = 
     let remotePartitions = new ConcurrentDictionary<int,FileStorePartition>()
     
@@ -29,17 +26,14 @@ type ClusterServices(log: string -> unit) =
         member this.RemoteLookup (partition:int) (nid:NodeID) : bool * Node = 
             if remotePartitions.ContainsKey partition then 
                 let remote = remotePartitions.[ partition ]
-                let mutable refPointers :Attributes = null
+                let mutable refPointers : Node = Node()
                 let rind = remote.AttrIndex()
                 if rind.TryGetValue(nid, & refPointers) then
-                    let n = new Node()
-                    n.Id <- nid
-                    n.Attributes.AddRange refPointers.Attributes_
-                    true, n
+                    true, refPointers
                 else
-                    false, null
+                    false, Node()
                 
-            else false, null
+            else false, Node()
             
 
 
@@ -67,342 +61,58 @@ type GrpcFileStore(config:Config) =
             let (_,_,part) = writers.[i]
             clusterServices.RemotePartitions().AddOrUpdate(i,part, (fun x p -> part)) |> ignore
         writers
-        
-    let mergeNodesById (node:Node[]) =
-        node
-        |> Seq.groupBy(fun n -> n.Id)
-        |> Seq.map(fun (m1,m2) -> m2 |> Seq.reduce(fun i1 i2 ->
-                                                        i1.MergeFrom(i2)
-                                                        let noDuplicates = i1.Attributes.Distinct().ToList()
-                                                        i1.Attributes.Clear()
-                                                        i1.Attributes.AddRange(noDuplicates)
-                                                        i1))
-        |> Seq.head
-    
-    let setTimestamps (node:Node) (nowInt:Int64) =
-        for kv in node.Attributes do
-            kv.Key.Timestamp <- nowInt
-            kv.Value.Timestamp <- nowInt
-            if kv.Key.Data.DataCase = DataBlock.DataOneofCase.Nodeid then
-                kv.Key.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()
-            if kv.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid then
-                kv.Value.Data.Nodeid.Pointer <- Utils.NullMemoryPointer()    
-    
+   
     let Flush () =
-        ()
-    
-    let DataBlockCMP (left:DataBlock, op:String, right:DataBlock) =
-        match op with
-            | "==" -> left = right
-            | "<" -> left < right
-            | ">" -> left > right
-            | "<=" -> left <= right
-            | ">=" -> left >= right
-            | _ -> raise <| Exception (sprintf "Operation not supported op %s" op)
-    
-    let RemoveFieldsNode (fieldsOp:FieldsOperator, node:Node) : Node =
-        let isMatch(part: FieldsOperator.Types.CludeOp.Types.CludePart, data: DataBlock):bool =
-            match part.PartCase with
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsCaret -> data.DataCase = DataBlock.DataOneofCase.Nodeid
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsStar -> true
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeFloat -> data.DataCase = DataBlock.DataOneofCase.F
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeInt -> data.DataCase = DataBlock.DataOneofCase.I32
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.IsTypeString -> data.DataCase = DataBlock.DataOneofCase.Str
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.StringMatch -> data.DataCase = DataBlock.DataOneofCase.Str && data.Str = part.StringMatch
-            | FieldsOperator.Types.CludeOp.Types.CludePart.PartOneofCase.CarrotStringMatch -> data.DataCase = DataBlock.DataOneofCase.Nodeid && data.Nodeid.Iri = part.CarrotStringMatch
-        let rec trimIt(clude:FieldsOperator.Types.Clude, worknWith: IEnumerable<KeyValue>) : IEnumerable<KeyValue> =
-            match clude.OperatorCase with
-            | FieldsOperator.Types.Clude.OperatorOneofCase.None -> Enumerable.Empty()
-            | FieldsOperator.Types.Clude.OperatorOneofCase.List ->
-                clude.List.Cludes
-                |> Seq.collect (fun c -> trimIt(c, worknWith))
-            | FieldsOperator.Types.Clude.OperatorOneofCase.Include -> worknWith.Union(trimIt(clude.Include, node.Attributes))
-            | FieldsOperator.Types.Clude.OperatorOneofCase.Exclude -> worknWith.Except(trimIt(clude.Exclude, worknWith))
-            | FieldsOperator.Types.Clude.OperatorOneofCase.Twoclude ->
-                match clude.Twoclude.RightCase with
-                | FieldsOperator.Types.TwoClude.RightOneofCase.None -> trimIt(clude.Twoclude.Left, worknWith)
-                | FieldsOperator.Types.TwoClude.RightOneofCase.Include -> trimIt(clude.Twoclude.Left, worknWith).Union(trimIt(clude.Twoclude.Include, worknWith))
-                | FieldsOperator.Types.TwoClude.RightOneofCase.Exclude -> trimIt(clude.Twoclude.Left, worknWith).Except(trimIt(clude.Twoclude.Exclude, worknWith))
-                
-            | FieldsOperator.Types.Clude.OperatorOneofCase.Op ->
-                worknWith
-                    |> Seq.filter (fun a ->
-                                        let op = clude.Op
-                                        let leftMatch = isMatch(op.Left, a.Key.Data)
-                                        let rightMatch = isMatch(op.Right, a.Value.Data)
-                                        leftMatch && rightMatch
-                        )
-        let newAttrs = trimIt (fieldsOp.Clude, node.Attributes) |> List.ofSeq
-        node.Attributes.Clear()
-        node.Attributes.AddRange(newAttrs)
-        node
-    
-    let rec FilterNode (node:Node, step: Step) =
-        let rec _filterNode (node:Node, cmp: FilterOperator.Types.Compare) =
-            match cmp.CmpTypeCase with
-                | FilterOperator.Types.Compare.CmpTypeOneofCase.KevValueCmp ->
-                    node.Attributes
-                        |> Seq.exists (fun kv ->
-                                        kv.Key.Data = cmp.KevValueCmp.Property
-                                            && DataBlockCMP (kv.Value.Data, cmp.KevValueCmp.MATHOP, kv.Value.Data)
-                                        )
-                | FilterOperator.Types.Compare.CmpTypeOneofCase.CompoundCmp ->
-                    match cmp.CompoundCmp.BOOLOP with
-                        | "&&" -> _filterNode(node, cmp.CompoundCmp.Left) && _filterNode(node, cmp.CompoundCmp.Right)
-                        | "||" -> _filterNode(node, cmp.CompoundCmp.Left) || _filterNode(node, cmp.CompoundCmp.Right)
-                        | _ -> raise <| Exception (sprintf "Operation not supported op %s" cmp.CompoundCmp.BOOLOP)
-                | FilterOperator.Types.Compare.CmpTypeOneofCase.None -> true // ignore
-                | _ -> true // shouldn't happen
-                
-        match step with
-            | null -> true
-            | s when s.OperatorCase = Step.OperatorOneofCase.Filter ->
-                let cmp = s.Filter.Compare
-                match _filterNode(node, cmp) with
-                    | true -> FilterNode(node, step.Next)
-                    | false ->  false
-            | s -> true
-    
-    let rec EdgeCmpForFollow (dataBlock:DataBlock, follow: FollowOperator) =
-        let rec _EdgeCmp (dataBlock:DataBlock, cmp: FollowOperator.Types.EdgeNum) =
-            match cmp.OpCase with
-                | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange -> 
-                    dataBlock = cmp.EdgeRange.Edge
-                | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeCmp ->
-                    match cmp.EdgeCmp.BOOLOP with
-                        | "&&" -> _EdgeCmp(dataBlock, cmp.EdgeCmp.Left) && _EdgeCmp(dataBlock, cmp.EdgeCmp.Right)
-                        | "||" -> _EdgeCmp(dataBlock, cmp.EdgeCmp.Left) || _EdgeCmp(dataBlock, cmp.EdgeCmp.Right)
-                        | _ -> raise <| Exception (sprintf "Operation not supported op %s" cmp.EdgeCmp.BOOLOP)
-                | _ -> false
-        
-        match follow.FollowCase with
-            | FollowOperator.FollowOneofCase.None -> false
-            | FollowOperator.FollowOneofCase.FollowAny ->
-                // the range value is shifted as we process through the operations
-                // for us to be included, we must be in the current range from (from <= x <= 1)
-                follow.FollowAny.Range.From <= 0 && follow.FollowAny.Range.To >= 0  
-            | FollowOperator.FollowOneofCase.FollowEdge ->
-                follow.FollowAny.Range.From <= 0 && follow.FollowAny.Range.To >= 0 && _EdgeCmp(dataBlock, follow.FollowEdge)
-            | _ -> false
-    
-    let rec FollowStepDecrement(follow : FollowOperator) =
-        let _decrRange (r:Range) =
-                r.From <- max 0 (r.From - 1)
-                r.To <- r.To - 1
-        let rec _EdgeCmpDecr(fe : FollowOperator.Types.EdgeNum) =
-            match fe.OpCase with
-                    | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange ->
-                        _decrRange(fe.EdgeRange.Range)
-                    | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeCmp ->
-                        _EdgeCmpDecr (fe.EdgeCmp.Left)
-                        _EdgeCmpDecr (fe.EdgeCmp.Right)
-                    | _ -> ()
-                    
-        match follow.FollowCase with
-            | FollowOperator.FollowOneofCase.None -> ()
-            | FollowOperator.FollowOneofCase.FollowEdge -> _EdgeCmpDecr follow.FollowEdge
-            | FollowOperator.FollowOneofCase.FollowAny -> _decrRange follow.FollowAny.Range    
-
-    
-    let rec ContinueThisFollowStep(follow: FollowOperator) =
-        let rec _edgeCmpValid(edgeNum: FollowOperator.Types.EdgeNum) =
-            match edgeNum.OpCase with
-                | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeRange -> 
-                    edgeNum.EdgeRange.Range.To > 0
-                | FollowOperator.Types.EdgeNum.OpOneofCase.EdgeCmp ->
-                    _edgeCmpValid (edgeNum.EdgeCmp.Left) &&
-                        _edgeCmpValid (edgeNum.EdgeCmp.Right)
-                | _ -> false
-                
-        match follow.FollowCase with
-            | FollowOperator.FollowOneofCase.None -> false
-            | FollowOperator.FollowOneofCase.FollowEdge -> _edgeCmpValid follow.FollowEdge
-            | FollowOperator.FollowOneofCase.FollowAny -> follow.FollowAny.Range.To > 0
-    let rec MergeSameSteps(step:Step)=
-        match step.Next with
-            | null -> step
-            | next when next.OperatorCase <> step.OperatorCase -> step
-            | next when step.OperatorCase = Step.OperatorOneofCase.None -> step
-            | next when step.OperatorCase = Step.OperatorOneofCase.Skip ->
-                let maxSkip = new Step()
-                maxSkip.Skip <- new SkipFilter()
-                maxSkip.Skip.Value <- max step.Skip.Value next.Skip.Value
-                maxSkip.Next <- next.Next
-                MergeSameSteps maxSkip
-            | next when step.OperatorCase = Step.OperatorOneofCase.Limit ->
-                let minLimit = new Step()
-                minLimit.Limit <- new LimitFilter()
-                minLimit.Limit.Value <- min step.Limit.Value next.Limit.Value
-                minLimit.Next <- next.Next
-                MergeSameSteps minLimit
-            | next when step.OperatorCase = Step.OperatorOneofCase.Skip -> step
-            | next when step.OperatorCase = Step.OperatorOneofCase.Filter ->
-                let andedFilter = new Step()
-                andedFilter.Filter <- new FilterOperator()
-                andedFilter.Filter.Compare <- new FilterOperator.Types.Compare()
-                andedFilter.Filter.Compare.CompoundCmp <- new FilterOperator.Types.CompareCompound()
-                andedFilter.Filter.Compare.CompoundCmp.BOOLOP <- "&&"
-                andedFilter.Filter.Compare.CompoundCmp.Left <- step.Filter.Compare
-                andedFilter.Filter.Compare.CompoundCmp.Right <- next.Filter.Compare
-                andedFilter.Next <- next.Next
-                MergeSameSteps andedFilter
-            | next when step.OperatorCase = Step.OperatorOneofCase.Follow ->
-                match step.Follow.FollowCase, next.Follow.FollowCase with
-                    | (_, FollowOperator.FollowOneofCase.FollowAny) ->
-                        // any and any is still any, just skip this one.
-                        MergeSameSteps next 
-                    | (FollowOperator.FollowOneofCase.FollowAny, FollowOperator.FollowOneofCase.FollowEdge) ->
-                        // any and an edge, is still and any, skip the next one
-                        step.Next <- next.Next
-                        MergeSameSteps step
-                    | (FollowOperator.FollowOneofCase.FollowEdge, FollowOperator.FollowOneofCase.FollowEdge) ->
-                        let andedFilter = new Step()
-                        andedFilter.Follow <- new FollowOperator()
-                        andedFilter.Follow.FollowEdge <- new FollowOperator.Types.EdgeNum()
-                        andedFilter.Follow.FollowEdge.EdgeCmp <- new FollowOperator.Types.EdgeCMP()
-                        andedFilter.Follow.FollowEdge.EdgeCmp.BOOLOP <- "&&"
-                        andedFilter.Follow.FollowEdge.EdgeCmp.Left <- step.Follow.FollowEdge
-                        andedFilter.Follow.FollowEdge.EdgeCmp.Left <- next.Follow.FollowEdge
-                        andedFilter.Next <- next.Next
-                        MergeSameSteps andedFilter
-                    | (_,_) -> step
-            | _ -> step
-                
-    let rec ApplyPaging(operation:Step, s  ) =
-        match operation with
-            | null -> s
-            | op when op.OperatorCase = Step.OperatorOneofCase.Skip ->
-                    ApplyPaging (operation.Next, s |> Seq.skip op.Skip.Value)
-            | op when op.OperatorCase = Step.OperatorOneofCase.Limit ->
-                    ApplyPaging (operation.Next, s |> Seq.truncate op.Limit.Value)
-            | _ -> s
+        ()       
             
-            
-    let StartQueryNodeId (nid:NodeID) : Async<NodeID * Either<Node, Exception>> =
-        let partition = Utils.GetPartitionFromHash config.ParitionCount nid
+    let StartQueryNodeId (nid:NodeID) : Async<Node> =
+        let partition = Utils.GetPartitionFromHash(config.ParitionCount, nid)
         let (bc,t,part) = PartitionWriters.[int <| partition]
         async {
             let! stuff = part.AttrIndex().TryGetValueAsync(nid).AsTask() |> Async.AwaitTask
-            let struct (status,attrs) = stuff.CompleteRead()
+            let struct (status,node) = stuff.CompleteRead()
             config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.ItemFragmentMeter)
             return
                 match status with
-                | FASTER.core.Status.OK ->
-                    let node = new Node()
-                    node.Id <- nid
-                    node.Attributes.AddRange(attrs.Attributes_)
-                    nid , Either<Node,Exception>(node)
-                | FASTER.core.Status.ERROR -> nid , Either<Node,Exception>(new Exception("ERROR"))
-                | FASTER.core.Status.PENDING -> nid , Either<Node,Exception>(new Exception("PENDING"))
-                | FASTER.core.Status.NOTFOUND -> nid , Either<Node,Exception>(new KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID " + nid.Iri))
+                | FASTER.core.Status.OK -> node
+                | FASTER.core.Status.ERROR -> raise <| Exception("ERROR")
+                | FASTER.core.Status.PENDING -> raise <| Exception("PENDING")
+                | FASTER.core.Status.NOTFOUND -> raise <| KeyNotFoundException("Index of NodeID -> MemoryPointer: did not contain the NodeID " + nid.Iri)
         }
     
-    let StartScan (nid:NodeID): seq<Async<NodeID * Either<Node,Exception>>> =
+    let StartScan (): seq<Node> =
         seq {
-                let req =
-                    seq {
-                            for bc,t,part in PartitionWriters do
-                                yield part.AttrIndex().Iter()
-                        } 
-                    |> Seq.collect(fun x -> x)        
-
-                for node in req do
-                    let finishup = async {
-                        let loaded = node
-                        return (nid, Either<Node,Exception>( loaded ))
-                    }
-                    yield finishup                
-            }
+                for bc,t,part in PartitionWriters do
+                    yield part.AttrIndex().Iter()
+            } 
+        |> Seq.collect(fun x -> x)  
         
-    let LoadNode(addressBlock:seq<NodeID>, filter:BloomFilter.Filter<int>) : seq<struct(NodeID * Either<Node, Exception>)> =
-        let requestsMade =
-            addressBlock
-            |> Seq.distinct
-            |> Seq.filter (fun ab ->
-                if ab.Iri = "*" then // match anything
-                    true
-                else
-                    let hash = ab.GetHashCode()
-                    let loadIt = filter.Contains(hash) |> not
-                    filter.Add(hash) |> ignore
-                    loadIt
-                )
-            |> Seq.collect (fun nid ->
-                if nid.Iri = "*" then
-                    StartScan nid 
-                else
-                    [ StartQueryNodeId nid ] |> Seq.ofList 
-                )
-            
-        seq {                            
-            for ts in requestsMade |> Seq.map ( fun future -> future |> Async.RunSynchronously) do
-                let (ab,eith) = ts
-                yield (ab,eith)
-            }
-    
-    let rec QueryNodes(addressBlock:seq<NodeID>, step: Step, filter:BloomFilter.Filter<int>) : seq<struct(NodeID * Either<Node, Exception>)> =        
-        LoadNode(addressBlock, filter)
-        |> (fun f ->
-                    let mutable flow = f
-                    let mutable stepper = step
-                    while stepper <> null do
-                        let pflow = flow
-                        match stepper.OperatorCase with
-                            | Step.OperatorOneofCase.Filter ->
-                                let myStepper = stepper
-                                flow <- pflow
-                                        |> Seq.filter (fun struct(nid, item) ->
-                                                                    if item.IsLeft = true then
-                                                                        FilterNode(item.Left, myStepper)
-                                                                    else
-                                                                        true
-                                                                        )
-                            | Step.OperatorOneofCase.Skip           
-                            | Step.OperatorOneofCase.Limit ->
-                                flow <- ApplyPaging( stepper, pflow)
-                            | Step.OperatorOneofCase.Fields ->
-                                let myStepper = stepper
-                                flow <- pflow                                                                                        
-                                          |> Seq.map (fun struct(nid,item) ->
-                                                                if item.IsLeft = true then
-                                                                    let newNode =  RemoveFieldsNode(myStepper.Fields, item.Left)
-                                                                    struct(nid, Either<Node,Exception>(newNode))
-                                                                else
-                                                                    struct(nid,item)
-                                                                    )
-                            | Step.OperatorOneofCase.Follow ->
-                                let myStepper = stepper.Clone()
-                                FollowStepDecrement(myStepper.Follow)
-                                let continueFollowOrNextStep = 
-                                                        match ContinueThisFollowStep(myStepper.Follow) with
-                                                            | true -> myStepper
-                                                            | false -> myStepper.Next
-                                flow <-
-                                        pflow
-                                        |> Seq.collect (fun struct(nid,item) ->
-                                            if item.IsLeft then
-                                                 Seq.append ([struct(nid,item)]) (item.Left.Attributes
-                                                                                  |> Seq.filter (fun attr ->
-                                                                                        attr.Value.Data.DataCase = DataBlock.DataOneofCase.Nodeid
-                                                                                        && EdgeCmpForFollow(attr.Key.Data, myStepper.Follow))
-                                                                                  |> Seq.map (fun kv -> kv.Value.Data.Nodeid)
-                                                                                  |> (fun nodeIds -> QueryNodes(nodeIds, continueFollowOrNextStep, filter)) )
-                                            else
-                                                [struct(nid,item)] |> Seq.ofList
-                                            )
-                            | _ -> flow <- pflow
-                        stepper <- stepper.Next
-                    flow
-                    )
-                    
-    let QueryNoDuplicates(addressBlock:seq<NodeID>, step: Step) : System.Threading.Tasks.Task<seq<struct(NodeID * Either<Node, Exception>)>> =
-        let filter = BloomFilter.FilterBuilder.Build<int>(10000)
-        let mutable mergedSteps =
-            if step <> null then
-                MergeSameSteps step
+    let LoadNode(addressBlock:seq<NodeID>, filter:BloomFilter.Filter<int>) : seq<Node> =
+        addressBlock
+        |> Seq.distinctBy (fun x -> x.Iri)
+        |> Seq.filter (fun ab ->
+            if ab.Iri = "*" then // match anything
+                true
             else
-                Step()
-        let nodeStream = QueryNodes(addressBlock, mergedSteps, filter)
+                let hash = ab.Iri.GetHashCode()
+                let loadIt = filter.Contains(hash) |> not
+                filter.Add(hash) |> ignore
+                loadIt
+            )
+        |> Seq.collect (fun nid ->
+            if nid.Iri = "*" then
+                StartScan () 
+            else
+                [ StartQueryNodeId nid ] |> Seq.map ( fun future -> Async.RunSynchronously future ) 
+            )
+    
+    let rec QueryNodes(addressBlock:seq<NodeID>, filter:BloomFilter.Filter<int>) : seq<Node> =        
+        LoadNode(addressBlock, filter)
+        |> Seq.truncate 1000
+                    
+    let QueryNoDuplicates(addressBlock:seq<NodeID>) : System.Threading.Tasks.Task<seq<Node>> =
+        let filter = BloomFilter.FilterBuilder.Build<int>(10000)
+        let nodeStream = QueryNodes(addressBlock, filter)
         nodeStream
             |> Task.FromResult
     
@@ -441,118 +151,85 @@ type GrpcFileStore(config:Config) =
 
             ()    
     
-    let GetStats(req:GetStatsRequest, cancel: CancellationToken): Task<GetStatsResponse> =
-        
-        Task.FromResult(GetStatsResponse())
-    let GetMetrics(req:GetMetricsRequest, cancel: CancellationToken): Task<GetMetricsResponse> =
-        collectSystemMetrics()
-        let snap = config.Metrics.Snapshot
-        let x = snap.Get()
-        let ts = x.Timestamp
-        let gmr = GetMetricsResponse()
-        for context in x.Contexts do
-            for counter in context.Counters do
-                let met = GetMetricsResponse.Types.Metric()
-                met.Name <- counter.Name
-                met.Time <- Timestamp.FromDateTime ts
-                met.Value <- float32 counter.Value.Count
-                gmr.Metrics.Add (met)
-            for guage in context.Gauges do
-                let met = GetMetricsResponse.Types.Metric()
-                met.Name <- guage.Name
-                met.Time <- Timestamp.FromDateTime ts
-                met.Value <- float32 guage.Value
-                gmr.Metrics.Add (met)
-            for meter in context.Meters do
-                let met = GetMetricsResponse.Types.Metric()
-                met.Name <- meter.Name
-                met.Time <- Timestamp.FromDateTime ts
-                met.Value <- float32 meter.Value.OneMinuteRate
-                gmr.Metrics.Add (met)
-            for hist in context.Histograms do
-                let met = GetMetricsResponse.Types.Metric()
-                met.Name <- hist.Name
-                met.Time <- Timestamp.FromDateTime ts
-                met.Value <- float32 hist.Value.Count
-                gmr.Metrics.Add (met)
-            for t in context.Timers do
-                let met = GetMetricsResponse.Types.Metric()
-                met.Name <- t.Name
-                met.Time <- Timestamp.FromDateTime ts
-                met.Value <- float32 t.Value.Rate.OneMinuteRate
-                gmr.Metrics.Add (met)
-                () 
-        Task.FromResult(gmr)
+//    let GetStats(req:GetStatsRequest, cancel: CancellationToken): Task<GetStatsResponse> =
+//        
+//        Task.FromResult(GetStatsResponse())
+//    let GetMetrics(req:GetMetricsRequest, cancel: CancellationToken): Task<GetMetricsResponse> =
+//        collectSystemMetrics()
+//        let snap = config.Metrics.Snapshot
+//        let x = snap.Get()
+//        let ts = x.Timestamp
+//        let gmr = GetMetricsResponse()
+//        for context in x.Contexts do
+//            for counter in context.Counters do
+//                let met = GetMetricsResponse.Types.Metric()
+//                met.Name <- counter.Name
+//                met.Time <- Timestamp.FromDateTime ts
+//                met.Value <- float32 counter.Value.Count
+//                gmr.Metrics.Add (met)
+//            for guage in context.Gauges do
+//                let met = GetMetricsResponse.Types.Metric()
+//                met.Name <- guage.Name
+//                met.Time <- Timestamp.FromDateTime ts
+//                met.Value <- float32 guage.Value
+//                gmr.Metrics.Add (met)
+//            for meter in context.Meters do
+//                let met = GetMetricsResponse.Types.Metric()
+//                met.Name <- meter.Name
+//                met.Time <- Timestamp.FromDateTime ts
+//                met.Value <- float32 meter.Value.OneMinuteRate
+//                gmr.Metrics.Add (met)
+//            for hist in context.Histograms do
+//                let met = GetMetricsResponse.Types.Metric()
+//                met.Name <- hist.Name
+//                met.Time <- Timestamp.FromDateTime ts
+//                met.Value <- float32 hist.Value.Count
+//                gmr.Metrics.Add (met)
+//            for t in context.Timers do
+//                let met = GetMetricsResponse.Types.Metric()
+//                met.Name <- t.Name
+//                met.Time <- Timestamp.FromDateTime ts
+//                met.Value <- float32 t.Value.Rate.OneMinuteRate
+//                gmr.Metrics.Add (met)
+//                () 
+//        Task.FromResult(gmr)
     
     interface IDisposable with
         member x.Dispose() = Stop()
         
     interface IStorage with
     
-        member x.GetStats(req, cancel) =
-            GetStats(req, cancel)
-        
-        member x.GetMetrics(req, cancel) =
-            GetMetrics(req,cancel)
+//        member x.GetStats(req, cancel) =
+//            GetStats(req, cancel)
+//        
+//        member x.GetMetrics(req, cancel) =
+//            GetMetrics(req,cancel)
         
         member x.Nodes() : IEnumerable<Node> = 
-            // return local nodes before remote nodes
-            // let just start by pulling nodes from the index.
-            seq {
-                let nid = new NodeID()
-                nid.Iri <- "*"
-                for stuff in StartScan(nid) do
-                    let (_, eith) = stuff |> Async.RunSynchronously
-                    if eith.IsLeft then
-                        yield eith.Left
-            }
-            
-            // todo return remote nodes
+            StartScan()
             
         member x.Flush () = Flush()
             
-        member this.Add (nodes:seq<Node>) = 
-            Task.Factory.StartNew(fun () -> 
-                use addTimer = config.Metrics.Measure.Timer.Time(Metrics.FileStoreMetrics.AddTimer)
-                // TODO: Might need to have multiple add functions so the caller can specify a time for the operation
-                // Add time here so it's the same for all TMDs
-                let nowInt = DateTime.UtcNow.ToBinary()
-                
-                let partitionLists = 
-                    seq {for i in 0 .. (config.ParitionCount - 1) do 
-                         yield new System.Collections.Generic.List<Node>()}
-                    |> Array.ofSeq
-                
-                
-                let lstNodes = nodes |> List.ofSeq
-                let count = int64 lstNodes.Length  
-
-                Parallel.For(0,lstNodes.Length,(fun i ->
-                    let node = lstNodes.[i]
-                    while node.Fragments.Count < 3 do
-                        node.Fragments.Add (Utils.NullMemoryPointer())
-                    setTimestamps node nowInt
-                    let partition = Utils.GetPartitionFromHash config.ParitionCount node.Id
-                    let plist = partitionLists.[partition] 
-                    lock (plist) (fun () -> plist.Add node) 
-                )) |> ignore
-               
-                partitionLists
-                    |> Seq.iteri (fun i list ->
-                        if (list.Count > 0) then
-                            let tcs = new TaskCompletionSource<unit>(TaskCreationOptions.AttachedToParent)         
-                            let (bc,_,_) = PartitionWriters.[i]
-                            while bc.Writer.TryWrite ( Add(tcs,list)) = false do
-                                Console.WriteLine "Couldn't Add"
-                        )
-                
-                config.Metrics.Measure.Meter.Mark(Metrics.FileStoreMetrics.AddFragmentMeter, count)
-                
-                )
-                
+        member this.Add (nodes:seq<Node>) =
+            nodes
+                // can we partition by instead of group?
+                |> Seq.groupBy(fun n ->
+                    let mutable nid = n.Id.Value
+                    let i = Utils.GetPartitionFromHash(PartitionWriters.Length, nid  )
+                    i)
+                |> Seq.map (fun (group, items) ->
+                    let tcs = TaskCompletionSource<unit>()         
+                    let (bc,_,_) = PartitionWriters.[group]
+                    while bc.Writer.TryWrite ( Adds(tcs, items)) = false do
+                        Console.WriteLine "Couldn't Add"
+                    Console.WriteLine "Sent node to channel"
+                    tcs.Task :> Task
+                    )
+                |> Seq.toArray
+                |> Task.WhenAll
                         
         member x.Remove (nodes:seq<NodeID>) = raise (new NotImplementedException())
-        member x.Items (addressBlock:seq<NodeID>, follow: Step) = QueryNoDuplicates(addressBlock, follow)
+        member x.Items (addressBlock:seq<NodeID>) = QueryNoDuplicates(addressBlock)
         member x.First (predicate: Func<Node, bool>) = raise (new NotImplementedException())
         member x.Stop () =  
             Flush()

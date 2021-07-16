@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,65 +7,71 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Ahghee;
-using Ahghee.Grpc;
+using Ekati;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
-using cli;
 using cli.antlr;
-using cli_grammer;
+using DotNext.IO;
+using DotNext.Net.Cluster;
+using DotNext.Net.Cluster.Consensus.Raft;
+using DotNext.Net.Cluster.Messaging;
+using parser;
+using parser_grammer;
+using Ekati.Core;
+using Ekati.Ext;
+using FlatBuffers;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Utils = Ahghee.Utils;
+using Ekati.Protocol.Grpc;
+using IMessage = DotNext.Net.Cluster.Messaging.IMessage;
+using Utils = Ekati.Utils;
 
 namespace server
 {
-    
-    public class WatService : Ahghee.Grpc.WatDbService.WatDbServiceBase
+    public class WatService : WatDbService.WatDbServiceBase, IInputChannel
     {
         private readonly ILogger<WatService> _logger;
         private readonly IStorage _db;
         private TimeSpan _procTotalProcessorTime;
         private DateTime _dateTime;
         private Process _proc;
-
+        private IExpandableCluster _cluster;
+        private readonly IMessageBus _clusterBus;
+        private IInputChannel _inputChannelImplementation;
+        private ShardAssignment _currentShardAssignment;
+            
         public WatService(ILogger<WatService> logger, IStorage db)
         {
             _logger = logger;
             _db = db;
-
+           // _cluster = cluster;
+            //_clusterBus = clusterBus;
+            //_clusterBus.AddListener(this);
             // these are used to keep track of cpu.
             _proc = Process.GetCurrentProcess();
             _procTotalProcessorTime = _proc.TotalProcessorTime;
             _dateTime = DateTime.UtcNow;
+            //Startup();
         }
 
-        static UnbufferedTokenStream makeAHGHEEStream(string text)
+        public async void Startup()
         {
-            var sr = new StringReader(text);
-            var ins = new AntlrInputStream(sr);
-            var lex = new AHGHEELexer(ins);
-            return new UnbufferedTokenStream(lex);
+            var shardAssignment = await _clusterBus.LeaderRouter.SendMessageAsync(new ShardAssignment(_cluster.Members.Count*4, _cluster.Members).ToBinaryMessage(),
+                (resp, token) => new ValueTask<ShardAssignment>(new ShardAssignment(resp)), CancellationToken.None);
+            this._currentShardAssignment = shardAssignment;
         }
-        static UnbufferedTokenStream makeNTRIPLESStream(Stream text)
-        {
-            var ins = new AntlrInputStream(text);
-            var lex = new NTRIPLESLexer(ins);
-            return new UnbufferedTokenStream(lex);
-        }
-        static UnbufferedTokenStream makeNTRIPLESStream(TextReader text)
-        {
-            var ins = new AntlrInputStream(text);
-            var lex = new NTRIPLESLexer(ins);
-            return new UnbufferedTokenStream(lex);
-        }
+
+
         public override async Task<GetMetricsResponse> GetMetrics(GetMetricsRequest request, ServerCallContext context)
         {
-            return await _db.GetMetrics(request,context.CancellationToken);
-            var cpuPercent = UpdateCpuPercent();
+            throw new NotImplementedException();
+            //return await _db.GetMetrics(request,context.CancellationToken);
+            // var cpuPercent = UpdateCpuPercent();
         }
 
         private float UpdateCpuPercent()
@@ -94,11 +101,14 @@ namespace server
 
             return newLinePos;
         }
+
+        // we would like to be able to parse quickly. With Antlr there is supposed to be a way to parse quicker if we arent building a tree.
+        // here is a starting point for exploring that. 
         private async Task<int> ParseNTStreamNoTree(Stream data)
         {
             ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
 
-            var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
+            var parser = new NTRIPLESParser(ParserUtils.makeNTRIPLESStream(data));
             //parser.TrimParseTree = true;
             parser.BuildParseTree = true;
             int lastValidPosition = 0;
@@ -132,22 +142,25 @@ namespace server
             return lastValidPosition;
         }
         
-        private async Task ParseNTStream(Stream data)
+        // Import NTriples into the database
+        private async Task ParseNTriplesStream(Stream data)
         {
             ConcurrentQueue<Node> batch = new ConcurrentQueue<Node>();
 
-            var parser = new NTRIPLESParser(makeNTRIPLESStream(data));
+            var parser = new NTRIPLESParser(ParserUtils.makeNTRIPLESStream(data));
             parser.BuildParseTree = true;
 
             async Task GroupAndAdd(List<Node> list)
             {
                 var nodes = list.GroupBy(n => n.Id, (key, ns) =>
                 {
-                    return new Node
-                    {
-                        Id = key,
-                        Attributes = {ns.SelectMany(_n => _n.Attributes)}
-                    };
+                    var buf = new FlatBufferBuilder(128);
+                    var nid = key.Value.CopyTo(buf);
+                    var node = Node.CreateNode(buf, nid,
+                        Map.CreateMap(buf, Map.CreateItemsVector(buf, ns.SelectMany(_n => _n.Attributes.Value.AsEnumerable())
+                            .Select(kv => kv.CopyTo(buf)).ToArray())));
+                    Node.FinishNodeBuffer(buf, node);
+                    return Node.GetRootAsNode(buf.DataBuffer);
                 });
                 await _db.Add(nodes.ToList());
             }
@@ -206,7 +219,7 @@ namespace server
             }
         }
 
-        public override async Task Load(LoadFile request, IServerStreamWriter<LoadFileResponse> responseStream, ServerCallContext context)
+        public override async Task Load(LoadFile request, IServerStreamWriter<QueryResponse> responseStream, ServerCallContext context)
         {
             if (request.Type == "nt")
             {
@@ -275,7 +288,7 @@ namespace server
                             var pageView = new MemoryStream(memory, 0, endOfLastTriple);
 
                             // run the parser on that pageView.
-                            await ParseNTStream(pageView);
+                            await ParseNTriplesStream(pageView);
                             // move the end of the stream that we didn't read back to the beginning
                             //Console.WriteLine($"BBC: endoflastTriple:{endOfLastTriple}, unReadBytes:{unReadBytes}, urb32:{Convert.ToInt32(unReadBytes)}");
                             Buffer.BlockCopy(memory, endOfLastTriple, memory, 0, Convert.ToInt32(unReadBytes));
@@ -283,13 +296,14 @@ namespace server
                             TotalProgress += endOfLastTriple;
                             if (timer.Elapsed > TimeSpan.FromSeconds(1))
                             {
-                                
-                                await responseStream.WriteAsync(new LoadFileResponse
+                                var qr = new QueryResponse();
+                                qr.LoadFileResponse = new LoadFileResponse
                                 {
                                     Progress = TotalProgress,
                                     Length = TotalLength
-                                });    
-                            
+                                };
+                                 
+                                await responseStream.WriteAsync(qr);    
                             }
 
                             if (context.CancellationToken.IsCancellationRequested)
@@ -335,30 +349,84 @@ namespace server
             }
         }
 
-        public override async Task Get(Query request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
+        public override async Task Query(QueryRequest request, IServerStreamWriter<QueryResponse> responseStream, ServerCallContext context)
+        {
+            var parser = new AHGHEEParser(ParserUtils.makeStream(request.QueryText));
+            parser.BuildParseTree = true;
+            parser.AddParseListener(listener: new Listener(async (nodes) =>
+            {
+                // Handle inserting of nodes via a Put command
+                try
+                {
+                    // todo: Should we batch in chucks of these nodes?
+                    foreach (var node in nodes)
+                    {
+                        var qr = new QueryResponse();
+                        await _db.Add(new[] { node });
+                        qr.PutResponse = new PutResponse { Success = true };
+                        await responseStream.WriteAsync(qr);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ex {ex} stack: {ex.StackTrace}");
+                }
+            }, async (nids) =>
+            {
+                // Handle querying nodes
+                var gr = new GetRequest();
+                gr.Iris.AddRange(nids.Select(nid => nid.Iri));
+                await Get(gr, responseStream, context);
+            }, () => { },
+                async (loadType, path) =>
+                {
+                    var lf = new LoadFile();
+                    lf.Type = loadType;
+                    lf.Path = path.Trim('\"');
+                    await Load(lf, responseStream, context);
+                }));
+            parser.AddErrorListener(new ErrorListener());
+            AHGHEEParser.CommandContext cc = null;
+
+            for (; ; cc = parser.command())
+            {
+                if (cc?.exception != null)
+                {
+                    Console.WriteLine( $"{cc.exception.Message} - found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}");
+                }
+
+                if (parser.CurrentToken.Type == TokenConstants.Eof)
+                {
+                    break;
+                }
+            }
+        }
+
+        public override async Task Get(GetRequest request, IServerStreamWriter<QueryResponse> responseStream, ServerCallContext context)
         {
             try
             {
-                // todo: pass this into the Items call. context.CancellationToken;
-                var resutl = await _db.Items(request.Iris.Select(iri => new NodeID
+                // convert iri strings to flatbuffer NodeIDs
+                var nodeIds = request.Iris.Select(iri =>
                 {
-                    Iri = iri,
-                    Remote = "",
-                    Pointer = Utils.NullMemoryPointer()
-                }), request.Step);
+                    var builder = new FlatBufferBuilder(16);
+
+                    var nid = NodeID.CreateNodeID(builder, "".CopyTo(builder), iri.CopyTo(builder));
+                    builder.Finish(nid.Value);
+                    return NodeID.GetRootAsNodeID(builder.DataBuffer);
+                });
+                var result = await _db.Items(nodeIds);
                 var sendCount = 0;
-                foreach (var chunk in resutl)
+                foreach (var chunk in result)
                 {
-                    var (z, b) = chunk;
-                    if (b.IsLeft)
-                    {
-                        sendCount++;
-                        await responseStream.WriteAsync(b.Left);
-                    }
-                    else
-                    {
-                        _logger.LogError(b.Right, "Failure processing query");
-                    }
+                    sendCount++;
+                    var fn = new FlatNode();
+                    // todo: remove the double copy here
+                    _logger.LogInformation($"Sending Node:\n {chunk.ToDisplayString()}");
+                    fn.FlatBuffer = ByteString.CopyFrom(chunk.ByteBuffer.ToSizedArray());
+                    var qr = new QueryResponse();
+                    qr.Node = fn;
+                    await responseStream.WriteAsync(qr);
                 }
                 _logger.LogInformation($"Sent back {sendCount} items.");
             }
@@ -368,35 +436,80 @@ namespace server
             }
         }
 
-        public override async Task<PutResponse> Put(Node request, ServerCallContext context)
+        public override async Task Put(FlatNode request, IServerStreamWriter<QueryResponse> responseStream, ServerCallContext context)
         {
+            var qr = new QueryResponse();
             try
             {
-                await _db.Add(new[] {request});
-                return new PutResponse{Success = true};
+                // todo: remove the copy here
+                var node = Node.GetRootAsNode(new ByteBuffer(request.FlatBuffer.ToByteArray()));
+                await _db.Add(new[] {node});
+                
+                qr.PutResponse = new PutResponse { Success = true };
+                await responseStream.WriteAsync(qr);
             }
             catch (Exception e)
             {
                 _logger.LogError(e,"Put failed");
-                return new PutResponse{Success = false};
+                qr.PutResponse = new PutResponse { Success = false };
+                await responseStream.WriteAsync(qr);
             }
         }
 
         public override async Task<GetStatsResponse> GetStats(GetStatsRequest request, ServerCallContext context)
         {
-
-            return await _db.GetStats(request, context.CancellationToken);
+            throw new NotImplementedException();
+            // return await _db.GetStats(request, context.CancellationToken);
             
-        }
-
-        public override Task ListPolicies(ListPoliciesRequest request, IServerStreamWriter<Node> responseStream, ServerCallContext context)
-        {
-            return base.ListPolicies(request, responseStream, context);
         }
 
         public override Task<ListStatsResponse> ListStats(ListStatsRequest request, ServerCallContext context)
         {
             return base.ListStats(request, context);
+        }
+
+        // these are messages from some other node in the cluster
+        public Task<IMessage> ReceiveMessage(ISubscriber sender, IMessage message, object? context, CancellationToken token)
+        {
+            if (message.Name == server.ShardAssignment.Name)
+            {
+                if (_cluster.Leader.IsRemote)
+                {
+                    // shard assignment requests should always be sent to the leader, so we if get one as
+                    // a follower then something went wrong
+                    _logger.LogWarning("Got shard assignment message as a follower");
+                }
+
+                // if we have a current shardAssignment, and one that was sent in that are different
+                // we should check membership for new servers, or missing servers.
+                
+                
+                
+                // if we have new servers, ....
+                
+                
+                // if we have missing servers ...
+                
+                 
+                // if we have same servers, but different assignments, then we will want to either keep it the same
+                // or determine if we should balance some things around.
+                
+                var sa = new ShardAssignment(_cluster.Members.Count * 4, _cluster.Members);
+                this._currentShardAssignment = sa;
+                return Task.FromResult(sa.ToBinaryMessage() as IMessage);
+            }
+            throw new NotImplementedException();
+        }
+
+        // these are signals from some other node in the cluster
+        public Task ReceiveSignal(ISubscriber sender, IMessage signal, object? context, CancellationToken token)
+        {
+            switch (signal.Name)
+            {
+                case "" : break;
+                default: break;
+            }
+            throw new NotImplementedException();
         }
     }
 }

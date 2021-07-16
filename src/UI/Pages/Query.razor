@@ -1,15 +1,13 @@
 ﻿@page "/query"
 
 @using System.IO
-@using Ahghee.Grpc
+@using Ekati.Protocol.Grpc
 @using Microsoft.Extensions.Logging
-@using Antlr4
-@using Antlr4.Runtime
-@using cli.antlr
-@using cli_grammer
+@using Ekati.Core
+@using Ekati.Ext
 @using Grpc.Core.Utils
 @using Microsoft.AspNetCore.Components.Rendering
-@inject Ahghee.Grpc.WatDbService.WatDbServiceClient wat
+@inject Ekati.Protocol.Grpc.WatDbService.WatDbServiceClient wat
 @inject IJSRuntime JsRuntime;
 @inject HttpClient Http
 @inject ILogger<Query> Logger
@@ -17,7 +15,7 @@
 
 <div>
     <h3 style="display: inline; padding-right: 5%;">Query</h3>
-    <button @onclick="@((o) => { this.Run(); })">Run</button>
+    <button @onclick="@((o) => { this.RunScript(); })">Run Script</button>
     <button @onclick="@((o) => { this.Clear(); })">Clear</button>
 </div>
 <div style="display: table; clear: both;">
@@ -49,8 +47,8 @@
         @if (Nodes.Any())
         {
             var headers = (from node in Nodes.Skip(skip).Take(take)
-                from attr in node.Attributes
-                let keyD = attr.Key.Data.ToDisplayString()
+                from attr in node.Attributes.Value.AsEnumerable()
+                let keyD = attr.Key.Value.Data.Value.ToDisplayString()
                 select (keyD)).OrderBy(x=> x).Distinct().ToList();
             
             <table>
@@ -68,10 +66,10 @@
                     foreach (var n in Nodes.Skip(skip).Take(take))
                     {
                         <tr>
-                            <td>@n.Id.Iri</td>
+                            <td>@n.Id.Value.Iri</td>
                             @foreach (var h in headers)
                             {
-                                var vals = n.Attributes.Where(a => a.Key.Data.ToDisplayString() == h).ToList();
+                                var vals = n.Attributes.Value.AsEnumerable().Where(a => a.Key.Value.Data.Value.ToDisplayString() == h).ToList();
                                 if (!vals.Any())
                                 {
                                     <td></td>
@@ -82,7 +80,7 @@
 
                                         @if (vals.Count == 1)
                                         {
-                                            <span>@vals[0].Value.Data.ToDisplayString()</span>
+                                            <span>@vals[0].Value.Value.Data.Value.ToDisplayString()</span>
                                         }
                                         else
                                         {
@@ -90,7 +88,7 @@
                                                 @foreach (var a in vals.Take(3))
                                                 {
                                                     //var key = a.Key.Data.ToDisplayString();
-                                                    var val = a.Value.Data.ToDisplayString().Replace("\\u", "&#");
+                                                    var val = a.Value.Value.Data.Value.ToDisplayString().Replace("\\u", "&#");
                                                     <li>@val</li>
                                                 }
                                                 @if (vals.Count > 3)
@@ -116,7 +114,6 @@
     public bool IsInitialized;
     public int IsLoading;
     public List<Node> Nodes { get; set; }
-
     int skip = 0;
     int take = 10;
     int took = 0;
@@ -138,17 +135,11 @@
     protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
-        
+
         Nodes = new List<Node>();
     }
 
-    static UnbufferedTokenStream makeStream(string text)
-    {
-        var sr = new StringReader(text);
-        var ins = new AntlrInputStream(sr);
-        var lex = new AHGHEELexer(ins);
-        return new UnbufferedTokenStream(lex);
-    }
+
 
     private async Task Clear()
     {
@@ -243,7 +234,7 @@ get ""*""
         try
         {
             var source = await JsRuntime.InvokeAsync<string>("GetMonacoEditorContent", new object[] {});
-    //DebugText = $"{counterSource++} Source:{source}";
+            //DebugText = $"{counterSource++} Source:{source}";
             return source;
         }
         catch (Exception e)
@@ -253,148 +244,75 @@ get ""*""
         }
     }
 
-    private void AttachLimitStep(Ahghee.Grpc.Query query)
-    {
-        var limitStep = new Ahghee.Grpc.Step
-        {
-            Limit = new LimitFilter
-            {
-                Value = Limit
-            }
-        };
-        
-        if (query.Step != null)
-        {
-            var lastStep = query.Step;
-            while (lastStep.Next != null)
-            {
-                lastStep = lastStep.Next;
-            }
-
-            // we only attach if the user didn't put their own limit step on the query.
-            if (lastStep.OperatorCase != Step.OperatorOneofCase.Limit)
-            {
-                lastStep.Next = limitStep;
-            }
-        }
-        else
-        {
-            query.Step = limitStep;
-        }
-        
-    }
-    
-    private async Task Run()
+    private async Task RunScript()
     {
         await JS_OnContentChanged();
-        
-        var parser = new AHGHEEParser(makeStream(Source));
-        parser.BuildParseTree = true;
-        parser.AddParseListener(listener: new Listener(async (nodes) =>
+        ProgressItems.Clear();
+        var request = new Ekati.Protocol.Grpc.QueryRequest();
+        request.QueryText = await JS_GetSourceAsync();
+        var responseNodes = wat.Query(request);
+        var scriptStatus = new ProgressItem
         {
-            try
-            {
-
-            
-                var pi = new ProgressItem
-                {
-                    Message = "Putting Nodes",
-                    Count = 0,
-                    InProgress = true
-                };
-                ProgressItems.Add(pi);
-                this.StateHasChanged();
-                foreach (var node in nodes)
-                {
-                    pi.Count++;
-                    await wat.PutAsync(node);
-                    pi.Count--;
-                }
-                this.StateHasChanged();     
-                pi.InProgress = false;
-                this.StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ex {ex} stack: {ex.StackTrace}");
-            }
-        }, async (nids, step) =>
+            Message = "Running Script",
+            Count = 0,
+            InProgress = true
+        };
+        ProgressItems.Add(scriptStatus);
+        Lazy<ProgressItem> getNodesStatus = new Lazy<ProgressItem>(() =>
         {
-            var q = new Ahghee.Grpc.Query();
-            q.Iris.AddRange(nids.Select(x => x.Iri));
-            q.Step = step;
-            AttachLimitStep(q);
-
             var pi = new ProgressItem
             {
-                Message = "Getting Nodes",
+                Message = "Loading Nodes",
                 Count = 0,
                 InProgress = true
             };
             ProgressItems.Add(pi);
-            
-            this.StateHasChanged();
-            var stream = wat.Get(q);
-            var head = await stream.ResponseHeadersAsync;
-            
-            this.StateHasChanged();
-            await stream.ResponseStream.ForEachAsync(async node =>
-            {
-                if (this.Nodes.Find(n => n.Id.Equals(node.Id)) == null)
-                {
-                    this.Nodes.Add(node);
-                }
-                pi.Count++;
-            });
-            pi.InProgress = false;
-            this.StateHasChanged();
-        }, () => { },
-            async (loadType, path) =>
-            {
-                var pi = new ProgressItem
-                {
-                    Message = "Loading Nodes: "+ path,
-                    Count = 1,
-                    InProgress = true
-                };
-                ProgressItems.Add(pi);
-                this.StateHasChanged();
-                var loadProgress = wat.Load(new LoadFile
-                {
-                    Type = loadType,
-                    Path = path.Trim('\"')
-                });
-                await loadProgress.ResponseStream.ForEachAsync(async progress =>
-                {
-                    pi.Count = progress.Progress;
-                    pi.OfTotal = progress.Length;
-                    this.StateHasChanged();
-                });
-                this.StateHasChanged();
-            }));
-        parser.AddErrorListener(new ErrorListener());
-        AHGHEEParser.CommandContext cc = null;
-
-        for (;; cc = parser.command())
+            return pi;
+        });
+        Lazy<ProgressItem> insertStatus = new Lazy<ProgressItem>(() =>
         {
-            if (cc?.exception != null
-    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.InputMismatchException)
-    //&& cc.exception.GetType() != typeof(Antlr4.Runtime.NoViableAltException)
-                )
+            var pi = new ProgressItem
             {
-                var pi = new ProgressItem
-                {
-                    Message = $"{cc.exception.Message} - found {cc.exception.OffendingToken.Text} at Line {cc.exception.OffendingToken.Line} offset at {cc.exception.OffendingToken.StartIndex}",
-                    Count = 0,
-                    InProgress = true
-                };
-                ProgressItems.Add(pi);
-            }
-
-            if (parser.CurrentToken.Type == TokenConstants.Eof)
+                Message = "Putting Data",
+                Count = 0,
+                InProgress = true
+            };
+            ProgressItems.Add(pi);
+            return pi;
+        });
+        Lazy<ProgressItem> loadFileStatus = new Lazy<ProgressItem>(() =>
+        {
+            var pi = new ProgressItem
             {
-                break;
+                Message = "Loading File",
+                Count = 0,
+                InProgress = true
+            };
+            ProgressItems.Add(pi);
+            return pi;
+        });
+        await responseNodes.ResponseStream.ForEachAsync(async n =>
+        {
+            scriptStatus.Count++;
+            this.StateHasChanged();
+            if (n.MessageCase == QueryResponse.MessageOneofCase.Node)
+            {
+                Console.WriteLine("Got Node - {0}", n.Node.FlatBuffer.ToBase64());
+                var sizedArray = n.Node.FlatBuffer.ToByteArray();
+                var node = Node.GetRootAsNode(new FlatBuffers.ByteBuffer(sizedArray));
+                Nodes.Add(node);
+                getNodesStatus.Value.Count++;
+            }else if (n.MessageCase == QueryResponse.MessageOneofCase.PutResponse)
+            {
+                insertStatus.Value.Count += n.PutResponse.Success ? 1 : 0;
+            }else if (n.MessageCase == QueryResponse.MessageOneofCase.LoadFileResponse)
+            {
+                loadFileStatus.Value.Count = n.LoadFileResponse.Progress;
+                loadFileStatus.Value.OfTotal = n.LoadFileResponse.Length;
             }
-        }
+            this.StateHasChanged();
+        });
+        scriptStatus.InProgress = false;
+        this.StateHasChanged();
     }
 }

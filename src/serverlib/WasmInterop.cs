@@ -2,7 +2,7 @@ using System;
 using Wasmtime;
 using Xunit.Abstractions;
 
-namespace Ahghee.Grpc
+namespace Ekati
 {
     public class WasmInterop
     {
